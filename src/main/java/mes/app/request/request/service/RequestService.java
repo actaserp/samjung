@@ -111,6 +111,7 @@ public class RequestService {
                     hd.panel_hl,
                     hd.panel_hh,
                     hd.remark,
+                    hd.saupnum,
                 
                     (
                          SELECT bd.filepath, bd.filesvnm, bd.fileextns, bd.fileurl, bd.fileornm, bd.filesize, bd.fileid

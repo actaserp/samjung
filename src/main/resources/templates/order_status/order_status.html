@@ -849,9 +849,10 @@
                         cltnm: '',
                         remark: '',
                         deldate: '',
-                        panel_t: '',
-                        panel_w: '',
-                        panel_l: '',
+                        panel_ht: '',
+                        panel_hw: '',
+                        panel_hl: '',
+                        panel_hh:'' ,
                         reqnum:'',
                     });
                 }
@@ -876,9 +877,10 @@
                         {binding: 'remark', header: '제목', width: '*', minWidth: 550, align: 'left'},
                         {binding: 'deldate', header: '납품희망일', width: '*', minWidth: 150, align: 'center'},
                         {binding: 'perid', header: '담당자', width: '*',minWidth: 150, align: 'center'},
-                        {binding: 'panel_t', header: 'T(두께)', width: 80, align: 'right'},
-                        {binding: 'panel_w', header: 'W/H(폭 또는 높이)', width: 150, align: 'right'},
-                        {binding: 'panel_l', header: 'L(길이)', width: 80, align: 'right'},
+                        {binding: 'panel_ht', header: 'T(두께)', width: 80, align: 'right'},
+                        {binding: 'panel_hw', header: 'W(폭)', width: 80, align: 'right'},
+                        {binding: 'panel_hh', header: 'H(높이)', width: 80, align: 'right'},
+                        {binding: 'panel_hl', header: 'L(길이)', width: 80, align: 'right'},
                         {binding: 'reqnum', visible: false},  // 숨길 컬럼
                     ],
 
@@ -921,6 +923,8 @@
                             console.warn("❌ 유효한 rowData 또는 reqnum이 없습니다.");
                             return;
                         }
+                        //sessionStorage 에 저장
+                        sessionStorage.setItem("selectedRowData", JSON.stringify(rowData));
 
                         window.parent.postMessage({
                             action: "addTab",
@@ -930,33 +934,6 @@
                             active: true,
                             allowClose: true,
                         });
-
-                        /*const options = {
-                            allowClose: true,
-                            active: true,
-                            location: true,
-                            fadeIn: true,
-                            id: "order_request",
-                            // id: objid,
-                            title:"주문등록",
-                            url: '/gui/order_request/default',
-                        };
-
-                        // ✅ options가 정상적으로 전달되는지 확인
-                        console.log("🔍 addTab() 호출 시 options 확인:", options);
-
-                        try {
-                            console.log("🚀 nthTabs.addTab() 실행 시도:", options);
-                            nthTabs.addTab(options);
-
-                            // ✅ 추가 후 딜레이를 두고 탭 목록 확인
-                            setTimeout(() => {
-                                console.log("📌 현재 열린 탭 목록:", nthTabs.getTabList());
-                            }, 500);
-
-                        } catch (error) {
-                            console.error("❌ nthTabs.addTab() 실행 중 오류 발생:", error);
-                        }*/
                     }
                 }
                 lastClickTime = now;

@@ -666,18 +666,48 @@
 
     <!-- 초반 페이지 진입시 그리드 바인딩 끝-->
     function init() {
-      fetchListData();
-      fetchListData2();
-      getMyInfo();
+      // 🔹 sessionStorage에서 데이터 가져오기
+      const rowData = sessionStorage.getItem("selectedRowData");
+
+      if (rowData) {
+        // 🔹 JSON 파싱하여 데이터 추출
+        const parsedData = JSON.parse(rowData);
+        console.log("✅ sessionStorage 데이터 있음:", parsedData);
+
+        // `saupnum` 값만 추출
+        const { saupnum } = parsedData;
+
+        console.log("사업자번호 (saupnum):", saupnum);
+
+        //`saupnum`을 포함해서 데이터 요청
+        fetchListData(saupnum);
+        fetchListData2(saupnum);
+        getMyInfo(saupnum);
+
+        // 2초 후에 sessionStorage 데이터 삭제
+        setTimeout(() => {
+          sessionStorage.removeItem("selectedRowData");
+          console.log("🗑️ sessionStorage 데이터 삭제 완료");
+        }, 2000);
+      } else {
+        console.warn("⚠️ sessionStorage에 저장된 데이터 없음. 기본 요청 실행");
+
+        // 🔹 기존 방식대로 실행 (인자 없이)
+        fetchListData();
+        fetchListData2();
+        getMyInfo();
+      }
     }
+
     // 주문의뢰현황 그리드
-    function fetchListData() {
+    function fetchListData(saupnum) {
       let data2 = [];
       const transformedData = []; // 변환된 데이터를 저장할 배열
       $.ajax({
         url: '/api/request/request/order_read',
         type: 'GET',
         data: {
+          'saupnum':saupnum,
           'search_startDate': $('#startDate').val(),
           'search_endDate': $('#endDate').val(),
           'search_remark': $('#searchRemark').val(),
@@ -796,6 +826,7 @@
             {binding: 'isdownload', visible: false},
             {binding: 'hd_files', visible: false},
             {binding: 'originOrdtext', visible: false},
+            {binding: 'saupnum', visible: false},
           ],
           itemsSource: viewdata1,
           itemFormatter: function (panel, r, c, cell) {
@@ -920,13 +951,14 @@
     }
 
     // 주문등록 세부내용 그리드
-    function fetchListData2() {
+    function fetchListData2(saupnum) {
       let data2 = [];
 
       $.ajax({
         url: '/api/request/request/read',
         type: 'GET',
         data: {
+          'saupnum':saupnum,
           'reqnum': $('#reqnum').val(),
           'reqdate': $('#reqdate').val()
         },
@@ -1556,9 +1588,10 @@
       downloadFiles(downloadList, downloadUrl);
     }
     // 내정보 불러오는 함수
-    function getMyInfo() {
+    function getMyInfo(saupnum) {
       $.ajax({
         url: '/api/request/request/getUserInfo', // 데이터를 가져올 URL
+        data: {'saupnum': saupnum},
         type: 'GET',
         success: function(data) {
           document.getElementById("telno").value = data.data.hptelnum;
@@ -1572,6 +1605,7 @@
         }
       });
     }
+
     function showPopup2(documnetId) {
       let selectedItems = theGrid.selectedItems;
       // 해당 ID의 팝업 요소를 찾음

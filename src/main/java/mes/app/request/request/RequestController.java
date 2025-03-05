@@ -59,11 +59,20 @@ public class RequestController {
     Settings settings;
     // 주문등록 세부사항 그리드 read
     @GetMapping("/read")
-    public AjaxResult getList(@RequestParam Map<String, String> params
-                            , Authentication auth) {
-        User user = (User) auth.getPrincipal();
-        String username = user.getUsername();
+    public AjaxResult getList(@RequestParam Map<String, String> params,
+                              Authentication auth) {
+        String username = params.getOrDefault("saupnum", "").trim();
+
+        if (username.isEmpty()) {
+            User user = (User) auth.getPrincipal();
+            username = user.getUsername(); // 로그인한 사용자의 username 사용
+        }
+
         Map<String, Object> userInfo = requestService.getUserInfo(username);
+        if (userInfo == null) {
+            System.out.println("⚠️ userInfo가 NULL입니다. username: " + username);
+            throw new IllegalArgumentException("해당 사용자 정보를 찾을 수 없습니다: " + username);
+        }
         TB_DA006W_PK tbDa006WPk = new TB_DA006W_PK();
         tbDa006WPk.setReqnum(params.get("reqnum"));
         tbDa006WPk.setReqdate(params.get("reqdate").replaceAll("-",""));
@@ -82,10 +91,12 @@ public class RequestController {
                                    @RequestParam(value = "search_endDate", required = false) String searchEndDate,
                                    @RequestParam(value = "search_remark", required = false) String searchRemark,
                                    @RequestParam(value = "search_ordflag", required = false) String searchOrdfalg,
+                                   @RequestParam(value = "saupnum", required = false) String Saupnum,
                                    Authentication auth) {
-        User user = (User) auth.getPrincipal();
-        String username = user.getUsername();
+        String username = (Saupnum != null && !Saupnum.isEmpty()) ? Saupnum : ((User) auth.getPrincipal()).getUsername();
+
         Map<String, Object> userInfo = requestService.getUserInfo(username);
+
         TB_DA006W_PK tbDa006WPk = new TB_DA006W_PK();
         tbDa006WPk.setSpjangcd((String) userInfo.get("spjangcd"));
         tbDa006WPk.setCustcd((String) userInfo.get("custcd"));
@@ -167,6 +178,7 @@ public class RequestController {
 
         return result;
     }
+
     //신규등록
     @Transactional(isolation = Isolation.SERIALIZABLE)
     @PostMapping("/save")
@@ -499,9 +511,15 @@ public class RequestController {
     }
     // 유저정보 불러와 input태그 value
     @GetMapping("/getUserInfo")
-    public AjaxResult getUserInfo(Authentication auth){
-        User user = (User) auth.getPrincipal();
-        String username = user.getUsername();
+    public AjaxResult getUserInfo(@RequestParam(value = "saupnum", required = false) String Saupnum,
+                                  Authentication auth){
+        String username;
+        if (Saupnum != null && !Saupnum.isEmpty()) {
+            username = Saupnum;
+        } else {
+            User user = (User) auth.getPrincipal();
+            username = user.getUsername();
+        }
         Map<String, Object> userInfo = requestService.getMyInfo(username);
 
         AjaxResult result = new AjaxResult();

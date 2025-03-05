@@ -709,6 +709,7 @@
         type: 'GET',
         data: {
           'saupnum':saupnum,
+          'saupnumHidden': $('#saupnumHidden').val(),
           'search_startDate': $('#startDate').val(),
           'search_endDate': $('#endDate').val(),
           'search_remark': $('#searchRemark').val(),
@@ -1140,6 +1141,7 @@
         // 주문번호 생성
         let formData = new FormData();
         // 다른 데이터를 FormData에 추가합니다.
+        formData.append('saupnumHidden', $('#saupnumHidden').val());
         formData.append('reqdate', $('#reqdate').val());
         formData.append('deldate', $('#deldate').val());
         formData.append('telno', $('#telno').val());
@@ -1429,9 +1431,14 @@
             const itemToRemove = viewdata2.sourceCollection[index]; // 삭제할 항목 가져오기
             viewdata2.remove(itemToRemove); // CollectionView에서 항목 삭제
             if(selectedData.reqseq !== ""){
+              const saupnumHiddenElement = document.getElementById('saupnumHidden');
+              const saupnumHidden = saupnumHiddenElement ? saupnumHiddenElement.value.trim() : "";
+
               let deleteNum = {
+                saupnumHidden: saupnumHidden,
                 reqseq: selectedData.reqseq,
-                reqnum: document.getElementById('reqnum').value
+                reqnum: document.getElementById('reqnum').value,
+                reqdate: selectedData.reqdate
               };
               let fnSuccess = function (res) {
                 isProcessing = false;

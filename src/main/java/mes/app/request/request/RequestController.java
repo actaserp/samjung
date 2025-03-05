@@ -95,9 +95,19 @@ public class RequestController {
                                    @RequestParam(value = "search_endDate", required = false) String searchEndDate,
                                    @RequestParam(value = "search_remark", required = false) String searchRemark,
                                    @RequestParam(value = "search_ordflag", required = false) String searchOrdfalg,
+                                   @RequestParam(value = "saupnumHidden", required = false) String saupnumHidden,
                                    @RequestParam(value = "saupnum", required = false) String Saupnum,
                                    Authentication auth) {
-        String username = (Saupnum != null && !Saupnum.isEmpty()) ? Saupnum : ((User) auth.getPrincipal()).getUsername();
+        String username = (Saupnum != null && !Saupnum.isEmpty()) ? Saupnum : "";
+
+        if (username.isEmpty()) {
+            username = (saupnumHidden != null && !saupnumHidden.isEmpty()) ? saupnumHidden : "";
+        }
+
+        if (username.isEmpty()) {
+            User user = (User) auth.getPrincipal();
+            username = user.getUsername();
+        }
 
         Map<String, Object> userInfo = requestService.getUserInfo(username);
 
@@ -191,9 +201,17 @@ public class RequestController {
                                 @RequestPart(value = "deletedFiles2", required = false) MultipartFile[] deletedFiles,
                                 Authentication auth) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
-        User user = (User) auth.getPrincipal();
         AjaxResult result = new AjaxResult();
-        String username = user.getUsername();
+        User user = (User) auth.getPrincipal();
+        // ✅ `saupnum` → `saupnumHidden` → `auth` 순으로 username 설정
+        String username = params.getOrDefault("saupnum", "").trim();
+
+        if (username.isEmpty()) {
+            username = params.getOrDefault("saupnumHidden", "").trim();
+        }
+        if (username.isEmpty()) {
+            username = user.getUsername();
+        }
         Map<String, Object> userInfo = requestService.getUserInfo(username);
 
         TB_DA006W_PK headpk = new TB_DA006W_PK();
@@ -596,9 +614,18 @@ public class RequestController {
     @PostMapping("/bodyDelete")
     public AjaxResult deleteBody(@RequestParam Map<Object, String> param,
                                  Authentication auth) {
-        User user = (User) auth.getPrincipal();
         AjaxResult result = new AjaxResult();
-        String username = user.getUsername();
+
+        String username = param.getOrDefault("saupnum", "").trim();
+
+        //`saupnum`이 없으면 `saupnumHidden`을 가져오기
+        if (username.isEmpty()) {
+            username = param.getOrDefault("saupnumHidden", "").trim();
+        }
+        if (username.isEmpty()) {
+            User user = (User) auth.getPrincipal();
+            username = user.getUsername(); // 로그인한 사용자의 username 사용
+        }
         Map<String, Object> userInfo = requestService.getUserInfo(username);
         TB_DA006W_PK tbDa006WPk = new TB_DA006W_PK();
         tbDa006WPk.setReqnum(param.get("reqnum"));
@@ -606,8 +633,9 @@ public class RequestController {
         tbDa006WPk.setCustcd((String) userInfo.get("custcd"));
         String reqseq = param.get("reqseq");
         String reqnum = param.get("reqnum");
+        String reqdate = param.get("reqdate");
 
-        Map<String, Object> item = this.requestService.getInspecList2(tbDa006WPk, reqseq);
+        Map<String, Object> item = this.requestService.getInspecList2(tbDa006WPk, reqseq, reqdate);
         List<String> imageUrls = new ArrayList<>();
         String ordtext = (String) item.get("ordtext"); // 큰따옴표로 수정
         if (ordtext != null) {

@@ -451,11 +451,11 @@
                 bindSpjangcd();
                 isBindSpjangcdCalled = true; // 플래그 업데이트
             }
-            selectConfigbind();
             fetchListData();
             initCalendar();
             fetchListData2();
             initDatas();
+            applySavedSettings(); // 페이지 로드 시 설정 적용
         }
 
         $(document).ready(function() {
@@ -478,8 +478,6 @@
 
             nthTabs = $('#main-tabs').nthTabs();
             console.log("✅ nthTabs 객체 상태 확인:", nthTabs);
-
-            applySavedSettings(); // 페이지 로드 시 설정 적용
         });
 
         // '.fetchCard' 클래스를 가진 모든 요소에 대해 클릭 이벤트 설정
@@ -1363,23 +1361,21 @@
         }
 
         //공통 코드
-        function selectConfigbind() {
-            const selectConfigs = [
-                {parentCode: 'ordflag', elementId: 'searchstate'},
-            ];
+        const selectConfigs = [
+            {parentCode: 'ordflag', elementId: 'searchstate'},
+        ];
 
-            selectConfigs.forEach(config => {
-                initializeSelect3({
-                    url: '/api/order_status/ordFlagType',
-                    params: {parentCode: config.parentCode},
-                    elementId: config.elementId,
-                    valueField: "code",
-                    textField: "value",
-                    includeAllOption: true, // "전체" 옵션 사용
-                    defaultValue: "0" // 기본 선택값 추가 ("주문등록")
-                });
+        selectConfigs.forEach(config => {
+            initializeSelect3({
+                url: '/api/order_status/ordFlagType',
+                params: {parentCode: config.parentCode},
+                elementId: config.elementId,
+                valueField: "code",
+                textField: "value",
+                includeAllOption: true, // "전체" 옵션 사용
+                defaultValue: "0" // 기본 선택값 추가 ("주문등록")
             });
-        }
+        });
         // 관리자 Dashboard 카드 클릭이동
         function applySavedSettings() {
             var activeSection = sessionStorage.getItem("activeSection");
@@ -1408,21 +1404,36 @@
         // option값 value bind
         function setSelectedIndex(selectElement, selectedValue) {
             console.log("setSelectedIndex start !!!");
+            console.log("입력된 selectedValue:", selectedValue, "타입:", typeof selectedValue);
+
+            if (!selectElement) {
+                console.error("❌ Select element가 존재하지 않음.");
+                return;
+            }
+
+            console.log("✅ Select element 존재:", selectElement);
+            console.log("🟢 Select element options:", selectElement.options);
+
             let found = false;
+            let normalizedValue = String(selectedValue).trim(); // 🔥 `selectedValue`를 `String` 변환하여 비교
 
             for (let i = 0; i < selectElement.options.length; i++) {
-                if (selectElement.options[i].value === selectedValue) {
+                console.log(`비교: '${selectElement.options[i].value.trim()}' (type: ${typeof selectElement.options[i].value}) === '${normalizedValue}' (type: ${typeof normalizedValue})`);
+
+                if (selectElement.options[i].value.trim() === normalizedValue) {
                     selectElement.selectedIndex = i;
+                    console.log("✅ 선택된 값:", selectElement.options[i].value);
                     found = true;
                     break;
                 }
             }
 
-            // 일치하는 값이 없을 경우, 기본값 0 설정
             if (!found) {
                 selectElement.selectedIndex = 0;
+                console.warn("❌ 일치하는 값이 없어 기본값 0 설정");
             }
         }
+
 
     </script>
 </th:block>

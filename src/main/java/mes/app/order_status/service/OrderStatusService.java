@@ -61,7 +61,7 @@ public class OrderStatusService {
         }
 
         // "전체"일 경우 조건을 추가하지 않음
-        if (searchstate != null && !searchstate.equals("전체") && !searchstate.isEmpty()) {
+        if (searchstate != null && !searchstate.equals("all") && !searchstate.isEmpty()) {
             sql.append(" AND tb006.ordflag = :searchstate ");
             params.addValue("searchstate", searchstate);
         }

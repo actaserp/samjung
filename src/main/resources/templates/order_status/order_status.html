@@ -451,6 +451,7 @@
                 bindSpjangcd();
                 isBindSpjangcdCalled = true; // 플래그 업데이트
             }
+            selectConfigbind();
             fetchListData();
             initCalendar();
             fetchListData2();
@@ -477,6 +478,8 @@
 
             nthTabs = $('#main-tabs').nthTabs();
             console.log("✅ nthTabs 객체 상태 확인:", nthTabs);
+
+            applySavedSettings(); // 페이지 로드 시 설정 적용
         });
 
         // '.fetchCard' 클래스를 가진 모든 요소에 대해 클릭 이벤트 설정
@@ -1360,21 +1363,66 @@
         }
 
         //공통 코드
-        const selectConfigs = [
-            { parentCode: 'ordflag', elementId: 'searchstate' },
-        ];
+        function selectConfigbind() {
+            const selectConfigs = [
+                {parentCode: 'ordflag', elementId: 'searchstate'},
+            ];
 
-        selectConfigs.forEach(config => {
-            initializeSelect3({
-                url: '/api/order_status/ordFlagType',
-                params: { parentCode: config.parentCode },
-                elementId: config.elementId,
-                valueField: "code",
-                textField: "value",
-                includeAllOption: true, // "전체" 옵션 사용
-                defaultValue: "0" // 기본 선택값 추가 ("주문등록")
+            selectConfigs.forEach(config => {
+                initializeSelect3({
+                    url: '/api/order_status/ordFlagType',
+                    params: {parentCode: config.parentCode},
+                    elementId: config.elementId,
+                    valueField: "code",
+                    textField: "value",
+                    includeAllOption: true, // "전체" 옵션 사용
+                    defaultValue: "0" // 기본 선택값 추가 ("주문등록")
+                });
             });
-        });
+        }
+        // 관리자 Dashboard 카드 클릭이동
+        function applySavedSettings() {
+            var activeSection = sessionStorage.getItem("activeSection");
+            var searchState = sessionStorage.getItem("searchState");
+
+            if (searchState) {
+                // tab2 활성화
+                activateSection();
+                // 진행구분 선택 탭 상태값에 따라 인덱스 바인드
+                setSelectedIndex(document.getElementById("searchstate"), searchState); // 진행구분 select 바인딩
+                // 주문확인 그리드 조회
+
+            }
+            // sessionStorage 값 삭제 (한 번만 적용되도록)
+            sessionStorage.removeItem("activeSection");
+            sessionStorage.removeItem("searchState");
+        }
+        function activateSection() {
+            $(".tab-item").hide(); // 모든 섹션 숨기기
+            $("#tab2").show(); // 해당 섹션 표시
+            $(".tab-links li").removeClass("active"); // 모든 탭에서 active 제거
+
+            // 특정 title을 가진 <a> 태그를 찾아 해당 <li>에 active 추가
+            $(".tab-links a[title='주문 확인']").parent("li").addClass("active");
+        }
+        // option값 value bind
+        function setSelectedIndex(selectElement, selectedValue) {
+            console.log("setSelectedIndex start !!!");
+            let found = false;
+
+            for (let i = 0; i < selectElement.options.length; i++) {
+                if (selectElement.options[i].value === selectedValue) {
+                    selectElement.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+
+            // 일치하는 값이 없을 경우, 기본값 0 설정
+            if (!found) {
+                selectElement.selectedIndex = 0;
+            }
+        }
 
     </script>
 </th:block>

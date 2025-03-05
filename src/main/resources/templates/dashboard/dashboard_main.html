@@ -718,8 +718,17 @@
             window.open(url, '_blank',
                 'width=1040,height=1000,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes');
         }
+        // 주문상태별 카드 클릭시 주문확인 페이지로 이동
         $(document).ready(function () {
-            $(".request").click(function () {
+            $(".request, .check, .order, .product, .delivery").click(function () {
+                var section = $(this).attr("class"); // 클릭한 버튼의 클래스 가져오기
+                var searchStateValue = getSearchState(section); // 해당 섹션에 맞는 searchState 가져오기
+
+                // sessionStorage에 저장
+                sessionStorage.setItem("activeSection", section);
+                sessionStorage.setItem("searchState", searchStateValue);
+
+                // postMessage로 탭 추가 요청
                 window.parent.postMessage({
                     action: "addTab",
                     id: "order_status",
@@ -727,9 +736,22 @@
                     url: '/gui/' + "order_status" + '/default',
                     active: true,
                     allowClose: true,
-                }, "*"); // 보안이 필요하면 특정 도메인 설정 가능
+                }, "*");
             });
+
+            // searchState 값을 반환하는 메서드
+            function getSearchState(section) {
+                var stateMapping = {
+                    "request": "0",
+                    "check": "1",
+                    "order": "2",
+                    "product": "3",
+                    "delivery": "4"
+                };
+                return stateMapping[section] || "0"; // 매핑된 값이 없으면 default 반환
+            }
         });
+
 
     </script>
 </th:block>

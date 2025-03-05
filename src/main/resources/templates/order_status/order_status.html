@@ -453,9 +453,9 @@
             }
             fetchListData();
             initCalendar();
+            applySavedSettings(); // 페이지 로드 시 설정 적용
             fetchListData2();
             initDatas();
-            applySavedSettings(); // 페이지 로드 시 설정 적용
         }
 
         $(document).ready(function() {
@@ -1386,8 +1386,8 @@
                 activateSection();
                 // 진행구분 선택 탭 상태값에 따라 인덱스 바인드
                 setSelectedIndex(document.getElementById("searchstate"), searchState); // 진행구분 select 바인딩
-                // 주문확인 그리드 조회
-
+                // 주문일자 올해건수 바인드
+                setOrderDateRange();
             }
             // sessionStorage 값 삭제 (한 번만 적용되도록)
             sessionStorage.removeItem("activeSection");
@@ -1403,26 +1403,13 @@
         }
         // option값 value bind
         function setSelectedIndex(selectElement, selectedValue) {
-            console.log("setSelectedIndex start !!!");
-            console.log("입력된 selectedValue:", selectedValue, "타입:", typeof selectedValue);
-
-            if (!selectElement) {
-                console.error("❌ Select element가 존재하지 않음.");
-                return;
-            }
-
-            console.log("✅ Select element 존재:", selectElement);
-            console.log("🟢 Select element options:", selectElement.options);
-
             let found = false;
             let normalizedValue = String(selectedValue).trim(); // 🔥 `selectedValue`를 `String` 변환하여 비교
 
             for (let i = 0; i < selectElement.options.length; i++) {
-                console.log(`비교: '${selectElement.options[i].value.trim()}' (type: ${typeof selectElement.options[i].value}) === '${normalizedValue}' (type: ${typeof normalizedValue})`);
 
                 if (selectElement.options[i].value.trim() === normalizedValue) {
                     selectElement.selectedIndex = i;
-                    console.log("✅ 선택된 값:", selectElement.options[i].value);
                     found = true;
                     break;
                 }
@@ -1432,6 +1419,33 @@
                 selectElement.selectedIndex = 0;
                 console.warn("❌ 일치하는 값이 없어 기본값 0 설정");
             }
+        }
+
+        function setOrderDateRange() {
+            const today = new Date();
+            const year = today.getFullYear();
+
+            // 올해 1월 1일 (로컬 시간 기준)
+            const startDate = new Date(year, 0, 1); // 월: 0 = 1월
+            const startDateStr = formatDate(startDate);
+
+            // 올해 12월 31일 (로컬 시간 기준)
+            const endDate = new Date(year, 11, 31);
+            const endDateStr = formatDate(endDate);
+
+            const startDateInput = document.getElementById("startDate");
+            const endDateInput = document.getElementById("endDate");
+            startDateInput.value = startDateStr;
+            endDateInput.value = endDateStr;
+
+        }
+
+        //로컬 시간 기준으로 날짜를 YYYY-MM-DD 형식으로 변환하는 함수
+        function formatDate(date) {
+            let yyyy = date.getFullYear();
+            let mm = String(date.getMonth() + 1).padStart(2, "0"); // 월은 0부터 시작하므로 +1 필요
+            let dd = String(date.getDate()).padStart(2, "0");
+            return `${yyyy}-${mm}-${dd}`;
         }
 
 

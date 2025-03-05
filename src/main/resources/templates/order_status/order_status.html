@@ -478,6 +478,32 @@
 
             nthTabs = $('#main-tabs').nthTabs();
             console.log("✅ nthTabs 객체 상태 확인:", nthTabs);
+
+
+            $(".tab-links a").click(function (event) {
+                event.preventDefault(); // 기본 동작 방지
+
+                var targetTab = $(this).attr("href"); // 클릭한 탭의 href 값 가져오기
+
+                // 모든 탭 숨기기
+                $(".tab-item").hide();
+                $(".tab-links li").removeClass("active");
+
+                // 선택한 탭 표시
+                $(targetTab).show();
+                $(this).parent("li").addClass("active");
+
+                // ✅ tab1으로 돌아올 경우 캘린더 리사이징
+                if (targetTab === "#tab1") {
+                    setTimeout(() => {
+                        console.log("📆 캘린더 리사이징 실행");
+                        if (calendar) {
+                            calendar.updateSize(); // 캘린더 크기 재조정
+                            calendar.render(); // 다시 그리기
+                        }
+                    }, 200); // 약간의 딜레이를 줘서 렌더링 완료 후 실행
+                }
+            });
         });
 
         // '.fetchCard' 클래스를 가진 모든 요소에 대해 클릭 이벤트 설정
@@ -531,6 +557,7 @@
                 theGrid = new wijmo.grid.FlexGrid('#theGrid', {
                     autoGenerateColumns: false,
                     showMarquee: true,
+                    isReadOnly: true,
                     columns: [
                         { binding: 'ordflag', header: '진행구분', align: 'center', width: 100 },
                         { binding: 'reqdate', header: '의뢰일자', align: 'center', width: 120 },
@@ -547,7 +574,7 @@
                         e.cell.style.textAlign = 'center';
                     }
                 });
-
+                attachDoubleClickEvent(theGrid);   //더블클릭 이벤트
                 // 선택이 변경될 때, 현재 항목 업데이트
                 theGrid.rowHeaders.columns.splice(0, 1);
                 new FlexGridContextMenu(theGrid);

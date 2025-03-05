@@ -63,6 +63,10 @@ public class RequestController {
                               Authentication auth) {
         String username = params.getOrDefault("saupnum", "").trim();
 
+        //`saupnum`이 없으면 `saupnumHidden`을 가져오기
+        if (username.isEmpty()) {
+            username = params.getOrDefault("saupnumHidden", "").trim();
+        }
         if (username.isEmpty()) {
             User user = (User) auth.getPrincipal();
             username = user.getUsername(); // 로그인한 사용자의 username 사용

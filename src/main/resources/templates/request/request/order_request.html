@@ -77,6 +77,7 @@
             <table class="write-table">
               <caption>주문등록 테이블</caption>
               <input type="hidden" id="reqnum" name="reqnum">
+              <input type="hidden" id="saupnumHidden" name="saupnumHidden" value="">
               <tbody>
               <tr>
                 <th style="text-align: center">
@@ -675,10 +676,10 @@
         console.log("✅ sessionStorage 데이터 있음:", parsedData);
 
         // `saupnum` 값만 추출
-        const { saupnum } = parsedData;
+        const { saupnum} = parsedData;
 
         console.log("사업자번호 (saupnum):", saupnum);
-
+        document.getElementById("saupnumHidden").value = saupnum;
         //`saupnum`을 포함해서 데이터 요청
         fetchListData(saupnum);
         fetchListData2(saupnum);
@@ -782,6 +783,7 @@
         reqnum: null,
         isdownload: null,
         hd_files: null,
+        saupnum:null,
         originOrdtext: null
       }; // 필요한 데이터 구조
 
@@ -958,6 +960,7 @@
         url: '/api/request/request/read',
         type: 'GET',
         data: {
+          'saupnumHidden': $('#saupnumHidden').val(),
           'saupnum':saupnum,
           'reqnum': $('#reqnum').val(),
           'reqdate': $('#reqdate').val()
@@ -1000,6 +1003,7 @@
             {binding: 'originOrdtext', visible: false},
             {binding: 'reqseq', visible: false},
             {binding: 'isnew', visible: false},
+            {binding: 'saupnum',visible: false}
           ],
           itemsSource: viewdata2,
           itemFormatter: function (panel, r, c, cell) {

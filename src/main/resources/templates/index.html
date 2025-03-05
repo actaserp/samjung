@@ -768,13 +768,17 @@
 
         window.addEventListener("message", function(event) {
             if (event.data.action === "addTab") {
-                nthTabs.addTab({
-                    id: event.data.id,
-                    title: event.data.title,
-                    url: event.data.url,
-                    active: event.data.active,
-                    allowClose: event.data.allowClose
-                });
+                if (nthTabs.isExistsTab('#' + event.data.id)) {
+                    nthTabs.toggleTab('#' + event.data.id);
+                } else {
+                    nthTabs.addTab({
+                        id: event.data.id,
+                        title: event.data.title,
+                        url: event.data.url,
+                        active: event.data.active,
+                        allowClose: event.data.allowClose
+                    });
+                }
             }
         });
         // CR = String.fromCharCode(10);

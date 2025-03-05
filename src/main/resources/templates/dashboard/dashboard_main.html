@@ -256,6 +256,7 @@
     <th:block th:replace="/common/upload_one_image_box :: upload_one_image_box"></th:block>
     <th:block th:replace="/common/popup_select_user_code :: popup_select_user_code"></th:block>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/nth-tabs.js"></script>
     <script type="text/javascript">
         // 오늘 날짜 가져오기
         function getTodayDate() {
@@ -717,34 +718,18 @@
             window.open(url, '_blank',
                 'width=1040,height=1000,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes');
         }
-
-        // 주문구분별 카드 클릭시 '주문관리 -> 주문현황 -> 주문확인' 페이지로 이동
-        document.addEventListener("DOMContentLoaded", function () {
-            document.querySelectorAll("section").forEach(section => {
-                section.addEventListener("click", function () {
-                    let targetPage = "";
-
-                    // 클래스명에 따라 이동할 페이지 설정
-                    if (this.classList.contains("request")) {
-                        targetPage = "/order_status.html";  // 주문등록 페이지
-                    } else if (this.classList.contains("check")) {
-                        targetPage = "order_status/order_status.html";  // 주문확인 페이지
-                    } else if (this.classList.contains("order")) {
-                        targetPage = "order_status/order_status.html";  // 주문확정 페이지
-                    } else if (this.classList.contains("product")) {
-                        targetPage = "order_status/order_status.html";  // 제작진행 페이지
-                    } else if (this.classList.contains("delivery")) {
-                        targetPage = "order_status/order_status.html";  // 출고 페이지
-                    }
-
-                    // 이동할 페이지가 설정된 경우 이동
-                    if (targetPage) {
-                        window.location.href = targetPage;
-                    }
-                });
+        $(document).ready(function () {
+            $(".request").click(function () {
+                window.parent.postMessage({
+                    action: "addTab",
+                    id: "order_status",
+                    title: "주문현황",
+                    url: '/gui/' + "order_status" + '/default',
+                    active: true,
+                    allowClose: true,
+                }, "*"); // 보안이 필요하면 특정 도메인 설정 가능
             });
         });
-
 
     </script>
 </th:block>

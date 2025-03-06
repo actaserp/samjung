@@ -97,13 +97,14 @@ public class RequestController {
                                    @RequestParam(value = "search_ordflag", required = false) String searchOrdfalg,
                                    @RequestParam(value = "saupnumHidden", required = false) String saupnumHidden,
                                    @RequestParam(value = "saupnum", required = false) String Saupnum,
+                                   @RequestParam(value = "search_comnm", required = false) String searchComnm,
                                    Authentication auth) {
         String username = (Saupnum != null && !Saupnum.isEmpty()) ? Saupnum : "";
-
+        String saupnum;
+        // username이 없을경우/session삭제후 진입(관리자 진입)
         if (username.isEmpty()) {
             username = (saupnumHidden != null && !saupnumHidden.isEmpty()) ? saupnumHidden : "";
         }
-
         if (username.isEmpty()) {
             User user = (User) auth.getPrincipal();
             username = user.getUsername();
@@ -114,12 +115,12 @@ public class RequestController {
         TB_DA006W_PK tbDa006WPk = new TB_DA006W_PK();
         tbDa006WPk.setSpjangcd((String) userInfo.get("spjangcd"));
         tbDa006WPk.setCustcd((String) userInfo.get("custcd"));
-        String saupnum = (String) userInfo.get("saupnum");
+        saupnum = (String) userInfo.get("saupnum");
         String cltcd = (String) userInfo.get("cltcd");
         String search_startDate = (searchStartDate).replaceAll("-","");
         String search_endDate = (searchEndDate).replaceAll("-","");
         List<Map<String, Object>> items = this.requestService.getOrderList(tbDa006WPk,
-                search_startDate, search_endDate, searchRemark, searchOrdfalg, saupnum, cltcd);
+                search_startDate, search_endDate, searchRemark, searchOrdfalg, saupnum, cltcd, searchComnm);
 //        Map<String, Object> headitem = this.requestService.getHeadList(tbDa006WPk);
 //        items.add(headitem);
         for (Map<String, Object> item : items) {

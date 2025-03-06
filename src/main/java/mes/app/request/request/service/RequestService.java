@@ -84,7 +84,13 @@ public class RequestService {
     }
     //주문의뢰현황 불러오기
     public List<Map<String, Object>> getOrderList(TB_DA006W_PK tbDa006W_pk,
-                                                  String searchStartDate, String searchEndDate, String searchRemark, String searchOrdflag, String saupnum, String cltcd) {
+                                                  String searchStartDate,
+                                                  String searchEndDate,
+                                                  String searchRemark,
+                                                  String searchOrdflag,
+                                                  String saupnum,
+                                                  String cltcd,
+                                                  String searchComnm) {
 
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("searchStartDate", searchStartDate);
@@ -92,6 +98,7 @@ public class RequestService {
         dicParam.addValue("searchRemark", "%" + searchRemark + "%");
         dicParam.addValue("searchOrdflag",  searchOrdflag);
         dicParam.addValue("cltcd",  cltcd);
+        dicParam.addValue("searchComnm",  "%" + searchComnm + "%");
 
         StringBuilder sql = new StringBuilder("""
                 SELECT
@@ -162,6 +169,10 @@ public class RequestService {
         // 제목필터
         if (searchRemark != null && !searchRemark.isEmpty()) {
             sql.append(" AND hd.remark LIKE :searchRemark");
+        }
+        // 업체명 필터
+        if (searchComnm != null && !searchComnm.isEmpty()) {
+            sql.append(" AND hd.cltnm = :searchComnm");
         }
         // 진행구분 필터
         if (searchOrdflag != null && !searchOrdflag.isEmpty()) {

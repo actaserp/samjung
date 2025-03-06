@@ -367,15 +367,28 @@
               </dl>
               <dl>
                 <dt>
-                  <label for="searchRemark">
+                  <label for="searchComnm">
                     업체명<span class="eq">*</span>
                   </label>
                 </dt>
                 <dd>
                   <div class="srch-box">
-                    <input type="text" id="searchRemark" name="searchRemark" class="input-srch"
-                           placeholder="업체명" style="border-radius: 5px;">
+                    <input type="text" id="searchComnm" name="searchComnm" class="input-srch"
+                           placeholder="업체명" style="border-radius: 5px;" readonly>
                     <!--                                        <a href="#a" class="btn-srch" title="검색" onclick="searchData()"></a>-->
+                  </div>
+                </dd>
+              </dl>
+              <dl>
+                <dt>
+                  <label for="searchRemark">
+                    제목<span class="eq">*</span>
+                  </label>
+                </dt>
+                <dd>
+                  <div class="srch-box">
+                    <input type="text" id="searchRemark" name="searchRemark" class="input-srch"
+                           placeholder="제목" style="border-radius: 5px;">
                   </div>
                 </dd>
               </dl>
@@ -682,8 +695,15 @@
         document.getElementById("saupnumHidden").value = saupnum;
         document.getElementById("reqnum").value = reqnum;
         document.getElementById("reqdate").value = reqdate;
+<<<<<<< Updated upstream
 
         // `saupnum`을 포함해서 데이터 요청
+=======
+        // 업체명 readonly 제거
+        document.getElementById("searchComnm").removeAttribute("readonly");
+
+        //`saupnum`을 포함해서 데이터 요청
+>>>>>>> Stashed changes
         fetchListData(saupnum);
         fetchListData2(saupnum);
         getMyInfo(saupnum);
@@ -765,7 +785,8 @@
           'search_startDate': $('#startDate').val(),
           'search_endDate': $('#endDate').val(),
           'search_remark': $('#searchRemark').val(),
-          'search_ordflag': $('#searchOrdflag').val()
+          'search_ordflag': $('#searchOrdflag').val(),
+          'search_comnm': $('#searchComnm').val()
         },
         async: false,
         success: function (data) {
@@ -1662,6 +1683,7 @@
           document.getElementById("postno").value = data.data.zipcd;
           document.getElementById("address1").value = data.data.cltadres.replace(/\s*\|/g, '').trim();
           document.getElementById("cltnm").value = data.data.cltnm;
+          document.getElementById("searchComnm").value = data.data.cltnm;
         },
         error: function(error) {
           console.log('정보를 불러오는데 실패했습니다.', error);

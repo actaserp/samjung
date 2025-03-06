@@ -498,3 +498,12 @@ section .section-top {display: flex; flex-flow: row wrap; justify-content: space
 .fc-day-sun .fc-daygrid-day-top {
     color: #EC193A;
 }
+
+@media (max-width: 1600px) {
+    .write-table th{
+        font-size: small;
+        min-width: 80px;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+}

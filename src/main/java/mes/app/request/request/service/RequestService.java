@@ -172,7 +172,7 @@ public class RequestService {
         }
         // 업체명 필터
         if (searchComnm != null && !searchComnm.isEmpty()) {
-            sql.append(" AND hd.cltnm = :searchComnm");
+            sql.append(" AND hd.cltnm LIKE :searchComnm");
         }
         // 진행구분 필터
         if (searchOrdflag != null && !searchOrdflag.isEmpty()) {

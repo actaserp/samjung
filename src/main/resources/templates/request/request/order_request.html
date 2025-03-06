@@ -47,7 +47,7 @@
             <div class="button-wrap">
               <ul>
                 <li>
-                  <a class="btn btn-excell" title="신규등록" onclick="resetFormFields()">
+                  <a id="newdataBtn" class="btn btn-excell" title="신규등록" onclick="resetFormFields()">
                     <img src="/images/icon/ico-plus.svg" alt="등록 아이콘">
                     신규등록
                   </a>
@@ -190,6 +190,7 @@
           <div class="section-top">
             <div class="title-wrap">
               <h3>세부사항</h3>
+              <a style="color: red;margin-top: 4px;margin-left: 5px;">(세부사항 더블클릭시 수정가능합니다.)</a>
             </div>
             <div class="button-wrap" style="margin-bottom: 10px; margin-top: 10px">
               <ul>
@@ -699,7 +700,8 @@
         // `saupnum`을 포함해서 데이터 요청
         // 업체명 readonly 제거
         document.getElementById("searchComnm").removeAttribute("readonly");
-
+        // 신규등록버튼 제거
+        document.getElementById("newdataBtn").style.display = "none";
         //`saupnum`을 포함해서 데이터 요청
         fetchListData(saupnum);
         fetchListData2(saupnum);
@@ -769,7 +771,7 @@
     });
 
 
-    // 주문의뢰현황 그리드
+    // 주문/진행현황 그리드
     function fetchListData(saupnum) {
       let data2 = [];
       const transformedData = []; // 변환된 데이터를 저장할 배열

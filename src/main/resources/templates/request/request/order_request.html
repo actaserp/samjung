@@ -26,7 +26,7 @@
       <ul class="tab-links">
         <input type="hidden" id="checkdtParam" name="checkdtParam" th:value="${checkdt}"/>
         <li>
-          <a href="#tab1" title="목록" id="listTabLink">주문 등록</a>
+          <a href="#tab1" title="주문 등록" id="listTabLink">주문 등록</a>
         </li>
         <li>
           <a href="#tab2" title="등록">주문/진행현황</a>
@@ -668,6 +668,7 @@
     function init() {
       // 🔹 sessionStorage에서 데이터 가져오기
       const rowData = sessionStorage.getItem("selectedRowData");
+      const tabAction = sessionStorage.getItem("tabAction"); // ✅ 추가: tabAction 값 가져오기
 
       if (rowData) {
         // 🔹 JSON 파싱하여 데이터 추출
@@ -675,16 +676,18 @@
         console.log("✅ sessionStorage 데이터 있음:", parsedData);
 
         // 필요한 값들 추출
-        const {saupnum, reqnum, reqdate} = parsedData;
+        const { saupnum, reqnum, reqdate } = parsedData;
 
         console.log("사업자번호 (saupnum):", saupnum);
         document.getElementById("saupnumHidden").value = saupnum;
         document.getElementById("reqnum").value = reqnum;
         document.getElementById("reqdate").value = reqdate;
-        //`saupnum`을 포함해서 데이터 요청
+
+        // `saupnum`을 포함해서 데이터 요청
         fetchListData(saupnum);
         fetchListData2(saupnum);
         getMyInfo(saupnum);
+        activateSection();
 
         // 2초 후에 sessionStorage 데이터 삭제
         setTimeout(() => {
@@ -699,7 +702,35 @@
         fetchListData2();
         getMyInfo();
       }
+
+      // ✅ tabAction 값이 있으면 실행 후 삭제
+      if (tabAction) {
+        setTimeout(() => {
+        console.log("🔄 tabAction 값 존재, init 실행!");
+        sessionStorage.removeItem("tabAction"); // 실행 후 제거
+        sessionStorage.removeItem("selectedRowData");
+          console.log("🗑️ sessionStorage.tabAction 데이터 삭제 완료");
+        }, 2000);
+      }
     }
+
+    // ✅ 탭이 활성화될 때 `tabAction` 값을 확인하고 `init()` 실행
+    window.addEventListener("storage", function (event) {
+      if (event.key === "tabAction" && event.newValue) {
+        console.log("📢 tabAction 감지됨! init 실행");
+        init();
+      }
+    });
+
+    function activateSection() {
+      $(".tab-item").hide(); // 모든 섹션 숨기기
+      $("#tab1").show(); // 해당 섹션 표시
+      $(".tab-links li").removeClass("active"); // 모든 탭에서 active 제거
+
+      // 특정 title을 가진 <a> 태그를 찾아 해당 <li>에 active 추가
+      $(".tab-links a[title='주문 등록']").parent("li").addClass("active");
+    }
+
     // 주문현황 더블클릭 이벤트 기존탭 최신화
     document.addEventListener("DOMContentLoaded", function () {
       console.log("✅ order_request.html DOMContentLoaded 완료");

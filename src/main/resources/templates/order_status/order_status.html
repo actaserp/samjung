@@ -935,7 +935,7 @@
                         }
                         //sessionStorage 에 저장
                         sessionStorage.setItem("selectedRowData", JSON.stringify(rowData));
-
+                        sessionStorage.setItem("tabAction", "toggle");
                         window.parent.postMessage({
                             action: "addTab",
                             id: "order_request",

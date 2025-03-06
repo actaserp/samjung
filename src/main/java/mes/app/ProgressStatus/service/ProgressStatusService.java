@@ -51,7 +51,7 @@ public class ProgressStatusService {
 
     public List<Map<String, Object>> getChartData2(
             String userid, String search_spjangcd, String startDate, String endDate,
-            String searchCltnm, Integer searchtketnm, String searchTitle) {
+            String searchCltnm, String searchtketnm, String searchTitle) {
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         StringBuilder sql = new StringBuilder("""
@@ -80,7 +80,7 @@ public class ProgressStatusService {
             params.addValue("spjangcd", search_spjangcd);
         }
 
-        if (searchtketnm != null) {
+        if (searchtketnm != null && !searchtketnm.equals("all") && !searchtketnm.isEmpty()) {
             sql.append(" AND ordflag = :ordflag");
             params.addValue("ordflag", searchtketnm);
         }

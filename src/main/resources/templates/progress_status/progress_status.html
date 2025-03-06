@@ -102,14 +102,9 @@
                             </dt>
                             <dd>
                                 <div class="srch-box">
-                                    <select id="searchtketnm" name="searchtketnm">
-                                        <option value="">전체</option>
-                                        <option value="0">주문등록</option>
-                                        <option value="1">주문확인</option>
-                                        <option value="2">주문확정</option>
-                                        <option value="3">제작진행</option>
-                                        <option value="4">출고</option>
-                                    </select>
+                                        <select id="searchtketnm" name="searchtketnm">
+                                            <option value="all"></option>
+                                        </select>
                                 </div>
                             </dd>
                         </dl>
@@ -167,6 +162,7 @@
                             <div id="theGrid" style="max-height:319px"></div>
                         </div>
                     </div>
+                </div>
             </section>
         </div> <!--//tab-wrap end-->
     </div> <!--//layout-contents end -->
@@ -612,7 +608,8 @@
             1: "주문확인",
             2: "주문확정",
             3: "제작진행",
-            4: "출고"
+            4: "출고",
+            5: "주문취소"
         };
         //차트
         console.log(Chart.version); // 콘솔에서 Chart.js 버전을 확인
@@ -624,7 +621,7 @@
 
             // 진행 단계를 수치로 매핑하는 함수
             function getOrdflagText(ordflag) {
-                const stageLabels = ['주문의뢰', '주문확인', '주문확정', '제작진행', '출고'];
+                const stageLabels = ['주문의뢰', '주문확인', '주문확정', '제작진행', '출고',];
                 return stageLabels[ordflag];
             }
 
@@ -771,6 +768,19 @@
                 'width=1040,height=1000,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes');
         }
 
+        const selectConfigs = [
+            { parentCode: 'ordflag', elementId: 'searchtketnm' },
+        ];
+        selectConfigs.forEach(config => {
+            initializeSelect3({
+                url: '/api/order_status/ordFlagType',
+                params: { parentCode: config.parentCode },
+                elementId: config.elementId,
+                valueField: "code",
+                textField: "value",
+                includeAllOption: true, // "전체" 옵션 사용
+            });
+        });
     </script>
 </th:block>
 </html>

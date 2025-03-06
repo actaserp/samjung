@@ -105,7 +105,7 @@ public class ProgressStatusController {
             @RequestParam(value = "startDate", required = false) String startDate,
             @RequestParam(value = "endDate", required = false) String endDate,
             @RequestParam(value = "searchCltnm", required = false) String searchCltnm,
-            @RequestParam(value = "searchtketnm", required = false) Integer searchtketnm,
+            @RequestParam(value = "searchtketnm", required = false) String searchtketnm,
             @RequestParam(value = "searchTitle", required = false) String searchTitle) {
 
         AjaxResult result = new AjaxResult();

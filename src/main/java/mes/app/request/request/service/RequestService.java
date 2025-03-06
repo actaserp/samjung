@@ -119,6 +119,7 @@ public class RequestService {
                     hd.panel_hh,
                     hd.remark,
                     hd.saupnum,
+                    hd.cltnm,
                 
                     (
                          SELECT bd.filepath, bd.filesvnm, bd.fileextns, bd.fileurl, bd.fileornm, bd.filesize, bd.fileid
@@ -129,28 +130,10 @@ public class RequestService {
                            AND bd.reqnum = hd.reqnum
                          ORDER BY bd.indatem DESC
                          FOR JSON PATH
-                     ) AS hd_files,
-                
-                    bd.reqseq AS bd_reqseq,
-                    bd.panel_t AS bd_panel_t,
-                    bd.panel_w AS bd_panel_w,
-                    bd.panel_l AS bd_panel_l,
-                    bd.hgrb AS bd_hgrb,
-                    bd.qty AS bd_qty,
-                    bd.exfmtypedv AS bd_exfmtypedv,
-                    bd.infmtypedv AS bd_infmtypedv,
-                    bd.stframedv AS bd_stframedv,
-                    bd.stexplydv AS bd_stexplydv,
-                    bd.ordtext AS bd_ordtext
+                     ) AS hd_files
                 
                 FROM
                     TB_DA006W hd
-                
-                LEFT JOIN TB_DA007W bd
-                    ON bd.custcd = hd.custcd
-                    AND bd.spjangcd = hd.spjangcd
-                    AND bd.reqdate = hd.reqdate
-                    AND bd.reqnum = hd.reqnum
                 
                 WHERE
                     hd.custcd = :custcd

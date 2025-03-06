@@ -690,13 +690,13 @@
         console.log("✅ sessionStorage 데이터 있음:", parsedData);
 
         // 필요한 값들 추출
-        const { saupnum, reqnum, reqdate } = parsedData;
+        const { saupnum, reqnum, reqdate, cltnm } = parsedData;
 
         console.log("사업자번호 (saupnum):", saupnum);
         document.getElementById("saupnumHidden").value = saupnum;
         document.getElementById("reqnum").value = reqnum;
         document.getElementById("reqdate").value = reqdate;
-
+        document.getElementById("searchComnm").value = cltnm;
         // `saupnum`을 포함해서 데이터 요청
         // 업체명 readonly 제거
         document.getElementById("searchComnm").removeAttribute("readonly");
@@ -803,32 +803,8 @@
         item.bd_stframedv = getListCgrb2(item.bd_stframedv);
         item.bd_stexplydv = getListCgrb2(item.bd_stexplydv);
         item.originOrdtext = item.bd_ordtext;
-        // reqnum이 이미 본 값인지 확인
-        if (!seenReqnum.has(item.reqnum)) {
-          // 처음 보는 경우, 값을 추가하고 Set에 추가
-          transformedData.push(item);
-          seenReqnum.add(item.reqnum);
-        } else {
-          // 이미 본 경우, 특정 필드를 숨기기 위해 복사하되 해당 필드를 null로 설정
-          const newItem = {
-            ...item,
-            ordflag: null,
-            reqdate: null,
-            deldate: null,
-            panel_ht: null,
-            panel_hw: null,
-            panel_hl: null,
-            panel_hh: null,
-            remark: null,
-            telno : null,
-            perid : null,
-            cltaddr : null,
-            isdownload: false
-          };
-          transformedData.push(newItem);
-        }
       });
-      viewdata1 = new wijmo.collections.CollectionView(transformedData); // 변환된 데이터를 CollectionView로 변환
+      viewdata1 = new wijmo.collections.CollectionView(data2); // 변환된 데이터를 CollectionView로 변환
       const minRows = 12; // 최소 행 수
       const rowTemplate = {
         ordflag: null,
@@ -874,6 +850,7 @@
           selectionMode: wijmo.grid.SelectionMode.Row,
           columns: [
             {binding: 'ordflag', header: '진행구분', width: '*', minWidth: 100, align: 'center'},
+            {binding: 'cltnm', header: '업체명', width: '*', minWidth: 105, align: 'center'},
             {binding: 'reqdate', header: '주문일자', width: '*', minWidth: 120, align: 'center'},
             {binding: 'deldate', header: '납품희망일', width: '*', minWidth: 120, align: 'center'},
             {binding: 'panel_ht', header: '두께', width: '*', minWidth: 70, align: 'right'},
@@ -882,20 +859,6 @@
             {binding: 'panel_hh', header: '높이', width: '*', minWidth: 70, align: 'right'},
             {binding: 'remark', header: '제목', width: '*', minWidth: 250, align: 'left'},
             {binding: 'downloads', header: '첨부파일', width: '*', minWidth: 105, align: 'center'},
-
-            {binding: 'bd_hgrb', header: '제품구성', width: '*', minWidth: 100, align: 'left'},
-            {binding: 'bd_qty', header: '수량', width: '*', minWidth: 70, align: 'right'},
-            {binding: 'bd_panel_t', header: 'T', width: '*', minWidth: 70, align: 'right'},
-            {binding: 'bd_panel_w', header: 'W/H', width: '*', minWidth: 70, align: 'right'},
-            {binding: 'bd_panel_l', header: 'L', width: '*', minWidth: 70, align: 'right'},
-            {binding: 'bd_exfmtypedv', header: '외부마감재', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'bd_infmtypedv', header: '외부보강재', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'bd_stframedv', header: '내부보강재', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'bd_stexplydv', header: '내부마감재', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'bd_ordtext', header: '옵션 및 요청사항', width: '*', minWidth: 130, align: 'center'},
-            {binding: 'telno', header: '연락처', width: '*', minWidth: 140, align: 'center'},
-            {binding: 'perid', header: '담당자', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'cltaddr', header: '상세주소', width: '*', minWidth: 300, align: 'left'},
 
             {binding: 'reqnum', visible: false},  // 숨길 컬럼
             {binding: 'isdownload', visible: false},

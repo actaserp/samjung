@@ -262,7 +262,7 @@ public class UserService {
             ug.Name AS group_name,
             up.lang_code ,
             au.*,
-            txc.zipcd AS postno
+            txc.zipcd AS postno,
             txc.*,
             CASE
                     WHEN au.spjangcd = 'ZZ' THEN '성우에스피(주)'

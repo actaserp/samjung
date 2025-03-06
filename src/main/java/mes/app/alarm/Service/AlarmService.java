@@ -102,6 +102,26 @@ public class AlarmService {
 //                "SELECT saupnum, adflag, userflag FROM TB_DA006W WHERE saupnum = :saupnum", params));
     }
 
+    public Map<String, Object> GetUserRole(String userId) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("userId", userId);
+
+        String sql = """
+        SELECT au.username, up.UserGroup_id AS role_id, au.last_name 
+        FROM auth_user au
+        LEFT JOIN user_profile up ON up.User_id = au.id
+        WHERE au.username = :userId
+    """;
+
+        List<Map<String, Object>> rows = sqlRunner.getRows(sql, params);
+
+        if (!rows.isEmpty()) {
+            return rows.get(0); // 첫 번째 결과만 반환
+        } else {
+            return Collections.emptyMap(); // 사용자가 없을 경우 빈 Map 반환
+        }
+    }
+
 }
 
 

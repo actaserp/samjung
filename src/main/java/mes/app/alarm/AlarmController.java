@@ -6,12 +6,12 @@ import mes.domain.entity.User;
 import mes.domain.entity.UserGroup;
 import mes.domain.model.AjaxResult;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -69,5 +69,46 @@ public class AlarmController {
 
         return result;
     }
+
+    @GetMapping("/role")
+    public ResponseEntity<Map<String, Object>> GetUserRole(Authentication auth) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            User user = (User) auth.getPrincipal();
+            String userId = user.getUsername();
+
+            Map<String, Object> userRole = alarmService.GetUserRole(userId);
+
+            if (userRole.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "사용자 정보를 찾을 수 없습니다.");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+
+            response.put("success", true);
+            response.put("role_id", userRole.get("role_id")); // role_id 반환
+            response.put("role", getRoleName((Integer) userRole.get("role_id"))); // role_name 반환
+            response.put("message", "사용자 역할 조회 성공");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "사용자 역할 조회 중 오류 발생");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    // role_id를 기반으로 역할명을 반환하는 메서드 (추가)
+    private String getRoleName(Integer roleId) {
+        return switch (roleId) {
+            case 1 -> "admin_group";
+            case 14 -> "order_manager";
+            case 35 -> "general_client";
+            default -> "unknown";
+        };
+    }
+
 
 }

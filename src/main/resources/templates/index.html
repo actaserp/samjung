@@ -806,30 +806,30 @@
             method: 'GET',
             success: function (response) {
                 if (response.success && Array.isArray(response.data) && response.data.length > 0) {
-                    const alarmCount = response.data.length; // 알림 개수
-                    updateAlarmCount(alarmCount); // 알림 카운트 업데이트
-                    updateAlarmTab(response.data); // 알림 탭 업데이트
-                    renderNotifications(response.data); // 알림 내용 렌더링
+                    const alarmCount = response.data.length; // 알람 개수
+                    updateAlarmCount(alarmCount); // 알람 카운트 업데이트
+                    updateAlarmTab(response.data); // 알람 탭 업데이트
+                    renderNotifications(response.data); // 알람 내용 렌더링
                 } else {
-                    console.log("표시할 알림이 없습니다.");
-                    updateAlarmCount(''); // 알림이 없을 때 카운트 0으로 설정
-                    clearNotifications(); // 알림 UI 초기화
+                    console.log("표시할 알람이 없습니다.");
+                    updateAlarmCount(''); // 알람이 없을 때 카운트 0으로 설정
+                    clearNotifications(); // 알람 UI 초기화
                 }
             },
             error: function (xhr, status, error) {
-                console.error("알림 데이터를 가져오는 중 오류 발생:", error);
+                console.error("알람 데이터를 가져오는 중 오류 발생:", error);
             }
         });
     }
 
-    // 알림 카운트를 업데이트하는 함수
+    // 알람 카운트를 업데이트하는 함수
     function updateAlarmCount(count) {
         const alarmNumElement = document.querySelector('.num');
         if (alarmNumElement) {
-            alarmNumElement.textContent = count; // 알림 개수 설정
+            alarmNumElement.textContent = count; // 알람 개수 설정
         }
     }
-    // 알림 탭 업데이트
+    // 알람 탭 업데이트
     function updateAlarmTab(data) {
         const alarmCount = data.length;
         const alarmTab = document.querySelector('.alarm-tab-links a');
@@ -838,7 +838,7 @@
         }
     }
 
-    // 알림 내용 렌더링
+    // 알람 내용 렌더링
     function renderNotifications(data) {
         const tableBody = document.querySelector('.alarm-tab-contents tbody');
         if (!tableBody) return;
@@ -869,12 +869,14 @@
                 return "제작진행";
             case 4:
                 return "출고";
+            case 5:
+                return "주문 취소";
             default:
                 return "상태 없음"; // 기본 값
         }
     }
 
-    // 알림 UI 초기화
+    // 알람 UI 초기화
     function clearNotifications() {
         const alarmTab = document.querySelector('.alarm-tab-links a');
         if (alarmTab) {
@@ -883,7 +885,7 @@
 
         const tableBody = document.querySelector('.alarm-tab-contents tbody');
         if (tableBody) {
-            tableBody.innerHTML = '<tr><td colspan="3">알림이 없습니다.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="3">알람이 없습니다.</td></tr>';
         }
     }
 
@@ -894,7 +896,7 @@
         /*// 기본 동작 방지
         event.preventDefault();*/
         const csrfToken = $('input[name="_csrf"]').val();
-        // 서버로 알림 확인 요청
+        // 서버로 알람 확인 요청
         $.ajax({
             url: '/api/Alarm/markAsRead',
             method: 'POST',
@@ -903,22 +905,52 @@
             },
             success: function (response) {
                 if (response.success) {
-                    Alert.alert('',"알림이 확인되었습니다.");
-                    // 알림 카운트를 0으로 초기화
+                    Alert.alert('',"알람이 확인되었습니다.");
+                    // 알람 카운트를 0으로 초기화
                     document.querySelector('.num').textContent = '0';
                     document.querySelector('.alarm-tab-links a').textContent = '주문의뢰(0)';
-                    // 알림 내용을 초기화
+                    // 알람 내용을 초기화
                     clearNotifications();
                 } else {
-                    Alert.alert('',"알림 확인 처리 중 오류가 발생했습니다.");
+                    Alert.alert('',"알람 확인 처리 중 오류가 발생했습니다.");
                 }
             },
             error: function (xhr, status, error) {
-                console.error("알림 확인 요청 중 오류 발생:", error);
-                Alert.alert('',"알림 확인 요청 처리 중 오류가 발생했습니다.");
+                console.error("알람 확인 요청 중 오류 발생:", error);
+                Alert.alert('',"알람 확인 요청 처리 중 오류가 발생했습니다.");
             }
         });
     }
+
+    //일반 거래처  알람 표지 숨기기
+    function checkUserRole() {
+        $.ajax({
+            url: '/api/Alarm/role', // 사용자 역할을 가져오는 API
+            type: 'GET',
+            success: function (response) {
+                console.log("사용자 역할 확인 응답:", response);
+
+                // role_id 또는 role 값을 확인하여 일반 거래처인지 판단
+                if (response.role_id === 35 || response.role === "general_client") {
+                    console.log("일반 거래처이므로 알람을 숨깁니다.");
+
+                    // 알람 UI 숨기기
+                    document.querySelector(".alarm").style.display = "none";
+                } else {
+                    console.log("관리자 또는 담당자이므로 알람 표시");
+                    loadNotifications(); // 알람 데이터 불러오기
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("사용자 역할 확인 중 오류 발생:", error);
+                alert("서버와의 통신 중 오류가 발생했습니다.");
+            }
+        });
+    }
+
+    // 페이지 로드 시 실행
+    document.addEventListener("DOMContentLoaded", checkUserRole);
+
 
 </script>
 

@@ -674,12 +674,13 @@
         const parsedData = JSON.parse(rowData);
         console.log("✅ sessionStorage 데이터 있음:", parsedData);
 
-        // `saupnum` 값만 추출
-        const {saupnum, reqnum} = parsedData;
+        // 필요한 값들 추출
+        const {saupnum, reqnum, reqdate} = parsedData;
 
         console.log("사업자번호 (saupnum):", saupnum);
         document.getElementById("saupnumHidden").value = saupnum;
         document.getElementById("reqnum").value = reqnum;
+        document.getElementById("reqdate").value = reqdate;
         //`saupnum`을 포함해서 데이터 요청
         fetchListData(saupnum);
         fetchListData2(saupnum);

@@ -95,6 +95,14 @@
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="5">
+                                                <div class="title">
+                                                    <h3>주문취소</h3>
+                                                </div>
+                                                <div class="cancelCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
+                                                    -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
+                                                </div>
+                                            </section>
                                         </div> <!--//main-card-wrap end -->
                                     </div>
                                 </div>
@@ -282,6 +290,10 @@
                     },
                     dateClick: function (info) {
                         console.log('Clicked on: ' + info.dateStr);
+                        document.getElementById("startDate").value = info.dateStr;
+                        document.getElementById("endDate").value = info.dateStr;
+                        fetchListData();
+                        initDatas();
                     },
                     events: [] // 기본 이벤트는 빈 배열로 설정
                 });
@@ -307,65 +319,56 @@
                 });
 
                 // 주문현황 데이터 가져오기
-                fetchOrderDates().then(orderDates =>{
-                    console.log("holidays : ", orderDates)
-                    orderDates.forEach(orderDate => {
-                        switch (orderDate.name) {
-                            case '주문의뢰':
-                                calendar.addEvent({
-                                    title: '주문의뢰', // 진행구분 이름
-                                    start: orderDate.date,  // 진행의뢰 날짜
-                                    backgroundColor: '#031B4B',
-                                    borderColor: '#031B4B',
-                                    textColor: 'white'
-                                });
-                                break;
-                            case '주문확인':
-                                calendar.addEvent({
-                                    title: '주문확인', // 진행구분 이름
-                                    start: orderDate.date,  // 진행의뢰 날짜
-                                    backgroundColor: '#03428E',
-                                    borderColor: '#03428E',
-                                    textColor: 'white'
-                                });
-                                break;
-                            case '주문확정':
-                                calendar.addEvent({
-                                    title: '주문확정', // 진행구분 이름
-                                    start: orderDate.date,  // 진행의뢰 날짜
-                                    backgroundColor: '#3069B3',
-                                    borderColor: '#3069B3',
-                                    textColor: 'white'
-                                });
-                                break;
-                            case '제작진행':
-                                calendar.addEvent({
-                                    title: '제작진행', // 진행구분 이름
-                                    start: orderDate.date,  // 진행의뢰 날짜
-                                    backgroundColor: '#C7DFF4',
-                                    borderColor: 'rgba(2,165,255,0.07)',
-                                    textColor: 'black'
-                                });
-                                break;
-                            case '출고':
-                                calendar.addEvent({
-                                    title: '출고', // 진행구분 이름
-                                    start: orderDate.date,  // 진행의뢰 날짜
-                                    backgroundColor: 'white',
-                                    borderColor: 'grey',
-                                    textColor: 'black'
-                                });
-                                break;
-                            default:
-                                console.log("주문현황 바인드 오류 : ", orderDate.name);
+                // 주문현황 데이터 가져와서 날짜별 그룹화 후 캘린더에 추가
+                fetchOrderDates().then(orderDates => {
+                    //console.log("📢 원본 orderDates 데이터:", orderDates);
+
+                    // 1️⃣ 날짜별 그룹화 ( { "YYYY-MM-DD": { "주문확인": 3, "출고": 2 } } 형태로 저장 )
+                    let groupedEvents = {};
+
+                    orderDates.forEach(order => {
+                        let date = order.date;  // 주문 날짜
+                        let name = order.name;  // 주문 상태 (주문등록, 주문확인 등)
+
+                        // 해당 날짜가 이미 존재하는지 확인
+                        if (!groupedEvents[date]) {
+                            groupedEvents[date] = {};
+                        }
+
+                        // 해당 상태가 이미 존재하면 count 증가
+                        if (groupedEvents[date][name]) {
+                            groupedEvents[date][name]++;
+                        } else {
+                            groupedEvents[date][name] = 1;
                         }
                     });
+
+                    // console.log("📢 날짜별 그룹화된 데이터:", groupedEvents);
+
+                    // 2️⃣ FullCalendar 이벤트 추가 (중복 제거 후 개수 표시)
+                    Object.keys(groupedEvents).forEach(date => {
+                        Object.keys(groupedEvents[date]).forEach(name => {
+                            let count = groupedEvents[date][name]; // 주문 개수
+                            let displayTitle = count > 1 ? `${name} (${count})` : name; // 개수 표시
+
+                            let eventColor = getEventColor(name); // 색상 가져오기
+
+                            calendar.addEvent({
+                                title: displayTitle,
+                                start: date,
+                                backgroundColor: eventColor.bg,
+                                borderColor: eventColor.border,
+                                textColor: eventColor.text
+                            });
+                        });
+                    });
+
                     setTimeout(() => {
                         calendar.render(); // 캘린더 렌더링
-                        console.log('캘린더가 렌더링되었습니다.');
-                    }, 500); // 500ms 딜레이 // 캘린더 렌더링
+                        // console.log("📢 캘린더가 렌더링되었습니다.");
+                    }, 500);
                 }).catch(error => {
-                    console.error('주문현황 데이터를 가져오는 데 실패했습니다:', error);
+                    console.error("❌ 주문현황 데이터를 가져오는 데 실패했습니다:", error);
                 });
             }
         }
@@ -386,19 +389,55 @@
         }
         // 주문현황 데이터를 가져오는 함수
         async function fetchOrderDates() {
-            // [0: {date: '20230101', name: '1월1일'},{1:}]
-            // 모든 행의 데이터를 저장할 배열을 초기화합니다.
+            let data2 = []; // 데이터를 담을 배열
+            let emptyRowsCount = 8;
             var orderDates = [];
+            $.ajax({
+                url: '/api/orderDashboard/readCalenderGrid',
+                type: 'GET',
+                data: {},
+                async: false,
+                success: function (response) {
+                    // 응답이 올바르게 도착했고, data 속성이 배열인지 확인
+                    if (response && Array.isArray(response.data)) {
+                        data2 = response.data;
+                        // 날짜 형식 변환 및 ordflag 변환
+                        //console.log("캘린더 데이터 : ", data2);
+                    }
+                },
+                error: function () {
+                    console.error("데이터를 가져오는 중 오류가 발생했습니다.");
+                }
+            });
+
             // viewdata.items를 반복하여 각 항목의 ordflag와 reqdate 값을 가져옵니다.
-            for (var i = 0; i < viewdata.items.length; i++) {
-                var item = viewdata.items[i];
+            for (var i = 0; i < data2.length; i++) {
+                var item = data2[i];
                 orderDates.push({
                     name: item.ordflag,
                     date: item.reqdate
                 });
             }
-            console.log("orderDates : ", orderDates)
+            //console.log("orderDates : ", orderDates)
             return orderDates;
+        }
+
+        // 주문 상태에 따른 색상 설정
+        function getEventColor(name) {
+            switch (name) {
+                case "주문등록":
+                    return { bg: "#031B4B", border: "#031B4B", text: "white" };
+                case "주문확인":
+                    return { bg: "#03428E", border: "#03428E", text: "white" };
+                case "주문확정":
+                    return { bg: "#3069B3", border: "#3069B3", text: "white" };
+                case "제작진행":
+                    return { bg: "#C7DFF4", border: "rgba(2,165,255,0.07)", text: "black" };
+                case "출고":
+                    return { bg: "white", border: "grey", text: "black" };
+                default:
+                    return { bg: "grey", border: "grey", text: "white" };
+            }
         }
 
         async function fetchHolidaysForYear(year) {
@@ -460,6 +499,9 @@
                                 break;
                             case "4":
                                 $('.deliveryCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
+                                break;
+                            case "5":
+                                $('.cancelCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
                                 break;
                             default:
                                 console.log("주문현황 바인드 오류 : ", item.ordflag);

@@ -163,6 +163,14 @@
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="5">
+                                                <div class="title">
+                                                    <h3>주문취소</h3>
+                                                </div>
+                                                <div class="deliveryCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
+                                                    -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
+                                                </div>
+                                            </section>
                                         </div> <!--//main-card-wrap end -->
                                     </div>
                                 </div>
@@ -753,6 +761,8 @@
                     return { bg: "#C7DFF4", border: "rgba(2,165,255,0.07)", text: "black" };
                 case "출고":
                     return { bg: "white", border: "grey", text: "black" };
+                case "주문취소":
+                    return { bg: "grey", border: "grey", text: "black" };
                 default:
                     return { bg: "grey", border: "grey", text: "white" };
             }
@@ -1192,6 +1202,7 @@
             $('.estimateCnt').html(0 + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
             $('.produceCnt').html(0 + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
             $('.deliveryCnt').html(0 + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
+            $('.cancelCnt').html(0 + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
             $.ajax({
                 url: '/api/order_status/initDatas',
                 type: 'GET',
@@ -1219,6 +1230,9 @@
                                 break;
                             case "4":
                                 $('.deliveryCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
+                                break;
+                            case "5":
+                                $('.cancelCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
                                 break;
                             default:
                                 console.log("주문현황 바인드 오류 : ", item.ordflag);

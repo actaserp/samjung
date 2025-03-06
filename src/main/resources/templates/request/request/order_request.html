@@ -76,7 +76,7 @@
           <div class="table-wrap">
             <table class="write-table">
               <caption>주문등록 테이블</caption>
-              <input type="hidden" id="reqnum" name="reqnum">
+              <input type="hidden" id="reqnum" name="reqnum" value="">
               <input type="hidden" id="saupnumHidden" name="saupnumHidden" value="">
               <tbody>
               <tr>
@@ -350,9 +350,7 @@
               <dl>
                 <dt>
                   주문일자<span class="eq">*</span>
-                  <img src="/images/icon/exclamation/exclamation-circle.svg"
-                       class="zoom-img" style="margin-left: 5px"
-                       onclick="openPopup('https://foms.atlassian.net/wiki/external/Zjc1ZjNiZTFjYzJjNGI4ZjliMTE0ODVlNTAyZWFhZTU')" alt="도움말">
+                  <a style="color: red;margin-top: 4px;margin-left: 5px;">(더블클릭하면 수정이 가능합니다.)</a>
                 </dt>
                 <dd>
                   <ul class="date-box">
@@ -370,7 +368,7 @@
               <dl>
                 <dt>
                   <label for="searchRemark">
-                    제목<span class="eq">*</span>
+                    업체명<span class="eq">*</span>
                   </label>
                 </dt>
                 <dd>
@@ -396,6 +394,7 @@
                       <option value="2">주문확정</option>
                       <option value="3">제작진행</option>
                       <option value="4">출고</option>
+                      <option value="5">주문취소</option>
                     </select>
                     <!--                                        <a href="#a" class="btn-srch" title="검색" onclick="searchData()"></a>-->
                   </div>
@@ -676,10 +675,11 @@
         console.log("✅ sessionStorage 데이터 있음:", parsedData);
 
         // `saupnum` 값만 추출
-        const { saupnum} = parsedData;
+        const {saupnum, reqnum} = parsedData;
 
         console.log("사업자번호 (saupnum):", saupnum);
         document.getElementById("saupnumHidden").value = saupnum;
+        document.getElementById("reqnum").value = reqnum;
         //`saupnum`을 포함해서 데이터 요청
         fetchListData(saupnum);
         fetchListData2(saupnum);
@@ -699,6 +699,26 @@
         getMyInfo();
       }
     }
+    // 주문현황 더블클릭 이벤트 기존탭 최신화
+    document.addEventListener("DOMContentLoaded", function () {
+      console.log("✅ order_request.html DOMContentLoaded 완료");
+
+      window.addEventListener("message", function (event) {
+        console.log("📩 메시지 수신! Origin:", event.origin);
+        console.log("📩 메시지 내용:", event.data);
+
+        if (event.data.action === "init") {
+          console.log("📩 init 실행 요청 받음");
+          init(); // `init()` 함수 실행
+        }
+      });
+
+      // index.html에서 보낸 메시지가 iframe이 로드되기 전에 도착했을 경우 대비
+      setTimeout(() => {
+        window.parent.postMessage({ action: "requestInit" }, "*");
+      }, 200);
+    });
+
 
     // 주문의뢰현황 그리드
     function fetchListData(saupnum) {

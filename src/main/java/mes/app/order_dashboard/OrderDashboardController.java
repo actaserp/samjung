@@ -54,6 +54,9 @@ public class OrderDashboardController {
             } else if (item.get("ordflag").equals("4")) {
                 item.remove("ordflag");
                 item.put("ordflag", "출고");
+            } else if (item.get("ordflag").equals("5")) {
+                item.remove("ordflag");
+                item.put("ordflag", "주문취소");
             }
             // 날짜 형식 변환 (reqdate)
             if (item.containsKey("reqdate")) {
@@ -89,6 +92,55 @@ public class OrderDashboardController {
         List<Map<String, Object>> items = this.orderDashboardService.initDatas(tbDa006WPk, cltcd);
         AjaxResult result = new AjaxResult();
         result.data = items;
+        return result;
+    }
+    @GetMapping("/readCalenderGrid")
+    public AjaxResult getList2(Authentication auth) {
+        User user = (User) auth.getPrincipal();
+        String username = user.getUsername();  // 유저 사업자번호(id)
+        Map<String, Object> userInfo = orderDashboardService.getUserInfo(username);
+        TB_DA006W_PK tbDa006WPk = new TB_DA006W_PK();
+        List<Map<String, Object>> items = this.orderDashboardService.getOrderList2(username);
+        for (Map<String, Object> item : items) {
+            if (item.get("ordflag").equals("0")) {
+                item.remove("ordflag");
+                item.put("ordflag", "주문등록");
+            } else if (item.get("ordflag").equals("1")) {
+                item.remove("ordflag");
+                item.put("ordflag", "주문확인");
+            } else if (item.get("ordflag").equals("2")) {
+                item.remove("ordflag");
+                item.put("ordflag", "주문확정");
+            } else if (item.get("ordflag").equals("3")) {
+                item.remove("ordflag");
+                item.put("ordflag", "제작진행");
+            } else if (item.get("ordflag").equals("4")) {
+                item.remove("ordflag");
+                item.put("ordflag", "출고");
+            } else if (item.get("ordflag").equals("5")) {
+                item.remove("ordflag");
+                item.put("ordflag", "주문취소");
+            }
+            // 날짜 형식 변환 (reqdate)
+            if (item.containsKey("reqdate")) {
+                String setupdt = (String) item.get("reqdate");
+                if (setupdt != null && setupdt.length() == 8) {
+                    String formattedDate = setupdt.substring(0, 4) + "-" + setupdt.substring(4, 6) + "-" + setupdt.substring(6, 8);
+                    item.put("reqdate", formattedDate);
+                }
+            }
+            // 날짜 형식 변환 (deldate)
+            if (item.containsKey("deldate")) {
+                String setupdt = (String) item.get("deldate");
+                if (setupdt != null && setupdt.length() == 8) {
+                    String formattedDate = setupdt.substring(0, 4) + "-" + setupdt.substring(4, 6) + "-" + setupdt.substring(6, 8);
+                    item.put("deldate", formattedDate);
+                }
+            }
+        }
+        AjaxResult result = new AjaxResult();
+        result.data = items;
+
         return result;
     }
 

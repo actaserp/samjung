@@ -243,18 +243,7 @@ public class OrderStatusService {
 
         StringBuilder sql = new StringBuilder("""
                 SELECT
-                    custcd,
-                    cltnm,
-                    spjangcd,
-                    reqnum,
-                    reqdate,
-                    ordflag,
-                    deldate,
-                    telno,
-                    perid,
-                    cltzipcd,
-                    cltaddr,
-                    remark
+                    *
                 FROM
                     TB_DA006W hd
                 WHERE

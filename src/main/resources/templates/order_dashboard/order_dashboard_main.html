@@ -55,7 +55,7 @@
                                 <div class="tab-contents">
                                     <div class="row">
                                         <div class="section-card-wrap" style="gap: 5px">
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="0">
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="0">
                                                 <div class="title">
                                                     <h3>주문의뢰</h3>
                                                 </div>
@@ -63,7 +63,7 @@
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="1">
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="1">
                                                 <div class="title">
                                                     <h3>주문확인</h3>
                                                 </div>
@@ -71,7 +71,7 @@
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="2">
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="2">
                                                 <div class="title">
                                                     <h3>주문확정</h3>
                                                 </div>
@@ -79,7 +79,7 @@
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="3">
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="3">
                                                 <div class="title">
                                                     <h3>제작진행</h3>
                                                 </div>
@@ -87,7 +87,7 @@
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="4">
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="4">
                                                 <div class="title">
                                                     <h3>출고</h3>
                                                 </div>
@@ -95,7 +95,7 @@
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="5">
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="5">
                                                 <div class="title">
                                                     <h3>주문취소</h3>
                                                 </div>
@@ -242,21 +242,7 @@
                         e.cell.style.textAlign = 'center';
                     }
                 });
-                // 셀 더블클릭 이벤트 추가
-                theGrid.hostElement.addEventListener('dblclick', function (e) {
-                    // 클릭한 셀의 행 데이터 가져오기
-                    let hitTest = theGrid.hitTest(e);
-                    let reqdate;
-                    if (hitTest.cellType === wijmo.grid.CellType.Cell) {
-                        // 행(row), 행의 데이터(item) 정보 가져오기
-                        let row = hitTest.row;
-                        reqdate = theGrid.rows[row].reqdate; // reqdate 값 가져오기
-                    }
-                    // FullCalendar로 이동
-                    if (calendar) {
-                        //calendar.gotoDate(reqdate); // reqdate를 날짜로 이동
-                    }
-                });
+                attachDoubleClickEvent(theGrid);   //더블클릭 이벤트
                 // 선택이 변경될 때, 현재 항목 업데이트
                 theGrid.rowHeaders.columns.splice(0, 1);
                 new FlexGridContextMenu(theGrid);
@@ -293,7 +279,6 @@
                         document.getElementById("startDate").value = info.dateStr;
                         document.getElementById("endDate").value = info.dateStr;
                         fetchListData();
-                        initDatas();
                     },
                     events: [] // 기본 이벤트는 빈 배열로 설정
                 });
@@ -435,6 +420,8 @@
                     return { bg: "#C7DFF4", border: "rgba(2,165,255,0.07)", text: "black" };
                 case "출고":
                     return { bg: "white", border: "grey", text: "black" };
+                case "주문취소":
+                    return { bg: "grey", border: "grey", text: "black" };
                 default:
                     return { bg: "grey", border: "grey", text: "white" };
             }
@@ -515,6 +502,40 @@
             // 새 창 열기
             window.open(url, '_blank',
                 'width=1040,height=1000,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes');
+        }
+
+        // ✅ 더블 클릭 이벤트 핸들러 수정
+        function attachDoubleClickEvent(grid) {
+            let lastClickTime = 0;
+
+            grid.hostElement.addEventListener('click', function (e) {
+                const now = new Date().getTime();
+
+                if (now - lastClickTime < 300) { // 300ms 이내 두 번 클릭 → 더블 클릭 처리
+                    const ht = grid.hitTest(e);
+
+                    if (ht.cellType === wijmo.grid.CellType.Cell) { // 셀을 클릭한 경우만 처리
+                        const rowData = grid.rows[ht.row].dataItem; // 클릭한 행 데이터
+
+                        if (!rowData || !rowData.reqnum) {
+                            console.warn("❌ 유효한 rowData 또는 reqnum이 없습니다.");
+                            return;
+                        }
+                        //sessionStorage 에 저장
+                        sessionStorage.setItem("tabAction", "toggle");
+                        sessionStorage.setItem("sessionDate", rowData.reqdate);
+                        window.parent.postMessage({
+                            action: "addTab",
+                            id: "order_request",
+                            title: "주문등록",
+                            url: '/gui/' + "order_request" + '/default',
+                            active: true,
+                            allowClose: true,
+                        });
+                    }
+                }
+                lastClickTime = now;
+            });
         }
     </script>
 </th:block>

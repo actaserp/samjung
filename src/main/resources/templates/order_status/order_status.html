@@ -123,7 +123,7 @@
                                 <div class="tab-contents">
                                     <div class="row">
                                         <div class="section-card-wrap" style="gap: 5px">
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="0">
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="0">
                                                 <div class="title">
                                                     <h3>주문등록</h3>
                                                 </div>
@@ -131,7 +131,7 @@
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="1">
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="1">
                                                 <div class="title">
                                                     <h3>주문확인</h3>
                                                 </div>
@@ -139,7 +139,7 @@
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="2">
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="2">
                                                 <div class="title">
                                                     <h3>주문확정</h3>
                                                 </div>
@@ -147,7 +147,7 @@
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="3">
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="3">
                                                 <div class="title">
                                                     <h3>제작진행</h3>
                                                 </div>
@@ -155,7 +155,7 @@
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="4">
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="4">
                                                 <div class="title">
                                                     <h3>출고</h3>
                                                 </div>
@@ -163,11 +163,11 @@
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer;" class="fetchCard" data-search-type="5">
+                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="5">
                                                 <div class="title">
                                                     <h3>주문취소</h3>
                                                 </div>
-                                                <div class="deliveryCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
+                                                <div class="cancelCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
                                                     -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
                                                 </div>
                                             </section>
@@ -620,6 +620,7 @@
                        document.getElementById("startDate2").value = info.dateStr;
                        document.getElementById("endDate2").value = info.dateStr;
                        fetchListData();
+                       initDatas()
                    },
                    events: [] // 기본 이벤트는 빈 배열로 설정
                });

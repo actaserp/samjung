@@ -190,6 +190,9 @@ public class OrderStatusController {
             } else if (item.get("ordflag").equals("4")) {
                 item.remove("ordflag");
                 item.put("ordflag", "출고");
+            } else if (item.get("ordflag").equals("5")) {
+                item.remove("ordflag");
+                item.put("ordflag", "주문취소");
             }
             // 날짜 형식 변환 (reqdate)
             if (item.containsKey("reqdate")) {

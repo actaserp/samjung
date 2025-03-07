@@ -101,6 +101,7 @@ public class RequestController {
                                    Authentication auth) {
         String username = (Saupnum != null && !Saupnum.isEmpty()) ? Saupnum : "";
         String saupnum;
+        String cltcd;
         // username이 없을경우/session삭제후 진입(관리자 진입)
         if (username.isEmpty()) {
             username = (saupnumHidden != null && !saupnumHidden.isEmpty()) ? saupnumHidden : "";
@@ -115,8 +116,14 @@ public class RequestController {
         TB_DA006W_PK tbDa006WPk = new TB_DA006W_PK();
         tbDa006WPk.setSpjangcd((String) userInfo.get("spjangcd"));
         tbDa006WPk.setCustcd((String) userInfo.get("custcd"));
-        saupnum = (String) userInfo.get("saupnum");
-        String cltcd = (String) userInfo.get("cltcd");
+        // 관리자 진입시 사업자 번호 없이 업체명(searchComnm)만으로 조회
+        if(saupnumHidden != null) {
+            saupnum = null;
+            cltcd = null;
+        } else{
+            saupnum = (String) userInfo.get("saupnum");
+            cltcd = (String) userInfo.get("cltcd");
+        }
         String search_startDate = (searchStartDate).replaceAll("-","");
         String search_endDate = (searchEndDate).replaceAll("-","");
         List<Map<String, Object>> items = this.requestService.getOrderList(tbDa006WPk,
@@ -545,6 +552,7 @@ public class RequestController {
         } else {
             User user = (User) auth.getPrincipal();
             username = user.getUsername();
+            System.out.println("username : " + username);
         }
         Map<String, Object> userInfo = requestService.getMyInfo(username);
 

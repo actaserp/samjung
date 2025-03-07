@@ -91,6 +91,9 @@ public class RequestService {
                                                   String saupnum,
                                                   String cltcd,
                                                   String searchComnm) {
+        System.out.println("saupnum : " + saupnum);
+        System.out.println("cltcd : " + cltcd);
+        System.out.println("searchComnm : " + searchComnm);
 
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("searchStartDate", searchStartDate);
@@ -138,9 +141,15 @@ public class RequestService {
                 WHERE
                     hd.custcd = :custcd
                     AND hd.spjangcd = :spjangcd
-                    AND hd.saupnum = :saupnum
-                    AND hd.cltcd = :cltcd
                 """);
+        // cltcd 필터
+        if (cltcd != null && !cltcd.isEmpty()) {
+            sql.append(" AND hd.cltcd = :cltcd");
+        }
+        // 사업자 번호 필터
+        if (saupnum != null && !saupnum.isEmpty()) {
+            sql.append(" AND hd.saupnum = :saupnum");
+        }
         // 날짜 필터
         if (searchStartDate != null && !searchStartDate.isEmpty()) {
             sql.append(" AND hd.reqdate >= :searchStartDate");

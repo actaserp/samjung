@@ -330,7 +330,7 @@
                 </th>
                 <td>
                   <a class="btn btn-request" title="요청사항" data-popup="popup2"
-                     onclick="showPopup(this)">
+                     onclick="validateFieldsAndShowPopup(this)">
                     요청사항 작성
                   </a>
                 </td>
@@ -683,6 +683,7 @@
       // 🔹 sessionStorage에서 데이터 가져오기
       const rowData = sessionStorage.getItem("selectedRowData");
       const tabAction = sessionStorage.getItem("tabAction"); // ✅ 추가: tabAction 값 가져오기
+      const sessionDate = sessionStorage.getItem("sessionDate");
 
       if (rowData) {
         // 🔹 JSON 파싱하여 데이터 추출
@@ -697,6 +698,8 @@
         document.getElementById("reqnum").value = reqnum;
         document.getElementById("reqdate").value = reqdate;
         document.getElementById("searchComnm").value = cltnm;
+        document.getElementById("startDate").value = reqdate;
+        document.getElementById("endDate").value = reqdate;
         // `saupnum`을 포함해서 데이터 요청
         // 업체명 readonly 제거
         document.getElementById("searchComnm").removeAttribute("readonly");
@@ -714,12 +717,24 @@
           console.log("🗑️ sessionStorage 데이터 삭제 완료");
         }, 2000);
       } else {
+        if(sessionDate != null){
+          document.getElementById("startDate").value = sessionDate;
+          document.getElementById("endDate").value = sessionDate;
+        }
         console.warn("⚠️ sessionStorage에 저장된 데이터 없음. 기본 요청 실행");
 
         // 🔹 기존 방식대로 실행 (인자 없이)
-        fetchListData();
-        fetchListData2();
-        getMyInfo();
+        async function fetchData() {
+          try {
+            await getMyInfo();   // ✅ getMyInfo()가 완료될 때까지 기다림
+            fetchListData();  // ✅ getMyInfo 완료 후 실행
+            fetchListData2(); // ✅ fetchListData 완료 후 실행
+          } catch (error) {
+            console.error("❌ 오류 발생:", error);
+          }
+        }
+        // 실행
+        fetchData();
       }
 
       // ✅ tabAction 값이 있으면 실행 후 삭제
@@ -728,6 +743,7 @@
         console.log("🔄 tabAction 값 존재, init 실행!");
         sessionStorage.removeItem("tabAction"); // 실행 후 제거
         sessionStorage.removeItem("selectedRowData");
+        sessionStorage.removeItem("sessionDate")
           console.log("🗑️ sessionStorage.tabAction 데이터 삭제 완료");
         }, 2000);
       }
@@ -1143,6 +1159,13 @@
         {id: '#address1', label: '주소를 작성해주세요'},
         {id: '#remark', label: '제목을 작성해주세요'}
       ];
+      // 세부사항이 작성중인지 여부를 판단하여 저장시 작성중인 세부사항은 저장되지 않는다 알림
+      let writeFields = [
+        {id: '#qty', label: '작성중인 세부사항은 저장되지 않습니다.\n세부사항 추가 버튼을 클릭하여 등록해주세요'},
+        {id: '#panel_t', label: '작성중인 세부사항은 저장되지 않습니다.\n세부사항 추가 버튼을 클릭하여 등록해주세요'},
+        {id: '#panel_w', label: '작성중인 세부사항은 저장되지 않습니다.\n세부사항 추가 버튼을 클릭하여 등록해주세요'},
+        {id: '#panel_l', label: '작성중인 세부사항은 저장되지 않습니다.\n세부사항 추가 버튼을 클릭하여 등록해주세요'},
+      ]
       // 세부항목 행 추가 여부 검사
       const allRowsEmpty = viewdata2.sourceCollection.every(row => !row.hgrb || row.hgrb === '');
       if (allRowsEmpty) {
@@ -1157,6 +1180,18 @@
 
         // 요소가 존재하지 않거나, 값이 빈 문자열(선택되지 않은 경우)인 경우 경고
         if ($element.length === 0 || value === null || value.trim() === '') {
+          Alert.alert('', field.label);
+          return;
+        }
+      }
+
+      for (let i = 0; i < writeFields.length; i++) {
+        let field = writeFields[i];
+        let $element = $(field.id);
+        let value = $element.val();
+
+        // 요소가 존재하는 경우 경고
+        if (value !== null && value.trim() !== '') {
           Alert.alert('', field.label);
           return;
         }
@@ -1635,21 +1670,27 @@
     }
     // 내정보 불러오는 함수
     function getMyInfo(saupnum) {
-      $.ajax({
-        url: '/api/request/request/getUserInfo', // 데이터를 가져올 URL
-        data: {'saupnum': saupnum},
-        type: 'GET',
-        success: function(data) {
-          document.getElementById("telno").value = data.data.hptelnum;
-          document.getElementById("perid").value = data.data.prenm;
-          document.getElementById("postno").value = data.data.zipcd;
-          document.getElementById("address1").value = data.data.cltadres.replace(/\s*\|/g, '').trim();
-          document.getElementById("cltnm").value = data.data.cltnm;
-          document.getElementById("searchComnm").value = data.data.cltnm;
-        },
-        error: function(error) {
-          console.log('정보를 불러오는데 실패했습니다.', error);
-        }
+      return new Promise((resolve, reject) => {
+        $.ajax({
+          url: '/api/request/request/getUserInfo',
+          data: {'saupnum': saupnum},
+          type: 'GET',
+          success: function (data) {
+            document.getElementById("telno").value = data.data.hptelnum;
+            document.getElementById("perid").value = data.data.prenm;
+            document.getElementById("postno").value = data.data.zipcd;
+            document.getElementById("address1").value = data.data.cltadres.replace(/\s*\|/g, '').trim();
+            document.getElementById("cltnm").value = data.data.cltnm;
+            document.getElementById("searchComnm").value = data.data.cltnm;
+            console.log("✅ getMyInfo 완료, searchComnm 값:", data.data.cltnm);
+
+            resolve(); // ✅ 완료되면 resolve() 호출
+          },
+          error: function (error) {
+            console.error("❌ getMyInfo 실패:", error);
+            reject(error);
+          }
+        });
       });
     }
 
@@ -1858,6 +1899,29 @@
       // 📌 페이지 로드 시 getHoliday 실행하여 deldate 자동 설정 및 요일 업데이트
       getHoliday();
     });
+    // 필드값 확인후 요청사항 작성할 수 있도록 유도 메서드
+    function validateFieldsAndShowPopup(element) {
+      let writeFields = [
+        {id: '#hgrb', label: '요청사항 작성을 위해\n제품구성과 수량을 입력해주세요'},
+        {id: '#qty', label: '요청사항 작성을 위해\n제품구성과 수량을 입력해주세요'}
+      ];
+
+      for (let i = 0; i < writeFields.length; i++) {
+        let field = writeFields[i];
+        let $element = $(field.id);
+        let value = $element.val();
+
+        // ✅ 필드에 값이 존재하면 알림 띄우고 중단
+        if ($element.length === 0 || value === null || value.trim() === '') {
+          Alert.alert('', field.label);  // 경고창 띄우기
+          return;  // ✅ 문제 발생 → `showPopup()` 호출하지 않고 종료
+        }
+      }
+
+      // ✅ 모든 필드가 비어있으면 `showPopup()` 실행
+      showPopup(element);
+    }
+
 
 
 

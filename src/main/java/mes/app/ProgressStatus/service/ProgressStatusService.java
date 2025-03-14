@@ -63,8 +63,8 @@ public class ProgressStatusService {
         // ORDER BY를 항상 맨 마지막에 추가
         sql.append(" ORDER BY reqdate DESC");
 
-        log.info("진행현황 그리드 SQL: {}", sql);
-        log.info("SQL Parameters: {}", params.getValues());
+        //log.info("진행현황 그리드 SQL: {}", sql);
+        //log.info("SQL Parameters: {}", params.getValues());
         return sqlRunner.getRows(sql.toString(), params);
     }
 
@@ -109,8 +109,8 @@ public class ProgressStatusService {
             params.addValue("searchTitle", "%" + searchTitle + "%");
         }
 
-        log.info("실행될 SQL: {}", sql.toString());
-        log.info("바인딩된 파라미터: {}", params.getValues());
+        //log.info("실행될 SQL: {}", sql.toString());
+        //log.info("바인딩된 파라미터: {}", params.getValues());
 
         return sqlRunner.getRows(sql.toString(), params);
     }

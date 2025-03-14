@@ -2,7 +2,6 @@ package mes.app.order_status;
 
 import lombok.extern.slf4j.Slf4j;
 import mes.app.order_status.service.VendorOrderStatsService;
-import mes.domain.entity.User;
 import mes.domain.model.AjaxResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -29,26 +28,24 @@ public class VendorOrderStatsController { //업체별 주문 통계
       @RequestParam(value = "search_spjangcd", required = false) String searchSpjangcd,
       @RequestParam(value = "searchCltnm", required = false) String searchCltnm) {
     AjaxResult result = new AjaxResult();
-    log.info("주문 확인 read 들어온 데이터:startDate{}, endDate{}, searchSpjangcd{} , searchCltnm{} ", startDate, endDate, searchSpjangcd, searchCltnm);
+    log.info("업체별 주문 통계 read 들어온 데이터:startDate{}, endDate{}, searchSpjangcd{} , searchCltnm{} ", startDate, endDate, searchSpjangcd, searchCltnm);
     try {
-      // 로그인한 사용자 정보에서 이름(perid) 가져오기
-      String spjangcd = searchSpjangcd;
 
       // 서비스에서 데이터 가져오기
-      List<Map<String, Object>> orderStatusList = vendorOrderStatsService.getOrderStatusByOperid(startDate, endDate, spjangcd, searchCltnm);
+      List<Map<String, Object>> orderStatusList = vendorOrderStatsService.getOrderStatusByOperid(startDate, endDate,searchSpjangcd,  searchCltnm);
 
       for (Map<String, Object> order : orderStatusList) {
-        // ✅ 날짜 포맷 적용
+        // 날짜 포맷 적용
         Object reqdateValue = order.get("reqdate");
         if (reqdateValue != null && reqdateValue instanceof String) {
           String reqdateStr = (String) reqdateValue;
 
           try {
-            if (reqdateStr.length() == 8) { // ✅ "yyyyMMdd" 형식인지 확인
+            if (reqdateStr.length() == 8) { // "yyyyMMdd" 형식인지 확인
               String formattedDate = reqdateStr.substring(0, 4) + "-" + reqdateStr.substring(4, 6) + "-" + reqdateStr.substring(6, 8);
               order.put("reqdate", formattedDate);
             } else {
-              order.put("reqdate", "잘못된 날짜 형식"); // ✅ 길이가 8이 아니면 오류 처리
+              order.put("reqdate", "잘못된 날짜 형식"); // 길이가 8이 아니면 오류 처리
             }
           } catch (Exception ex) {
             log.error("날짜 포맷 변환 중 오류 발생: {}", ex.getMessage());
@@ -61,11 +58,11 @@ public class VendorOrderStatsController { //업체별 주문 통계
           String deldateStr = (String) deldateValue;
 
           try {
-            if (deldateStr.length() == 8) { // ✅ "yyyyMMdd" 형식인지 확인
+            if (deldateStr.length() == 8) { // "yyyyMMdd" 형식인지 확인
               String formattedDate = deldateStr.substring(0, 4) + "-" + deldateStr.substring(4, 6) + "-" + deldateStr.substring(6, 8);
               order.put("deldate", formattedDate);
             } else {
-              order.put("deldate", "잘못된 날짜 형식"); // ✅ 길이가 8이 아니면 오류 처리
+              order.put("deldate", "잘못된 날짜 형식"); // 길이가 8이 아니면 오류 처리
             }
           } catch (Exception ex) {
             log.error("날짜 포맷 변환 중 오류 발생: {}", ex.getMessage());
@@ -73,7 +70,7 @@ public class VendorOrderStatsController { //업체별 주문 통계
           }
         }
 
-        // ✅ 전화번호 포맷 적용
+        // 전화번호 포맷 적용
         Object telnoValue = order.get("telno");
         if (telnoValue instanceof String) {
           String formattedTelno = formatPhoneNumber((String) telnoValue);
@@ -94,7 +91,6 @@ public class VendorOrderStatsController { //업체별 주문 통계
 
     return result;
   }
-
 
   private String formatPhoneNumber(String phoneNumber) {
     if (phoneNumber == null || !phoneNumber.matches("\\d+")) { // 숫자가 아니면 공백 반환
@@ -122,8 +118,7 @@ public class VendorOrderStatsController { //업체별 주문 통계
     AjaxResult result = new AjaxResult();
     try {
 
-      log.info("검색 조건 search_spjangcd:{}, startDate: {}, endDate: {}, cltnm: {}",
-          spjangcd, startDate, endDate, searchCltnm);
+      log.info("업체별주문통계 차트 search_spjangcd:{}, startDate: {}, endDate: {}, cltnm: {}", spjangcd, startDate, endDate, searchCltnm);
 
       List<Map<String, Object>> rawData = vendorOrderStatsService.getChartData(spjangcd, startDate, endDate, searchCltnm);
 

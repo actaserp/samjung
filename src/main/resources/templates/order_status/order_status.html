@@ -1048,7 +1048,7 @@
         // 모달 ID와 데이터 로드 함수를 매핑하는 객체
         const modalDataLoaders = {
             'CltnmModal': modalDeta,
-            'OrdtextModal':showOrdtextModal,
+            // 'OrdtextModal':showOrdtextModal,
         };
 
         function showPopupById(popupId, rowIndex = null) {
@@ -1085,7 +1085,7 @@
             }
         }
 
-        function showOrdtextModal(rowIndex) {
+        /*function showOrdtextModal(rowIndex) {
             console.log("showOrdtextModal called with rowIndex:", rowIndex);
 
             // rowIndex가 유효한지 검증
@@ -1103,7 +1103,7 @@
             } else {
                 console.error("선택한 행에 대해 원본 주문 텍스트 데이터가 발견되지 않았습니다");
             }
-        }
+        }*/
 
         // 모달을 닫는 함수
         function closePopup(popupId) {

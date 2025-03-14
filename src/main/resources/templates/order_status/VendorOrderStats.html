@@ -3,19 +3,6 @@
     .container-fluid {
         padding: 20px;
     }
-
-    .chartModal {
-        display: none; /* 기본적으로 숨겨짐 */
-        position: fixed;
-        z-index: 10000; /* z-index 값을 높게 설정하여 다른 요소보다 위에 오도록 함 */
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5); /* 배경을 반투명하게 설정 */
-        overflow: auto;
-    }
-
     .modal-content {
         position: absolute; /* absolute로 설정하여 화면 중앙에 배치 */
         top: 50%;
@@ -71,7 +58,7 @@
     </div>
     <!-- Select -->
     <div class="tab-contents">
-      <section class="tab-item" style="height: 910px; overflow: hidden;">
+      <section class="tab-item" style="height: 840px; overflow: hidden;">
         <div class="section-top">
           <div class="search-wrap">
             <dl>
@@ -124,12 +111,13 @@
         <div class="container-fluid" style="display: flex;">
           <div class="chart-container wp50">
             <canvas id="myChart" width="500" height="500"></canvas>
+            <span id="noDataMessage" style="margin-top: 150px; display: none; text-align: center; color: gray;">조회 된 데이터가 없습니다.</span>
           </div>
           <span class="material-symbols-outlined"  onclick="openModal()">zoom_out_map</span>
           <div class="wp50">
             <div >
               <p id="selectedItem"></p>
-              <div id="theGrid" style="max-height:800px"></div>
+              <div id="theGrid" style="max-height:730px"></div>
             </div>
           </div>
         </div>
@@ -146,7 +134,7 @@
   <div class="modal-content">
     <span class="close">&times;</span>
     <canvas id="modalChartHolder" style="width: 1250px; height: 490px; display: block; box-sizing: border-box;"
-            width="1250" height="490"></canvas>
+            width="1250" height="520"></canvas>
   </div>
 </div>
 
@@ -196,6 +184,7 @@
     function fetchListData() {
       let data = [ ];
       const params = {
+        search_spjangcd: $('#search_spjangcd').val(),
         startDate: $('#startDate').val(),
         endDate: $('#endDate').val(),
         searchUserNm: $('#searchUserNm').val(),
@@ -251,7 +240,7 @@
 
       // 그룹별 행 번호 다시 설정 함수
       const resetRowNumbers = () => {
-        viewdata.groups.forEach((group, groupIndex) => {
+        viewdata.groups.forEach((group) => {
           let rowNumber = 1; // 각 그룹별 행 번호 초기화
           group.items.forEach(item => {
             item.rownum = rowNumber++;
@@ -269,14 +258,14 @@
           isReadOnly: true,
           columns: [
             {binding: 'rownum', header: '순번', width: 80, align: 'center'},
-            {binding: 'reqdate', header: '주문일자', width: '*', minWidth: 180, align: 'center'},
+            {binding: 'reqdate', header: '주문일자', width: '*', minWidth: 160, align: 'center'},
             {binding: 'cltnm', header: '업체명', width: '*', minWidth: 250, align: 'left'},
             {binding: 'ordflag_display', header: '진행구분', width: '*', minWidth: 100, align: 'center'},
             {binding: 'remark', header: '제목(메모)', width: '*', minWidth: 400, align: 'left'},
             {binding: 'perid', header: '담당자', width: '*', minWidth: 120, align: 'center'},
             {binding: 'telno', header: '연락처', width: '*', minWidth: 180, align: 'center'},
             {binding: 'orderprice', header: '금액', width: '*', minWidth: 180, align: 'center'},
-            {binding: 'deldate', header: '출고일자', width: '*', minWidth: 180, align: 'center'},
+            {binding: 'deldate', header: '출고일자', width: '*', minWidth: 160, align: 'center'},
           ],
           itemsSource: viewdata,
         });
@@ -378,7 +367,7 @@
 
       if (!chartInstance) {
         console.error("차트를 찾을 수 없습니다.");
-        alert("차트를 찾을 수 없습니다. 차트를 먼저 생성해 주세요."); // Alert.alert → alert 사용
+        Alert.alert('',"조회 된 데이터가 없습니다.");
         return;
       }
 
@@ -418,6 +407,8 @@
 
     function initializeChart(orderCounts = {}, totalOrders = 0) {
       const chartElement = document.getElementById('myChart');
+      const noDataMessage = document.getElementById('noDataMessage'); // 메시지 요소 가져오기
+
       if (!chartElement) {
         console.error('Chart element not found!');
         return;
@@ -433,6 +424,20 @@
 
       const labels = ["주문취소", "주문등록", "주문확인", "주문확정", "제작진행", "출고"];
       const coloredData = labels.map(label => orderCounts[label] || 0);
+
+      // 데이터가 있는지 확인
+      const hasData = coloredData.some(count => count > 0);
+
+      if (!hasData) {
+        // 데이터가 없을 경우
+        chartElement.style.display = 'none'; // 차트 숨기기
+        noDataMessage.style.display = 'block'; // 메시지 표시
+        return;
+      }
+
+      // 데이터가 있을 경우
+      chartElement.style.display = 'block'; // 차트 보이기
+      noDataMessage.style.display = 'none'; // 메시지 숨기기
 
       const data = {
         labels: labels,
@@ -468,34 +473,6 @@
 
       // config 객체를 사용하여 차트 생성
       new Chart(ctx, config);
-    }
-
-
-
-    function formatDateString(dateString) {
-      if (!dateString || dateString.length !== 8) return dateString; // 유효성 검사
-      const year = dateString.substring(0, 4);
-      const month = dateString.substring(4, 6);
-      const day = dateString.substring(6, 8);
-      return `${year}-${month}-${day}`;
-    }
-
-    // ordflag 값을 텍스트로 변환하는 함수
-    function getOrdflagText(ordflag) {
-      switch (parseInt(ordflag, 10)) { // ordflag를 숫자로 변환
-        case 0:
-          return "주문등록";
-        case 1:
-          return "주문확인";
-        case 2:
-          return "주문확정";
-        case 3:
-          return "제작진행";
-        case 4:
-          return "출고"
-        default:
-          return " ";
-      }
     }
 
     //검색

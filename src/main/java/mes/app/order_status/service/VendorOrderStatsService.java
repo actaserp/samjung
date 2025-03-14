@@ -16,7 +16,7 @@ public class VendorOrderStatsService {
   @Autowired
   SqlRunner sqlRunner;
 
-  public List<Map<String, Object>> getOrderStatusByOperid(String startDate, String endDate, String spjangcd, String searchCltnm) {
+  public List<Map<String, Object>> getOrderStatusByOperid(String startDate, String endDate, String searchSpjangcd, String searchCltnm) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     StringBuilder sql = new StringBuilder("""
         SELECT
@@ -37,15 +37,16 @@ public class VendorOrderStatsService {
       sql.append(" AND reqdate <= :endDate");
       params.addValue("endDate", endDate);
     }
-    if (spjangcd != null && !spjangcd.isEmpty()) {
+    if (searchSpjangcd != null && !searchSpjangcd.isEmpty()) {
       sql.append(" AND spjangcd = :spjangcd");
-      params.addValue("spjangcd", spjangcd);
+      params.addValue("spjangcd", searchSpjangcd);
     }
 
     if (searchCltnm != null && !searchCltnm.isEmpty()) {
       sql.append(" AND cltnm LIKE :cltnm");
       params.addValue("cltnm", "%" + searchCltnm + "%");
     }
+    sql.append(" ORDER BY reqdate DESC");
 
     //log.info("업체별 주문통계 그리드 read SQL: {}", sql.toString());
     //log.info("바인딩된 파라미터: {}", params.getValues());
@@ -82,6 +83,7 @@ public class VendorOrderStatsService {
       sql.append(" AND cltnm LIKE :cltnm");
       params.addValue("cltnm", "%" + searchCltnm + "%");
     }
+    sql.append(" ORDER BY reqdate DESC");
 
     //log.info("업체별 주문통계 차트 read SQL: {}", sql.toString());
     //log.info("바인딩된 파라미터: {}", params.getValues());

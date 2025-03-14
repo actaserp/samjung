@@ -35,23 +35,38 @@ public class DashBoardController2 {
         // 올해 진행구분(ordflag)별 데이터 개수
         List<Map<String, Object>> ThisYearCnt = this.dashBoardService2.ThisYearCnt(spjangcd);
 
-        // 올해 월별 데이터
-        List<Map<String, Object>> ThisYearCntOfMonth = this.dashBoardService2.ThisYearCntOfMonth(spjangcd);
-        // 작년 월별 데이터
-        List<Map<String, Object>> LastYearCntOfMonth = this.dashBoardService2.LastYearCntOfMonth(spjangcd);
-        // 올해 이번달 일별 데이터 개수
-        List<Map<String, Object>> ThisMonthCntOfDate = this.dashBoardService2.ThisMonthCntOfDate(spjangcd);
-        // 올해 전월 일별 데이터 개수
-        List<Map<String, Object>> LastMonthCntOfDate = this.dashBoardService2.LastMonthCntOfDate(spjangcd);
+        // 그래프 필요 데이터 (일별 - 이번달 일별, 작년 동월 일별)
+        List<Map<String, Object>> ThisMonthCntOfOrdflag = this.dashBoardService2.ThisMonthCntOfOrdflag(spjangcd);
+        List<Map<String, Object>> LastYearCntOfDate = this.dashBoardService2.LastYearCntOfDate(spjangcd);
+        //                  (월별 - 올해 월별, 작년 월별)
+        List<Map<String, Object>> ThisYearCntOfOrdflagByMonth = this.dashBoardService2.ThisYearCntOfOrdflagByMonth(spjangcd);
+        List<Map<String, Object>> LastYearCntOfDateByMonth = this.dashBoardService2.LastYearCntOfDateByMonth(spjangcd);
+        //                  (분기별 - 올해 분기별, 작년 분기별)
+        List<Map<String, Object>> ThisYearCntOfOrdflagByQuarter = this.dashBoardService2.ThisYearCntOfOrdflagByQuarter(spjangcd);
+        List<Map<String, Object>> LastYearCntOfDateByQuarter = this.dashBoardService2.LastYearCntOfDateByQuarter(spjangcd);
+        //                  (년별 - 서비스 시작후 년별)
+        List<Map<String, Object>> LastFiveYearsCntOfOrdflag = this.dashBoardService2.LastFiveYearsCntOfOrdflag(spjangcd);
+        //                  (전년대비(월별) - 올해 월별, 작년 월별)(월별 데이터 활용)
+        //                  (YTD - 올해 월별(stacked), 작년 월별(stacked))
+        List<Map<String, Object>> ThisYearCntOfStacked = this.dashBoardService2.ThisYearCntOfStacked(spjangcd);
+        List<Map<String, Object>> LastYearCntOfStacked = this.dashBoardService2.LastYearCntOfStacked(spjangcd);
+
+
 
         AjaxResult result = new AjaxResult();
         Map<String, Object> items = new HashMap<String, Object>();
         items.put("LastYearCnt", LastYearCnt);
         items.put("ThisYearCnt", ThisYearCnt);
-        items.put("ThisYearCntOfMonth", ThisYearCntOfMonth);
-        items.put("LastYearCntOfMonth", LastYearCntOfMonth);
-        items.put("ThisMonthCntOfDate", ThisMonthCntOfDate);
-        items.put("LastMonthCntOfDate", LastMonthCntOfDate);
+        items.put("ThisMonthCntOfOrdflag", ThisMonthCntOfOrdflag);
+        items.put("LastYearCntOfDate", LastYearCntOfDate);
+        items.put("ThisYearCntOfOrdflagByMonth", ThisYearCntOfOrdflagByMonth);
+        items.put("LastYearCntOfDateByMonth", LastYearCntOfDateByMonth);
+        items.put("ThisYearCntOfOrdflagByQuarter", ThisYearCntOfOrdflagByQuarter);
+        items.put("LastYearCntOfDateByQuarter", LastYearCntOfDateByQuarter);
+        items.put("LastFiveYearsCntOfOrdflag", LastFiveYearsCntOfOrdflag);
+        items.put("ThisYearCntOfStacked", ThisYearCntOfStacked);
+        items.put("LastYearCntOfStacked", LastYearCntOfStacked);
+
         result.data = items;
 
         return result;

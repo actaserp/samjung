@@ -336,26 +336,24 @@ section .section-top {display: flex; flex-flow: row wrap; justify-content: space
 .card-wrap section dl:nth-child(2) dt {font-weight: 600;}
 .card-wrap section dl:last-child dd {font-size: 24px;}
 .card-wrap section .unit {margin-left: 8px; font-size: 14px; opacity: 0.45;}
-.card-wrap .swiper-slide:nth-child(1) section {background-color: #031B4B; color: #fff;}
+.card-wrap .swiper-slide:nth-child(1) section {background-color: #fff; color: #031B4B;}
 .card-wrap .swiper-slide:nth-child(2) section {background-color: #03428E; color: #fff;}
 .card-wrap .swiper-slide:nth-child(3) section {background-color: #3069B3; color: #fff;}
 .card-wrap .swiper-slide:nth-child(4) section {background-color: #C7DFF4; color: #031B4B;}
-.card-wrap .swiper-slide:nth-child(6) section {background-color: #031B4B; color: #fff;}
-.card-wrap .swiper-slide:nth-child(7) section {background-color: #03428E; color: #fff;}
-.card-wrap .swiper-slide:nth-child(8) section {background-color: #3069B3; color: #fff;}
-.card-wrap .swiper-slide:nth-child(9) section {background-color: #C7DFF4; color: #031B4B;}
+.card-wrap .swiper-slide:nth-child(5) section {background-color: #031B4B; color: #fff;}
+.card-wrap .swiper-slide:nth-child(6) section {background-color: #03428E; color: #fff;}
 .card-wrap .swiper-slide:nth-child(1) section .btn-plus::before,
 .card-wrap .swiper-slide:nth-child(1) section .btn-plus::after,
 .card-wrap .swiper-slide:nth-child(2) section .btn-plus::before,
 .card-wrap .swiper-slide:nth-child(2) section .btn-plus::after,
 .card-wrap .swiper-slide:nth-child(3) section .btn-plus::before,
 .card-wrap .swiper-slide:nth-child(3) section .btn-plus::after,
+.card-wrap .swiper-slide:nth-child(4) section .btn-plus::before,
+.card-wrap .swiper-slide:nth-child(4) section .btn-plus::after,
+.card-wrap .swiper-slide:nth-child(5) section .btn-plus::before,
+.card-wrap .swiper-slide:nth-child(5) section .btn-plus::after,
 .card-wrap .swiper-slide:nth-child(6) section .btn-plus::before,
-.card-wrap .swiper-slide:nth-child(6) section .btn-plus::after,
-.card-wrap .swiper-slide:nth-child(7) section .btn-plus::before,
-.card-wrap .swiper-slide:nth-child(7) section .btn-plus::after,
-.card-wrap .swiper-slide:nth-child(8) section .btn-plus::before,
-.card-wrap .swiper-slide:nth-child(8) section .btn-plus::after {background-color: #fff;}
+.card-wrap .swiper-slide:nth-child(6) section .btn-plus::after {background-color: #fff;}
 .card-btn-wrap {position: relative;}
 .card-btn-wrap .btn {width: 36px; height: 36px;}
 .card-btn-wrap .btn img {margin-right: 0;}

@@ -420,7 +420,7 @@
     <script type="text/javascript" src="/resource/windowContainer/js/html5sortable.js"></script>
     <script type="text/javascript" src="/js/nth-tabs.js"></script>
     <th:block th:replace="/common/columns_setting :: columns_setting"></th:block>
-    <script>
+   <!-- <script>
         tinymce.init({
             language: "ko_KR",
             selector: "#ordtext",
@@ -435,7 +435,7 @@
             automatic_uploads: false // 자동 업로드 비활성화
         });
 
-    </script>
+    </script>-->
     <script type="text/javascript">
 
         let theGrid;
@@ -833,6 +833,7 @@
                         data2.forEach(item => {
                             item.reqdate = formatDateString(item.reqdate);
                             item.deldate = formatDateString(item.deldate);
+                            item.isdownload = item.isdownload === true;
                         });
                         console.log("서버에서 가져온 데이터(주문현황):", data2);
                     }
@@ -863,7 +864,9 @@
                         panel_hw: '',
                         panel_hl: '',
                         panel_hh:'' ,
+                        downloads: '',
                         reqnum:'',
+                        isdownload: ''
                     });
                 }
             }
@@ -891,10 +894,28 @@
                         {binding: 'panel_hw', header: 'W(폭)', width: 80, align: 'right'},
                         {binding: 'panel_hh', header: 'H(높이)', width: 80, align: 'right'},
                         {binding: 'panel_hl', header: 'L(길이)', width: 80, align: 'right'},
+                        {binding: 'downloads', header: '첨부파일', width: '*', minWidth: 105, align: 'center'},
                         {binding: 'reqnum', visible: false},  // 숨길 컬럼
+                        {binding: 'isdownload', visible: false}
                     ],
 
                     itemsSource: viewdata,
+                    formatItem: function(s, e) {
+                        if (e.panel.cellType === wijmo.grid.CellType.Cell) {
+                            const col = s.columns[e.col]; // 현재 컬럼 정보
+                            const item = s.rows[e.row]?.dataItem; // 현재 행 데이터
+
+                            // 다운로드 링크 처리
+                            if (col.binding === 'downloads') {
+                                //console.log('downloads column detected', item); // 디버깅용 로그 추가
+                                e.cell.innerHTML = ''; // 셀 내용 초기화
+                                if (item.isdownload) { // 데이터에 다운로드 가능한 상태 여부 확인
+                                    //console.log('Download link added for item:', item); // 디버깅용 로그 추가
+                                    e.cell.innerHTML = '<a title="다운로드" class="btn-filedown" onclick="downloadFile_order_status()">다운로드</a>';
+                                }
+                            }
+                        }
+                    }
                 });
 
                 // ✅ theGrid2 초기화 후 Selector 바인딩
@@ -985,7 +1006,24 @@
                 console.log("✅ 선택된 행의 그룹 정보:", groupInfoArray);
             }
         }
+        //다운로드
+        function downloadFile_order_status() {
+            let selectedItems = theGrid2.selectedItems; // 선택된 항목 가져오기
+            let downloadList = [];
 
+            // 선택된 항목에서 다운로드할 파일 목록 생성
+            selectedItems.forEach(function (item) {
+                downloadList.push({
+                    reqnum: item.reqnum
+                });
+            });
+
+            // 다운로드 URL 지정
+            let downloadUrl = '/api/request/request/downloader';
+
+            // Jung.js에서 정의한 downloadFiles 함수 호출
+            downloadFiles(downloadList, downloadUrl);
+        }
         //날짜 포맷
         function formatDateString(dateString) {
             if (!dateString || dateString.length !== 8) return dateString; // 유효성 검사

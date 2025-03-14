@@ -38,7 +38,15 @@
         border: 1px solid #ccc; /* 테두리 추가 (선택 사항) */
         padding: 10px; /* 여백 추가 (선택 사항) */
     }
-
+    .chart-container span {
+        position: absolute; /* ✅ 차트 위에 배치 */
+        top: 10px; /* ✅ 위치 조정 */
+        right: 10px;
+        cursor: pointer;
+        color: rgb(179, 179, 179);
+        font-size: 24px; /* ✅ 아이콘 크기 조정 */
+        z-index: 10; /* ✅ 다른 요소보다 위에 배치 */
+    }
 </style>
 <th:block layout:fragment="content">
     <div class="layout-contents">
@@ -150,12 +158,9 @@
                 </div>
                 <div class="container-fluid">
                     <div class="chart-container">
-                        <!--<canvas id="myChart"></canvas>-->
-                        <canvas id="myChart" width="400" height="110px"></canvas>
-                        <span class="material-symbols-outlined"
-                              style="position: absolute; top: 17px; right: 3px; cursor: pointer; z-index: 10; color: rgb(179, 179, 179);"
-                              onclick="openModal()">zoom_out_map</span>
+                        <canvas id="myChart" width="400" height="115px"></canvas>
                     </div>
+                    <span class="material-symbols-outlined" onclick="openModal()">zoom_out_map</span>
                     <div>
                         <div>
                             <p id="selectedItem"></p>
@@ -219,15 +224,21 @@
 
         function fetchListData() {
             let data2 = [];
-          const spjangcd = document.getElementById('search_spjangcd').value;
-          const startDate = document.getElementById('startDate').value || "";
-          const endDate = document.getElementById('endDate').value || "";
+            const spjangcd = document.getElementById('search_spjangcd').value;
+            const startDate = document.getElementById('startDate').value || "";
+            const endDate = document.getElementById('endDate').value || "";
+            const searchCltnm = document.getElementById('searchCltnm').value.trim() || "";
+            const searchtketnm = document.getElementById('searchtketnm').value || "";
+            const searchTitle = document.getElementById('searchTitle')?.value || "";
 
-          const queryParams = {
-            search_spjangcd: spjangcd,
-            startDate: startDate,
-            endDate:endDate
-          };
+            const queryParams = {
+                search_spjangcd: spjangcd,
+                startDate: startDate,
+                endDate: endDate,
+                searchCltnm: searchCltnm,
+                searchtketnm: searchtketnm,
+                searchTitle: searchTitle
+            };
 
             // 서버에서 데이터 가져오기
             $.ajax({
@@ -244,10 +255,6 @@
                     if (response && Array.isArray(response.data)) {
                         data2 = response.data.map((item, index) => ({
                             ...item,
-                            reqdate: formatDateString(item.reqdate),         // 날짜 형식 변환
-                            deldate: formatDateString(item.deldate),         // 날짜 형식 변환
-                            ordflag: getOrdflagText(parseInt(item.ordflag, 10)), // ordflag 텍스트 변환
-                            telno: formatPhoneNumber(item.telno),
                             rownum: index + 1
                         }));
                     }
@@ -261,12 +268,13 @@
                 data2.push({
                     rownum: data2.length + 1,
                     reqdate: '',
+                    ordflag_display:'',
                     ordflag: '',
                     cltnm: '',
                     manager: '',
                     telnum: '',
                     orderprice: '',
-                    resdate: '',
+                    deldate: '',
                     remark: ''
                 });
             }
@@ -283,12 +291,12 @@
                         {binding: 'rownum', header: '순번', width: 80, align: 'center'},
                         {binding: 'reqdate', header: '주문일자', width: '*', minWidth: 100, align: 'center'},
                         {binding: 'cltnm', header: '업체명', width: '*', minWidth: 100, align: 'left'},
-                        {binding: 'ordflag', header: '진행구분', width: '*', minWidth: 100, align: 'center'},
+                        {binding: 'ordflag_display', header: '진행구분', width: '*', minWidth: 100, align: 'center'},
                         {binding: 'remark', header: '제목(메모)', width: '*', minWidth: 400, align: 'left'},
                         {binding: 'perid', header: '담당자', width: '*', minWidth: 100, align: 'center'},
                         {binding: 'telno', header: '연락처', width: '*', minWidth: 100, align: 'center'},
                         {binding: 'orderprice', header: '금액', width: '*', minWidth: 100, align: 'center'},
-                        {binding: 'resdate', header: '출고일자', width: '*', minWidth: 100, align: 'center'},
+                        {binding: 'deldate', header: '출고일자', width: '*', minWidth: 100, align: 'center'},
                     ],
                     itemsSource: viewdata
                 });
@@ -300,24 +308,8 @@
                 theGrid.itemsSource = viewdata;
             }
         }
-        function formatPhoneNumber(phoneNumber) {
-            // 숫자로만 구성되어 있는지 확인
-            if (!/^\d+$/.test(phoneNumber)) {
-                return ' ';
-            }
 
-            if (phoneNumber.length === 11) { // 11자리인 경우
-                return phoneNumber.replace(/^(\d{3})(\d{4})(\d{4})$/, '$1-$2-$3');
-            } else if (phoneNumber.length === 12) { // 12자리인 경우
-                return phoneNumber.replace(/^(\d{3})(\d{4})(\d{5})$/, '$1-$2-$3');
-            }
-
-            return ""; // 그 외의 경우
-        }
-
-        //차트 데이터
         function loadChartData() {
-
             const spjangcd = document.getElementById('search_spjangcd').value;
             const startDate = document.getElementById('startDate').value || "";
             const endDate = document.getElementById('endDate').value || "";
@@ -334,155 +326,184 @@
                 searchTitle: searchTitle
             };
             const urlParams = new URLSearchParams(queryParams).toString();
-            const url = `/api/ProgressStatus/getChartData2?${urlParams}`;
 
             $.ajax({
-                url: url,
+                url: `/api/ProgressStatus/getChartData2?${urlParams}`,
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
                     if (response.success && response.data && response.data.length > 0) {
-                        // 데이터가 있는 경우 차트를 업데이트
-                        const labels = response.data.map(item => item.cltnm || "미지정");
-                        const values = response.data.map(item => item.ordflag || 0);
+                        // 📌 데이터 가공: 주문 상태별 개수 계산
+                        const orderCounts = {
+                            "주문취소": 0,
+                            "주문등록": 0,
+                            "주문확인": 0,
+                            "주문확정": 0,
+                            "제작진행": 0,
+                            "출고": 0
+                        };
 
-                        const chartInstance = $('#myChart').data('chart');
-                        if (chartInstance) {
-                            chartInstance.data.labels = labels;
-                            chartInstance.data.datasets[0].data = values;
-                            chartInstance.update();
-                        } else {
-                            console.error("차트 인스턴스를 찾을 수 없습니다.");
-                        }
+                        response.data.forEach(item => {
+                            const status = stageMapping[item.ordflag] || "기타";
+                            if (orderCounts[status] !== undefined) {
+                                orderCounts[status]++;
+                            }
+                        });
+
+                        // 📌 총 건수 계산
+                        const totalOrders = response.data.length;
+
+                        // 📌 차트 업데이트
+                        initializeChart(orderCounts, totalOrders);
                     } else {
-                        // 데이터가 없을 때 차트 초기화 및 메시지 표시
                         console.log(response.message || "조회된 데이터가 없습니다.");
-                        initializeChart();
+                        initializeChart({}, 0); // 데이터 없을 경우 초기화
                     }
                 },
                 error: function () {
-                    // AJAX 요청 오류 처리
                     console.error("데이터 로드 중 오류 발생");
-                    initializeChart();
+                    initializeChart({}, 0);
                 }
             });
         }
+        // 숫자 → 값 매핑 객체
+        const stageMapping = {
+            5: "주문취소",
+            0: "주문등록",
+            1: "주문확인",
+            2: "주문확정",
+            3: "제작진행",
+            4: "출고",
 
-        function initializeChart(dataInput, optionsInput, callback) {
+        };
+        //차트
+        console.log(Chart.version); // 콘솔에서 Chart.js 버전을 확인
+
+        $(document).ready(function () {
+            initializeChart(function () {
+                loadChartData(); // 차트 초기화 후 데이터 로드
+            });
+        });
+
+        window.openModal = function () {
+            let chartElement = document.getElementById('myChart');
+
+            // ✅ Chart.js 방식으로 차트 인스턴스 가져오기
+            let chartInstance = Chart.getChart(chartElement);
+
+            if (!chartInstance) {
+                console.error("차트를 찾을 수 없습니다.");
+                alert("차트를 찾을 수 없습니다. 차트를 먼저 생성해 주세요."); // ✅ Alert.alert → alert 사용
+                return;
+            }
+
+            let modal = $('#chartModal');
+            modal.show();
+
+            let modalChartHolder = $('#modalChartHolder')[0].getContext('2d');
+
+            // ✅ 기존 모달 차트가 있으면 삭제
+            if (window.modalChartInstance) {
+                window.modalChartInstance.destroy();
+            }
+
+            // ✅ 모달 차트 생성 (기존 차트 데이터 유지)
+            window.modalChartInstance = new Chart(modalChartHolder, {
+                type: chartInstance.config.type,
+                data: chartInstance.config.data,
+                options: chartInstance.config.options
+            });
+        };
+        $(document).on('click', '.close', function () {
+            $('#chartModal').hide();
+            if (window.modalChartInstance) {
+                window.modalChartInstance.destroy();
+            }
+        });
+
+        $(window).on('click', function (event) {
+            if ($(event.target).is('#chartModal')) {
+                $('#chartModal').hide();
+                if (window.modalChartInstance) {
+                    window.modalChartInstance.destroy();
+                }
+            }
+        });
+
+        function initializeChart(orderCounts = {}, totalOrders = 0) {
             const chartElement = document.getElementById('myChart');
+            if (!chartElement) {
+                console.error('Chart element not found!');
+                return;
+            }
+
             const ctx = chartElement.getContext('2d');
 
-            // 기존 차트 인스턴스가 있으면 파괴
-            const existingChart = $(chartElement).data('chart');
+            // 기존 차트 제거
+            const existingChart = Chart.getChart(chartElement);
             if (existingChart) {
                 existingChart.destroy();
             }
 
-            // 데이터 설정
-            const defaultData = {
-                labels: [],
-                datasets: [{
-                    data: [],
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.2)',
-                        'rgba(255, 159, 64, 0.2)',
-                        'rgba(54, 162, 235, 0.2)',
-                        'rgba(75, 192, 192, 0.2)',
-                        'rgba(153, 102, 255, 0.2)'
-                    ],
-                    borderColor: [
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(255, 159, 64, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(153, 102, 255, 1)'
-                    ],
-                    borderWidth: 2
-                }]
+            // X축 라벨
+            const labels = ["주문취소", "주문등록", "주문확인", "주문확정", "제작진행", "출고"];
+
+            // 실제 데이터 (빨간색)
+            const coloredData = labels.map(label => orderCounts[label] || 0);
+
+            // 남은 데이터 (회색)
+            const grayData = labels.map(label => totalOrders - (orderCounts[label] || 0));
+
+            const data = {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '각 건수',
+                        data: coloredData,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.3)',
+                            'rgba(255, 159, 64, 0.4)',
+                            'rgba(255, 215, 0, 0.4)',
+                            'rgba(75, 192, 192, 0.5)',
+                            'rgba(54, 162, 235, 0.4)',
+                            'rgba(153, 102, 255, 0.2)'
+                        ]
+                    },
+                    {
+                        label: '총 건수',
+                        data: grayData,
+                        backgroundColor: 'rgba(200, 200, 200, 0.2)' // 회색
+                    }
+                ]
             };
 
-            const data = {...defaultData, ...dataInput};
-
-            // 옵션 설정
-            const defaultOptions = {
-                indexAxis: 'y',
+            // 차트 옵션
+            const options = {
+                responsive: true,
                 plugins: {
                     legend: {
-                        display: false // 범례를 숨김
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function (tooltipItem) {
-                                //console.log('tooltipItem.raw:', tooltipItem.raw);
-                                const value = tooltipItem.raw;
-                                const stageText = getOrdflagText(value);
-                                return `진행 현황: ${stageText}`;
-                            }
-                        }
+                        position: 'top',
+                       // display: false //라벨 숨기기
                     }
                 },
                 scales: {
                     x: {
-                        ticks: {
-                            stepSize: 1,
-                            callback: function (value) {
-                                return stageMapping[value] || "";
-                            },
-                            autoSkip: false
-                        },
-                        beginAtZero: true,
-                        min: 0,
-                        max: 4
+                        stacked: true,
                     },
-
-                    y: {beginAtZero: true}
-                },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        max: totalOrders + 4 // Y축 최대값을 현재 총 개수 + 4
+                    }
+                }
             };
-
-            const options = {...defaultOptions, ...optionsInput};
 
             // 차트 생성
-            const config = {
-                type: 'bar', // 기본 차트 타입
+            new Chart(ctx, {
+                type: 'bar',
                 data: data,
                 options: options
-            };
-
-            const myChart = new Chart(ctx, config);
-
-            // 생성된 차트를 데이터에 저장
-            $(chartElement).data('chart', myChart);
-
-            // 콜백 실행
-            if (callback) {
-                callback(myChart); // 생성된 차트를 콜백에 전달
-            }
-        }
-
-        function formatDateString(dateString) {
-            if (!dateString || dateString.length !== 8) return dateString; // 유효성 검사
-            const year = dateString.substring(0, 4);
-            const month = dateString.substring(4, 6);
-            const day = dateString.substring(6, 8);
-            return `${year}-${month}-${day}`;
-        }
-
-        // ordflag 값을 텍스트로 변환하는 함수
-        function getOrdflagText(ordflag) {
-            switch (parseInt(ordflag, 10)) { // ordflag를 숫자로 변환
-                case 0:
-                    return "주문등록";
-                case 1:
-                    return "주문확인";
-                case 2:
-                    return "주문확정";
-                case 3:
-                    return "제작진행";
-                case 4:
-                    return "출고"
-                default:
-                    return " ";
-            }
+            });
         }
 
         //검색
@@ -507,246 +528,10 @@
 
             // 차트 데이터 로드
             loadChartData(queryParams);
-
-            $.ajax({
-                url: `/api/ProgressStatus/search?${$.param(queryParams)}`,
-                type: 'GET',
-                success: function (response) {
-                    console.log("검색 결과:", response); // 응답 데이터 확인
-                    if (response.success && response.data) {
-                        //그리드 데이터 바인딩
-                        updateChartAndGrid(response.data);
-                    } else {
-                        console.error("검색 결과 처리 중 오류 발생:", response.message);
-                        // alert(response.message || "검색 결과를 가져오는 중 오류가 발생했습니다.");
-                    }
-                },
-                error: function (xhr, status, error) {
-                    console.error("검색 요청 중 오류 발생:", error);
-                    console.error("응답 내용:", xhr.responseText);
-                    Alert.alert("검색 요청 처리 중 오류가 발생했습니다.", '');
-                }
-            });
+            fetchListData(queryParams);
         }
 
-        // 데이터 바인딩 함수 (그리드나 테이블에 출력)
-        function bindDataToGrid(data2) {
-            console.log("그리드에 바인딩할 데이터:", data2);
-
-            // 응답 데이터 가공
-            if (data2 && Array.isArray(data2)) {
-                data2 = data2.map((item, index) => ({
-                    ...item,
-                    reqdate: formatDateString(item.reqdate), // 날짜 형식 변환
-                    deldate: formatDateString(item.deldate), // 날짜 형식 변환
-                    ordflag: getOrdflagText(parseInt(item.ordflag, 10)), // 진행 구분 텍스트 변환
-                    telno: formatPhoneNumber(item.telno),
-                    rownum: index + 1 // 순번
-                }));
-            } else {
-                console.error("유효하지 않은 데이터 형식:", data2);
-                data2 = [];
-            }
-            // 데이터가 10개 미만인 경우 빈 행 추가
-          while (data2.length < 10) {
-            data2.push({
-              rownum: data2.length + 1,
-              reqdate: '',
-              estimatedate: '',
-              ordflag: '',
-              cltnm: '',
-              manager: '',
-              telnum: '',
-              orderprice: '',
-              resdate: '',
-              remark: ''
-            });
-          }
-
-          viewdata = new wijmo.collections.CollectionView(data2);
-
-          if (!theGrid) {
-            // 데이터 그리드에 바인딩
-            theGrid = new wijmo.grid.FlexGrid('#theGrid', {
-              autoGenerateColumns: false,
-              showMarquee: true,
-              isReadOnly: true, // 전체 읽기 전용
-              columns: [
-                {binding: 'rownum', header: '순번', width: 80, align: 'center'},
-                {binding: 'reqdate', header: '주문일자', width: '*', minWidth: 100, align: 'center'},
-                {binding: 'estimatedate', header: '견적일자', width: '*', minWidth: 100, align: 'center'},
-                {binding: 'ordflag', header: '진행구분', width: '*', minWidth: 100, align: 'center'},
-                {binding: 'remark', header: '제목(메모)', width: '*', minWidth: 400, align: 'left'},
-                {binding: 'cltnm', header: '업체명', width: '*', minWidth: 100, align: 'left'},
-                {binding: 'perid', header: '담당자', width: '*', minWidth: 100, align: 'center'},
-                {binding: 'telno', header: '연락처', width: '*', minWidth: 100, align: 'center'},
-                {binding: 'orderprice', header: '금액', width: '*', minWidth: 100, align: 'center'},
-                {binding: 'resdate', header: '출고일자', width: '*', minWidth: 100, align: 'center'},
-              ],
-              itemsSource: viewdata
-            });
-            theGrid.rowHeaders.columns.splice(0, 1);
-            new FlexGridContextMenu(theGrid);
-            window.downloadFileName = '주문진행 현황';
-          } else {
-            // 이미 FlexGrid가 존재하는 경우, 데이터만 업데이트
-            theGrid.itemsSource = viewdata;
-          }
-        }
-
-        function updateChartAndGrid(data) {
-            console.log("업데이트할 데이터:", data);
-
-            // 그리드 데이터 바인딩
-            bindDataToGrid(data);
-
-        }
-
-        // 숫자 → 값 매핑 객체
-        const stageMapping = {
-            0: "주문등록",
-            1: "주문확인",
-            2: "주문확정",
-            3: "제작진행",
-            4: "출고",
-            5: "주문취소"
-        };
-        //차트
-        console.log(Chart.version); // 콘솔에서 Chart.js 버전을 확인
-
-        $(document).ready(function () {
-
-            // 차트 생성 및 인스턴스 저장
-            const ctx = document.getElementById('myChart').getContext('2d');
-
-            // 진행 단계를 수치로 매핑하는 함수
-            function getOrdflagText(ordflag) {
-                const stageLabels = ['주문의뢰', '주문확인', '주문확정', '제작진행', '출고',];
-                return stageLabels[ordflag];
-            }
-
-            // 차트 데이터를 업데이트하는 함수
-            function updateChart(chartInstance, newData) {
-                chartInstance.data.datasets[0].data = newData;
-                chartInstance.update();
-            }
-
-            // 기본 데이터 설정
-            const data = {
-                labels: ['업체', '업체1', '업체2', '업체3', '업체4'],
-                datasets: [{
-                    label: '진행 현황',
-                    data: [0, 1, 2, 3, 4],   // 기본 data
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.2)',
-                        'rgba(255, 159, 64, 0.2)',
-                        'rgba(54, 162, 235, 0.2)',
-                        'rgba(75, 192, 192, 0.2)',
-                        'rgba(153, 102, 255, 0.2)'
-                    ],
-                    borderColor: [
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(255, 159, 64, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(153, 102, 255, 1)'
-                    ],
-                    borderWidth: 2, // 강조된 테두리
-                    barThickness: 30
-                }]
-            };
-
-            const config = {
-                type: 'bar',
-                data: data,
-                legend: {
-                    display: false // 위에 라벨 숨김
-                },
-                options: {
-                    indexAxis: 'y', // 가로 막대 그래프
-                    scales: {
-                        x: {
-                            ticks: {
-                                stepSize: 1,
-                                callback: function (value) {
-                                    return stageMapping[value] || "";
-                                },
-                                autoSkip: false
-                            },
-                            beginAtZero: true,
-                            min: 0,
-                            max: 4
-                        },
-                        y: {beginAtZero: true}
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (tooltipItem) {
-                                    console.log('tooltipItem.raw:', tooltipItem.raw);
-                                    const value = tooltipItem.raw;
-                                    const stageText = getOrdflagText(value);
-                                    return `진행 현황: ${stageText} (${value})`;
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-
-            const myChart = new Chart(ctx, config);
-            $('#myChart').data('chart', myChart);
-
-            $(document).ready(function () {
-                initializeChart(function () {
-                    loadChartData(); // 차트 초기화 후 데이터 로드
-                });
-            });
-
-            // 모달 열기 함수
-            window.openModal = function () {
-                let chartInstance = $('#myChart').data('chart');
-                if (!chartInstance) {
-                    console.error("차트를 찾을 수 없습니다.");
-                    alert("차트를 찾을 수 없습니다. 차트를 먼저 생성해 주세요.");
-                    return;
-                }
-
-                let modal = $('#chartModal');
-                modal.show();
-
-                let modalChartHolder = $('#modalChartHolder')[0].getContext('2d');
-
-                if (window.modalChartInstance) {
-                    window.modalChartInstance.destroy();
-                }
-
-                window.modalChartInstance = new Chart(modalChartHolder, {
-                    type: chartInstance.config.type,
-                    data: chartInstance.config.data,
-                    options: chartInstance.config.options
-                });
-            };
-
-            $(document).on('click', '.close', function () {
-                $('#chartModal').hide();
-                if (window.modalChartInstance) {
-                    window.modalChartInstance.destroy();
-                }
-            });
-
-            $(window).on('click', function (event) {
-                if ($(event.target).is('#chartModal')) {
-                    $('#chartModal').hide();
-                    if (window.modalChartInstance) {
-                        window.modalChartInstance.destroy();
-                    }
-                }
-            });
-        });
+        // 사업장
         function bindSpjangcd() {
             $.ajax({
                 url: '/api/dashboard2/bindSpjangcd',
@@ -768,6 +553,7 @@
                 'width=1040,height=1000,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes');
         }
 
+        //공통코드
         const selectConfigs = [
             { parentCode: 'ordflag', elementId: 'searchtketnm' },
         ];

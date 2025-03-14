@@ -27,15 +27,59 @@ public class ProgressStatusController {
     public AjaxResult ProgressStatusRead(Authentication auth,
                                          @RequestParam(value = "search_spjangcd", required = false) String search_spjangcd,
                                          @RequestParam(value = "startDate", required = false) String startDate,
-                                         @RequestParam(value = "endDate", required = false) String endDate) {
+                                         @RequestParam(value = "endDate", required = false) String endDate,
+                                         @RequestParam(value = "searchCltnm", required = false) String searchCltnm,
+                                         @RequestParam(value = "searchtketnm", required = false) String searchtketnm,
+                                         @RequestParam(value = "searchTitle", required = false) String searchTitle
+                                         ) {
         AjaxResult result = new AjaxResult();
-
+        log.info("검색 조건 search_spjangcd:{}, startDate: {}, endDate: {}, cltnm: {}, ordflag: {}, searchTitle: {}",
+            search_spjangcd, startDate, endDate, searchCltnm, searchtketnm, searchTitle);
         try{
-            // 로그인한 사용자 정보에서 이름(perid) 가져오기
-            User user = (User) auth.getPrincipal();
-            String perid = user.getFirst_name();
+            List<Map<String, Object>> progressStatusLis = progressStatusService.getProgressStatusList(search_spjangcd, startDate, endDate, searchCltnm,searchtketnm,searchTitle);
 
-            List<Map<String, Object>> progressStatusLis = progressStatusService.getProgressStatusList(perid, search_spjangcd, startDate, endDate);
+            for (Map<String, Object> order : progressStatusLis) {
+                // ✅ 날짜 포맷 적용
+                Object reqdateValue = order.get("reqdate");
+                if (reqdateValue != null && reqdateValue instanceof String) {
+                    String reqdateStr = (String) reqdateValue;
+
+                    try {
+                        if (reqdateStr.length() == 8) { // ✅ "yyyyMMdd" 형식인지 확인
+                            String formattedDate = reqdateStr.substring(0, 4) + "-" + reqdateStr.substring(4, 6) + "-" + reqdateStr.substring(6, 8);
+                            order.put("reqdate", formattedDate);
+                        } else {
+                            order.put("reqdate", "잘못된 날짜 형식"); // ✅ 길이가 8이 아니면 오류 처리
+                        }
+                    } catch (Exception ex) {
+                        log.error("날짜 포맷 변환 중 오류 발생: {}", ex.getMessage());
+                        order.put("reqdate", "잘못된 날짜 형식");
+                    }
+                }
+                Object deldateValue = order.get("deldate");
+                if (deldateValue != null && deldateValue instanceof String) {
+                    String deldateStr = (String) deldateValue;
+
+                    try {
+                        if (deldateStr.length() == 8) { // ✅ "yyyyMMdd" 형식인지 확인
+                            String formattedDate = deldateStr.substring(0, 4) + "-" + deldateStr.substring(4, 6) + "-" + deldateStr.substring(6, 8);
+                            order.put("deldate", formattedDate);
+                        } else {
+                            order.put("deldate", "잘못된 날짜 형식"); // ✅ 길이가 8이 아니면 오류 처리
+                        }
+                    } catch (Exception ex) {
+                        log.error("날짜 포맷 변환 중 오류 발생: {}", ex.getMessage());
+                        order.put("deldate", "잘못된 날짜 형식");
+                    }
+                }
+
+                // ✅ 전화번호 포맷 적용
+                Object telnoValue = order.get("telno");
+                if (telnoValue instanceof String) {
+                    String formattedTelno = formatPhoneNumber((String) telnoValue);
+                    order.put("telno", formattedTelno);
+                }
+            }
 
             result.success = true;
             result.data = progressStatusLis;
@@ -50,52 +94,6 @@ public class ProgressStatusController {
         return result;
     }
 
-    @GetMapping("/search")
-    public AjaxResult searchProgress(@RequestParam Map<String, String> params, Authentication auth,
-                                     @RequestParam(value = "search_spjangcd", required = false) String search_spjangcd) {
-        AjaxResult result = new AjaxResult();
-        log.info("그리드 검색: {}", params);
-        try {
-            // 로그인한 사용자 정보
-            User user = (User) auth.getPrincipal();
-            String userid = user.getUsername();
-
-            // 검색 조건 로깅
-            //System.out.println(String.format("검색 조건: %s, 사용자: %s, 사업장: %s", params, userid, search_spjangcd));
-
-            // groupByColumns 처리
-            List<String> groupByColumns = null;
-            if (params.containsKey("groupByColumns") && !params.get("groupByColumns").isEmpty()) {
-                groupByColumns = Arrays.asList(params.get("groupByColumns").split(",")); // 쉼표로 구분
-            }
-
-            // 검색 서비스 호출
-            List<Map<String, Object>> progressStatusList = progressStatusService.searchProgressStatus(
-                    params.get("startDate"),    // 검색 시작 날짜
-                    params.get("endDate"),      // 검색 종료 날짜
-                    params.get("searchTitle"), // 검색 비고
-                    params.get("searchtketnm"),
-                    params.get("searchCltnm"),
-                    userid,                     // 사용자 ID
-                    search_spjangcd,                   // 사업장 코드
-                    groupByColumns              // 그룹바이 조건
-            );
-
-            // 응답 생성
-            result.success = true;
-            result.data = progressStatusList;
-            result.message = "데이터 조회 성공";
-        } catch (Exception e) {
-            // 예외 로그 출력
-            log.error("검색 중 오류 발생: {}", e.getMessage(), e);
-
-            // 응답 생성
-            result.success = false;
-            result.message = "데이터를 가져오는 중 오류가 발생했습니다.";
-        }
-
-        return result;
-    }
 
     //차트 데이터
     @GetMapping("/getChartData2")
@@ -113,11 +111,11 @@ public class ProgressStatusController {
             User user = (User) auth.getPrincipal();
             String userid = user.getUsername();
 
-            /*log.info("검색 조건 search_spjangcd:{}, startDate: {}, endDate: {}, cltnm: {}, ordflag: {}, searchTitle: {}",
-                    search_spjangcd, startDate, endDate, searchCltnm, searchtketnm, searchTitle);*/
+            log.info("검색 조건 search_spjangcd:{}, startDate: {}, endDate: {}, cltnm: {}, ordflag: {}, searchTitle: {}",
+                    search_spjangcd, startDate, endDate, searchCltnm, searchtketnm, searchTitle);
 
             List<Map<String, Object>> rawData = progressStatusService.getChartData2(
-                    userid, search_spjangcd, startDate, endDate, searchCltnm, searchtketnm, searchTitle);
+                    search_spjangcd, startDate, endDate, searchCltnm, searchtketnm, searchTitle);
 
             if (rawData == null || rawData.isEmpty()) {
                 log.warn("조회된 데이터가 없습니다.");
@@ -136,6 +134,22 @@ public class ProgressStatusController {
 
         return result;
     }
+
+    //연락처 포맷
+    private String formatPhoneNumber(String phoneNumber) {
+        if (phoneNumber == null || !phoneNumber.matches("\\d+")) { // 숫자가 아니면 공백 반환
+            return " ";
+        }
+
+        if (phoneNumber.length() == 11) { // 11자리 (예: 01012345678 → 010-1234-5678)
+            return phoneNumber.replaceAll("(\\d{3})(\\d{4})(\\d{4})", "$1-$2-$3");
+        } else if (phoneNumber.length() == 12) { // 12자리 (예: 03112345678 → 031-1234-5678)
+            return phoneNumber.replaceAll("(\\d{3})(\\d{4})(\\d{5})", "$1-$2-$3");
+        }
+
+        return ""; // 그 외의 경우 빈 문자열 반환
+    }
+
 
 
 }

@@ -32,11 +32,36 @@ public class OrderStatusService {
         }
 
         StringBuilder sql = new StringBuilder("""
-        select tb006.*,
-          uc.Value AS ordflag_display
-          from TB_DA006W tb006
-          left join user_code uc on uc.Code = tb006.ordflag
-          WHERE tb006.spjangcd = :spjangcd
+       SELECT
+          tb006.*,
+          uc.Value AS ordflag_display,
+          (
+              SELECT ISNULL((
+                  SELECT
+                      bd.filepath,
+                      bd.filesvnm,
+                      bd.fileextns,
+                      bd.fileurl,
+                      bd.fileornm,
+                      bd.filesize,
+                      bd.fileid
+                  FROM
+                      tb_DA006WFILE bd
+                  WHERE
+                      bd.custcd = tb006.custcd
+                      AND bd.spjangcd = tb006.spjangcd
+                      AND bd.reqdate = tb006.reqdate
+                      AND bd.reqnum = tb006.reqnum
+                  ORDER BY
+                      bd.indatem DESC
+                  FOR JSON PATH
+              ), '[]')
+          ) AS hd_files
+      FROM
+          TB_DA006W tb006 
+      left join user_code uc on uc.Code = tb006.ordflag
+      WHERE
+          tb006.spjangcd = :spjangcd
     """);
         
         // 날짜 필터링 (TB_DA006W 기준)

@@ -25,7 +25,7 @@
         padding: 20px;
         border: 1px solid #888;
         width: 80%;
-        max-width: 600px;
+        max-width: 700px;
         border-radius: 8px;
     }
 
@@ -38,14 +38,13 @@
         border: 1px solid #ccc; /* 테두리 추가 (선택 사항) */
         padding: 10px; /* 여백 추가 (선택 사항) */
     }
-
 </style>
 <th:block layout:fragment="content">
   <div class="layout-contents">
     <!-- Page Title -->
     <div class="page-title-wrap">
       <div class="left">
-        <h2>진행 현황</h2><a id="toggleButton" onclick="toggleSearchWrap()"><img src="/images/icon/ico-down.png"
+        <h2>업체별 주문통계</h2><a id="toggleButton" onclick="toggleSearchWrap()"><img src="/images/icon/ico-down.png"
                                                                              alt="알람 아이콘"></a>
         <!--<a title="북마크" class="bookmark toggle">
             내메뉴
@@ -53,7 +52,8 @@
       </div>
       <ul class="page-navi">
         <li><img src="/images/icon/ico-nav-home.svg" alt="홈아이콘"></li>
-        <li>주문 현황</li>
+        <li>주문관리</li>
+        <li>업체별 주문통계</li>
       </ul>
     </div>
     <div class="search-wrap" id="searchWrap" style="display: none; padding-top:10px">
@@ -71,7 +71,7 @@
     </div>
     <!-- Select -->
     <div class="tab-contents">
-      <section class="tab-item" style="height: 900px; overflow: hidden;">
+      <section class="tab-item" style="height: 910px; overflow: hidden;">
         <div class="section-top">
           <div class="search-wrap">
             <dl>
@@ -96,41 +96,14 @@
             </dl>
             <dl>
               <dt>
-                <label for="searchtketnm">
-                  진행구분<span class="eq"></span>
-                </label>
-              </dt>
-              <dd>
-                <div class="srch-box">
-                  <select id="searchtketnm" name="searchtketnm">
-                    <option value="all"></option>
-                  </select>
-                </div>
-              </dd>
-            </dl>
-            <dl>
-              <dt>
                 <label for="searchCltnm">
-                  업체명<span class="eq">*</span>
+                  업체명
                 </label>
               </dt>
               <dd>
                 <div class="srch-box">
                   <input type="text" id="searchCltnm" name="searchCltnm" class="input-srch"
                          placeholder="업체명" style="border-radius: 5px;">
-                </div>
-              </dd>
-            </dl>
-            <dl>
-              <dt>
-                <label for="searchTitle">
-                  제목<span class="eq">*</span>
-                </label>
-              </dt>
-              <dd>
-                <div class="srch-box">
-                  <input type="text" id="searchTitle" name="searchTitle" class="input-srch"
-                         placeholder="제목" style="border-radius: 5px;">
                 </div>
               </dd>
             </dl>
@@ -148,18 +121,15 @@
             </dl>
           </div>
         </div>
-        <div class="container-fluid">
-          <div class="chart-container">
-            <!--<canvas id="myChart"></canvas>-->
-            <canvas id="myChart" width="400" height="110px"></canvas>
-            <span class="material-symbols-outlined"
-                  style="position: absolute; top: 17px; right: 3px; cursor: pointer; color: rgb(179, 179, 179);"
-                  onclick="openModal()">zoom_out_map</span>
+        <div class="container-fluid" style="display: flex;">
+          <div class="chart-container wp50">
+            <canvas id="myChart" width="500" height="500"></canvas>
           </div>
-          <div>
-            <div>
+          <span class="material-symbols-outlined"  onclick="openModal()">zoom_out_map</span>
+          <div class="wp50">
+            <div >
               <p id="selectedItem"></p>
-              <div id="theGrid" style="max-height:319px"></div>
+              <div id="theGrid" style="max-height:800px"></div>
             </div>
           </div>
         </div>
@@ -216,39 +186,41 @@
       $('#endDate').val(todayFormatted);
     });
 
+    document.getElementById('searchCltnm').addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault(); //폼이 자동으로 제출되는 것을 방지
+        searchButton(); // 엔터 키를 눌렀을 때 실행할 함수
+      }
+    });
 
     function fetchListData() {
-      let data2 = [];
-      const spjangcd = document.getElementById('search_spjangcd').value;
-      const startDate = document.getElementById('startDate').value || "";
-      const endDate = document.getElementById('endDate').value || "";
-
-      const queryParams = {
-        search_spjangcd: spjangcd,
-        startDate: startDate,
-        endDate:endDate
+      let data = [ ];
+      const params = {
+        startDate: $('#startDate').val(),
+        endDate: $('#endDate').val(),
+        searchUserNm: $('#searchUserNm').val(),
+        searchCltnm: $('#searchCltnm').val(),
       };
 
       // 서버에서 데이터 가져오기
       $.ajax({
-        url: '/api/ProgressStatus/read',
+        url: '/api/VendorOrderStats/read',
         type: 'GET',
-        data: queryParams,
+        data: params,
         async: false,
         success: function (response) {
-          //console.log("서버에서 받은 데이터 :", response);
           // 응답이 올바르게 도착했고, data 속성이 배열인지 확인
           if (response && Array.isArray(response.data)) {
-            console.log("서버에서 받은 데이터 목록:", response.data); //실제 데이터 확인
-          }
-          if (response && Array.isArray(response.data)) {
-            data2 = response.data.map((item, index) => ({
-              ...item,
-              reqdate: formatDateString(item.reqdate),         // 날짜 형식 변환
-              deldate: formatDateString(item.deldate),         // 날짜 형식 변환
-              ordflag: getOrdflagText(parseInt(item.ordflag, 10)), // ordflag 텍스트 변환
-              telno: formatPhoneNumber(item.telno),
-              rownum: index + 1
+            data = response.data.map((item, index) => ({
+              rownum: index + 1,
+              reqdate: item.reqdate ||'',
+              ordflag_display: item.ordflag_display ||'',
+              cltnm: item.cltnm ||'',
+              telno: item.telno ||'',
+              perid: item.perid || '',
+              orderprice: item.orderprice || '',
+              deldate: item.deldate || '',
+              remark: item.remark ||'',
             }));
           }
         },
@@ -256,125 +228,137 @@
           console.error("데이터를 가져오는 중 오류가 발생했습니다.");
         }
       });
-      // 데이터 개수가 10개 미만일 경우 빈 데이터 행 추가
-      while (data2.length < 10) {
-        data2.push({
-          rownum: data2.length + 1,
+
+      while (data.length < 15) {
+        data.push({
+          rownum: data.length + 1,
           reqdate: '',
-          ordflag: '',
+          ordflag_display:'',
           cltnm: '',
-          manager: '',
-          telnum: '',
+          perid :'',
+          telno: '',
           orderprice: '',
-          resdate: '',
+          deldate: '',
           remark: ''
         });
       }
 
-      viewdata = new wijmo.collections.CollectionView(data2);
+      viewdata = new wijmo.collections.CollectionView(data);
+      // 기존 그룹 제거 후 `cltnm`(업체명) 기준으로 그룹화 적용
+      viewdata.groupDescriptions.clear();
+      let groupDesc = new wijmo.collections.PropertyGroupDescription('cltnm');
+      viewdata.groupDescriptions.push(groupDesc);
+
+      // 그룹별 행 번호 다시 설정 함수
+      const resetRowNumbers = () => {
+        viewdata.groups.forEach((group, groupIndex) => {
+          let rowNumber = 1; // 각 그룹별 행 번호 초기화
+          group.items.forEach(item => {
+            item.rownum = rowNumber++;
+          });
+        });
+      };
+
+      // 그룹화된 데이터의 순번을 다시 계산
+      resetRowNumbers();
 
       if (!theGrid) {
-        // 데이터 그리드에 바인딩
         theGrid = new wijmo.grid.FlexGrid('#theGrid', {
           autoGenerateColumns: false,
           showMarquee: true,
-          isReadOnly: true, // 전체 읽기 전용
+          isReadOnly: true,
           columns: [
             {binding: 'rownum', header: '순번', width: 80, align: 'center'},
-            {binding: 'reqdate', header: '주문일자', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'cltnm', header: '업체명', width: '*', minWidth: 100, align: 'left'},
-            {binding: 'ordflag', header: '진행구분', width: '*', minWidth: 100, align: 'center'},
+            {binding: 'reqdate', header: '주문일자', width: '*', minWidth: 180, align: 'center'},
+            {binding: 'cltnm', header: '업체명', width: '*', minWidth: 250, align: 'left'},
+            {binding: 'ordflag_display', header: '진행구분', width: '*', minWidth: 100, align: 'center'},
             {binding: 'remark', header: '제목(메모)', width: '*', minWidth: 400, align: 'left'},
-            {binding: 'perid', header: '담당자', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'telno', header: '연락처', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'orderprice', header: '금액', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'resdate', header: '출고일자', width: '*', minWidth: 100, align: 'center'},
+            {binding: 'perid', header: '담당자', width: '*', minWidth: 120, align: 'center'},
+            {binding: 'telno', header: '연락처', width: '*', minWidth: 180, align: 'center'},
+            {binding: 'orderprice', header: '금액', width: '*', minWidth: 180, align: 'center'},
+            {binding: 'deldate', header: '출고일자', width: '*', minWidth: 180, align: 'center'},
           ],
-          itemsSource: viewdata
+          itemsSource: viewdata,
+        });
+        theGrid.formatItem.addHandler(function (s, e) {
+          if (e.panel == s.rowHeaders) return;
+          let row = s.rows[e.row];
+          if (row instanceof wijmo.grid.GroupRow) {
+            e.cell.style.fontWeight = 'bold';
+          }
         });
         theGrid.rowHeaders.columns.splice(0, 1);
+        // ContextMenu 추가
         new FlexGridContextMenu(theGrid);
-        window.downloadFileName = '주문진행 현황';
+        window.downloadFileName = '회원관리';
       } else {
-        // 이미 FlexGrid가 존재하는 경우, 데이터만 업데이트
         theGrid.itemsSource = viewdata;
       }
     }
-    function formatPhoneNumber(phoneNumber) {
-      // 숫자로만 구성되어 있는지 확인
-      if (!/^\d+$/.test(phoneNumber)) {
-        return ' ';
-      }
 
-      if (phoneNumber.length === 11) { // 11자리인 경우
-        return phoneNumber.replace(/^(\d{3})(\d{4})(\d{4})$/, '$1-$2-$3');
-      } else if (phoneNumber.length === 12) { // 12자리인 경우
-        return phoneNumber.replace(/^(\d{3})(\d{4})(\d{5})$/, '$1-$2-$3');
-      }
-
-      return ""; // 그 외의 경우
-    }
-
-    //차트 데이터
     function loadChartData() {
-
       const spjangcd = document.getElementById('search_spjangcd').value;
       const startDate = document.getElementById('startDate').value || "";
       const endDate = document.getElementById('endDate').value || "";
       const searchCltnm = document.getElementById('searchCltnm').value.trim() || "";
-      const searchtketnm = document.getElementById('searchtketnm').value || "";
-      const searchTitle = document.getElementById('searchTitle')?.value || "";
 
       const queryParams = {
         search_spjangcd: spjangcd,
         startDate: startDate,
         endDate: endDate,
         searchCltnm: searchCltnm,
-        searchtketnm: searchtketnm,
-        searchTitle: searchTitle
       };
       const urlParams = new URLSearchParams(queryParams).toString();
-      const url = `/api/ProgressStatus/getChartData2?${urlParams}`;
 
       $.ajax({
-        url: url,
+        url: `/api/VendorOrderStats/getChartData?${urlParams}`,
         method: 'GET',
         dataType: 'json',
         success: function (response) {
           if (response.success && response.data && response.data.length > 0) {
-            // 데이터가 있는 경우 차트를 업데이트
-            const labels = response.data.map(item => item.cltnm || "미지정");
-            const values = response.data.map(item => item.ordflag || 0);
+            // 📌 데이터 가공: 주문 상태별 개수 계산
+            const orderCounts = {
+              "주문취소": 0,
+              "주문등록": 0,
+              "주문확인": 0,
+              "주문확정": 0,
+              "제작진행": 0,
+              "출고": 0
+            };
 
-            const chartInstance = $('#myChart').data('chart');
-            if (chartInstance) {
-              chartInstance.data.labels = labels;
-              chartInstance.data.datasets[0].data = values;
-              chartInstance.update();
-            } else {
-              console.error("차트 인스턴스를 찾을 수 없습니다.");
-            }
+            response.data.forEach(item => {
+              const status = stageMapping[item.ordflag] || "기타";
+              if (orderCounts[status] !== undefined) {
+                orderCounts[status]++;
+              }
+            });
+
+            // 📌 총 건수 계산
+            const totalOrders = response.data.length;
+
+            // 📌 차트 업데이트
+            initializeChart(orderCounts, totalOrders);
           } else {
-            // 데이터가 없을 때 차트 초기화 및 메시지 표시
             console.log(response.message || "조회된 데이터가 없습니다.");
-            initializeChart();
+            initializeChart({}, 0); // 데이터 없을 경우 초기화
           }
         },
         error: function () {
-          // AJAX 요청 오류 처리
           console.error("데이터 로드 중 오류 발생");
-          initializeChart();
+          initializeChart({}, 0);
         }
       });
     }
+
     // 숫자 → 값 매핑 객체
     const stageMapping = {
+      5: "주문취소",
       0: "주문등록",
       1: "주문확인",
       2: "주문확정",
       3: "제작진행",
       4: "출고",
-      5: "주문취소"
+
     };
     //차트
     console.log(Chart.version); // 콘솔에서 Chart.js 버전을 확인
@@ -386,12 +370,15 @@
       });
     });
 
-    // 모달 열기 함수
     window.openModal = function () {
-      let chartInstance = $('#myChart').data('chart');
+      let chartElement = document.getElementById('myChart');
+
+      // Chart.js 방식으로 차트 인스턴스 가져오기
+      let chartInstance = Chart.getChart(chartElement);
+
       if (!chartInstance) {
         console.error("차트를 찾을 수 없습니다.");
-        alert("차트를 찾을 수 없습니다. 차트를 먼저 생성해 주세요.");
+        alert("차트를 찾을 수 없습니다. 차트를 먼저 생성해 주세요."); // Alert.alert → alert 사용
         return;
       }
 
@@ -400,10 +387,12 @@
 
       let modalChartHolder = $('#modalChartHolder')[0].getContext('2d');
 
+      // 기존 모달 차트가 있으면 삭제
       if (window.modalChartInstance) {
         window.modalChartInstance.destroy();
       }
 
+      // 모달 차트 생성 (기존 차트 데이터 유지)
       window.modalChartInstance = new Chart(modalChartHolder, {
         type: chartInstance.config.type,
         data: chartInstance.config.data,
@@ -427,77 +416,61 @@
       }
     });
 
-    function initializeChart(dataInput, optionsInput, callback) {
+    function initializeChart(orderCounts = {}, totalOrders = 0) {
       const chartElement = document.getElementById('myChart');
+      if (!chartElement) {
+        console.error('Chart element not found!');
+        return;
+      }
+
       const ctx = chartElement.getContext('2d');
 
       // 기존 차트 제거
-      const existingChart = $(chartElement).data('chart');
+      const existingChart = Chart.getChart(chartElement);
       if (existingChart) {
         existingChart.destroy();
       }
 
-      // 데이터 설정
-      const defaultData = {
-        labels: ['January', 'February', 'March', 'April', 'May'],
+      const labels = ["주문취소", "주문등록", "주문확인", "주문확정", "제작진행", "출고"];
+      const coloredData = labels.map(label => orderCounts[label] || 0);
+
+      const data = {
+        labels: labels,
         datasets: [
           {
-            label: 'Dataset 1',
-            data: [12, 19, 3, 5, 2],
-            backgroundColor: 'rgba(255, 99, 132, 0.7)',
-          },
-          {
-            label: 'Dataset 2',
-            data: [2, 3, 20, 5, 10],
-            backgroundColor: 'rgba(54, 162, 235, 0.7)',
-          },
-          {
-            label: 'Dataset 3',
-            data: [3, 10, 13, 15, 22],
-            backgroundColor: 'rgba(75, 192, 192, 0.7)',
+            label: '각 건수',
+            data: coloredData,
+            backgroundColor: [
+              'rgba(255, 99, 132, 0.3)',
+              'rgba(255, 159, 64, 0.4)',
+              'rgba(255, 215, 0, 0.4)',
+              'rgba(75, 192, 192, 0.5)',
+              'rgba(54, 162, 235, 0.4)',
+              'rgba(153, 102, 255, 0.2)'
+            ]
           }
         ]
       };
 
-      const data = {...defaultData, ...dataInput};
-
-      // 옵션 설정
-      const defaultOptions = {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'top'
-          }
-        },
-        scales: {
-          x: {
-            stacked: true  // X축 스택 활성화
-          },
-          y: {
-            stacked: true  // Y축 스택 활성화
+      const config = {
+        type: 'pie',
+        data: data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+            },
           }
         }
       };
 
-      const options = {...defaultOptions, ...optionsInput};
-
-      // 차트 생성
-      const config = {
-        type: 'bar', // 차트 타입
-        data: data,
-        options: options
-      };
-
-      const myChart = new Chart(ctx, config);
-
-      // 차트 데이터 저장
-      $(chartElement).data('chart', myChart);
-
-      // 콜백 실행
-      if (callback) {
-        callback(myChart);
-      }
+      // config 객체를 사용하여 차트 생성
+      new Chart(ctx, config);
     }
+
+
 
     function formatDateString(dateString) {
       if (!dateString || dateString.length !== 8) return dateString; // 유효성 검사
@@ -532,8 +505,6 @@
       const startDate = document.getElementById('startDate').value || "";
       const endDate = document.getElementById('endDate').value || "";
       const searchCltnm = document.getElementById('searchCltnm').value.trim() || "";
-      const searchtketnm = document.getElementById('searchtketnm').value || "";
-      const searchTitle = document.getElementById('searchTitle')?.value || "";
 
       // 검색 요청 데이터 구성
       const queryParams = {
@@ -541,107 +512,12 @@
         startDate,
         endDate,
         searchCltnm,
-        searchtketnm,
-        searchTitle
       };
 
       // 차트 데이터 로드
       loadChartData(queryParams);
-
-      $.ajax({
-        url: `/api/ProgressStatus/search?${$.param(queryParams)}`,
-        type: 'GET',
-        success: function (response) {
-          console.log("검색 결과:", response); // 응답 데이터 확인
-          if (response.success && response.data) {
-            //그리드 데이터 바인딩
-            updateChartAndGrid(response.data);
-          } else {
-            console.error("검색 결과 처리 중 오류 발생:", response.message);
-            // alert(response.message || "검색 결과를 가져오는 중 오류가 발생했습니다.");
-          }
-        },
-        error: function (xhr, status, error) {
-          console.error("검색 요청 중 오류 발생:", error);
-          console.error("응답 내용:", xhr.responseText);
-          Alert.alert("검색 요청 처리 중 오류가 발생했습니다.", '');
-        }
-      });
+      fetchListData(queryParams);
     }
-
-    // 그리드 바인딩 함수
-    function bindDataToGrid(data2) {
-      console.log("그리드에 바인딩할 데이터:", data2);
-
-      // 응답 데이터 가공
-      if (data2 && Array.isArray(data2)) {
-        data2 = data2.map((item, index) => ({
-          ...item,
-          reqdate: formatDateString(item.reqdate), // 날짜 형식 변환
-          deldate: formatDateString(item.deldate), // 날짜 형식 변환
-          ordflag: getOrdflagText(parseInt(item.ordflag, 10)), // 진행 구분 텍스트 변환
-          telno: formatPhoneNumber(item.telno),
-          rownum: index + 1 // 순번
-        }));
-      } else {
-        console.error("유효하지 않은 데이터 형식:", data2);
-        data2 = [];
-      }
-      // 데이터가 10개 미만인 경우 빈 행 추가
-      while (data2.length < 10) {
-        data2.push({
-          rownum: data2.length + 1,
-          reqdate: '',
-          estimatedate: '',
-          ordflag: '',
-          cltnm: '',
-          manager: '',
-          telnum: '',
-          orderprice: '',
-          resdate: '',
-          remark: ''
-        });
-      }
-
-      viewdata = new wijmo.collections.CollectionView(data2);
-
-      if (!theGrid) {
-        // 데이터 그리드에 바인딩
-        theGrid = new wijmo.grid.FlexGrid('#theGrid', {
-          autoGenerateColumns: false,
-          showMarquee: true,
-          isReadOnly: true, // 전체 읽기 전용
-          columns: [
-            {binding: 'rownum', header: '순번', width: 80, align: 'center'},
-            {binding: 'reqdate', header: '주문일자', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'estimatedate', header: '견적일자', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'ordflag', header: '진행구분', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'remark', header: '제목(메모)', width: '*', minWidth: 400, align: 'left'},
-            {binding: 'cltnm', header: '업체명', width: '*', minWidth: 100, align: 'left'},
-            {binding: 'perid', header: '담당자', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'telno', header: '연락처', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'orderprice', header: '금액', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'resdate', header: '출고일자', width: '*', minWidth: 100, align: 'center'},
-          ],
-          itemsSource: viewdata
-        });
-        theGrid.rowHeaders.columns.splice(0, 1);
-        new FlexGridContextMenu(theGrid);
-        window.downloadFileName = '주문진행 현황';
-      } else {
-        // 이미 FlexGrid가 존재하는 경우, 데이터만 업데이트
-        theGrid.itemsSource = viewdata;
-      }
-    }
-
-    function updateChartAndGrid(data) {
-      console.log("업데이트할 데이터:", data);
-
-      // 그리드 데이터 바인딩
-      bindDataToGrid(data);
-
-    }
-
 
     // 사업장
     function bindSpjangcd() {
@@ -667,12 +543,12 @@
 
     //공통코드
     const selectConfigs = [
-      { parentCode: 'ordflag', elementId: 'searchtketnm' },
+      {parentCode: 'ordflag', elementId: 'searchtketnm'},
     ];
     selectConfigs.forEach(config => {
       initializeSelect3({
         url: '/api/order_status/ordFlagType',
-        params: { parentCode: config.parentCode },
+        params: {parentCode: config.parentCode},
         elementId: config.elementId,
         valueField: "code",
         textField: "value",

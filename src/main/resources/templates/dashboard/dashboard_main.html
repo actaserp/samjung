@@ -451,6 +451,12 @@
             if ($('#requestChart').data('chart')) {
                 $('#requestChart').data('chart').destroy();
             }
+            if ($('#lastYearChart').data('chart')) {
+                $('#lastYearChart').data('chart').destroy();
+            }
+            if ($('#YTDChart').data('chart')) {
+                $('#YTDChart').data('chart').destroy();
+            }
             $.ajax({
                 url: '/api/dashboard2/LastYearCnt',
                 type: 'GET',
@@ -966,8 +972,10 @@
                     const thisYearTotal = ThisYearCntOfOrdflagByMonth.map(item => item.totalCnt);
                     const lastYearTotal = LastYearCntOfDateByMonth.map(item => item.last_year_totalCnt);
 
-                    // ✅ 증감량 계산 (증감량 = 올해 - 작년)
-                    const growthRate = thisYearTotal.map((count, i) => count - lastYearTotal[i]);
+                    // ✅ 증감율(%) 계산 (증감율 = ((올해 - 작년) / 작년) * 100)
+                    const growthRate = thisYearTotal.map((count, i) =>
+                        lastYearTotal[i] !== 0 ? ((count - lastYearTotal[i]) / lastYearTotal[i]) * 100 : 0
+                    );
 
                     // ✅ Stacked Bar + Line Chart 데이터 생성
                     const chartData5 = {
@@ -1050,8 +1058,10 @@
 
                     const thisYearTotal6 = ThisYearCntOfStacked.map(item => item.totalCnt);
                     const lastYearTotal6 = LastYearCntOfStacked.map(item => item.last_year_totalCnt);
-                    // ✅ 증감량 계산 (증감량 = 올해 - 작년)
-                    const growthRate6 = thisYearTotal6.map((count, i) => count - lastYearTotal6[i]);
+                    // ✅ 증감율(%) 계산 (증감율 = ((올해 - 작년) / 작년) * 100)
+                    const growthRate6 = thisYearTotal6.map((count, i) =>
+                        lastYearTotal6[i] !== 0 ? ((count - lastYearTotal6[i]) / lastYearTotal6[i]) * 100 : 0
+                    );
                     // ✅ Stacked Bar + Line Chart 데이터 생성
                     const chartData6 = {
                         labels: labels6,

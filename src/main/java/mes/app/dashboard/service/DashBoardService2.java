@@ -358,7 +358,8 @@ public class DashBoardService2 {
         )
         SELECT
             ms.last_year_month AS last_year_reqmonth,
-            (SELECT SUM(cnt)
+            COALESCE((
+            SELECT SUM(cnt)
              FROM (
                 SELECT LEFT(reqdate, 6) AS last_year_reqmonth, COUNT(reqdate) AS cnt
                 FROM TB_DA006W
@@ -367,7 +368,7 @@ public class DashBoardService2 {
                 GROUP BY LEFT(reqdate, 6)
              ) t
              WHERE t.last_year_reqmonth <= ms.last_year_month
-            ) AS last_year_totalCnt
+            ), 0) AS last_year_totalCnt
         FROM MonthSeries ms
         ORDER BY ms.last_year_month;
     """;

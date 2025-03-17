@@ -121,6 +121,19 @@
             </div>
           </div>
         </div>
+        <!--<div class="container-fluid">
+          <div class="chart-container">
+            <canvas id="myChart" width="500" height="500"></canvas>
+            <span id="noDataMessage" style="margin-top: 150px; display: none; text-align: center; color: gray;">조회 된 데이터가 없습니다.</span>
+          </div>
+          <span class="material-symbols-outlined"  onclick="openModal()">zoom_out_map</span>
+          <div>
+            <div >
+              <p id="selectedItem"></p>
+              <div id="theGrid" style="max-height:200px"></div>
+            </div>
+          </div>
+        </div>-->
       </section>
     </div> <!--//tab-wrap end-->
   </div> <!--//layout-contents end -->
@@ -261,7 +274,7 @@
             {binding: 'reqdate', header: '주문일자', width: '*', minWidth: 160, align: 'center'},
             {binding: 'cltnm', header: '업체명', width: '*', minWidth: 250, align: 'left'},
             {binding: 'ordflag_display', header: '진행구분', width: '*', minWidth: 100, align: 'center'},
-            {binding: 'remark', header: '제목(메모)', width: '*', minWidth: 400, align: 'left'},
+            {binding: 'remark', header: '제목(메모)', width: '*', minWidth: 550, align: 'left'},
             {binding: 'perid', header: '담당자', width: '*', minWidth: 120, align: 'center'},
             {binding: 'telno', header: '연락처', width: '*', minWidth: 180, align: 'center'},
             {binding: 'orderprice', header: '금액', width: '*', minWidth: 180, align: 'center'},
@@ -269,13 +282,7 @@
           ],
           itemsSource: viewdata,
         });
-        theGrid.formatItem.addHandler(function (s, e) {
-          if (e.panel == s.rowHeaders) return;
-          let row = s.rows[e.row];
-          if (row instanceof wijmo.grid.GroupRow) {
-            e.cell.style.fontWeight = 'bold';
-          }
-        });
+
         theGrid.rowHeaders.columns.splice(0, 1);
         // ContextMenu 추가
         new FlexGridContextMenu(theGrid);

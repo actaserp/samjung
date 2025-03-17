@@ -33,8 +33,7 @@ public class ProgressStatusController {
                                          @RequestParam(value = "searchTitle", required = false) String searchTitle
                                          ) {
         AjaxResult result = new AjaxResult();
-        log.info("검색 조건 search_spjangcd:{}, startDate: {}, endDate: {}, cltnm: {}, ordflag: {}, searchTitle: {}",
-            search_spjangcd, startDate, endDate, searchCltnm, searchtketnm, searchTitle);
+       // log.info("검색 조건 search_spjangcd:{}, startDate: {}, endDate: {}, cltnm: {}, ordflag: {}, searchTitle: {}",search_spjangcd, startDate, endDate, searchCltnm, searchtketnm, searchTitle);
         try{
             List<Map<String, Object>> progressStatusLis = progressStatusService.getProgressStatusList(search_spjangcd, startDate, endDate, searchCltnm,searchtketnm,searchTitle);
 

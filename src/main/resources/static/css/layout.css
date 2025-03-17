@@ -336,7 +336,7 @@ section .section-top {display: flex; flex-flow: row wrap; justify-content: space
 .card-wrap section dl:nth-child(2) dt {font-weight: 600;}
 .card-wrap section dl:last-child dd {font-size: 24px;}
 .card-wrap section .unit {margin-left: 8px; font-size: 14px; opacity: 0.45;}
-.card-wrap .swiper-slide:nth-child(1) section {background-color: #fff; color: #031B4B;}
+.card-wrap .swiper-slide:nth-child(1) section {background-color: gray; color: #fff;}
 .card-wrap .swiper-slide:nth-child(2) section {background-color: #03428E; color: #fff;}
 .card-wrap .swiper-slide:nth-child(3) section {background-color: #3069B3; color: #fff;}
 .card-wrap .swiper-slide:nth-child(4) section {background-color: #C7DFF4; color: #031B4B;}

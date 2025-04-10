@@ -1664,6 +1664,9 @@
           data: {'saupnum': saupnum},
           type: 'GET',
           success: function (data) {
+            if (data.data == null) {
+              document.getElementById("newdataBtn").style.display = "none";
+            } else {
             document.getElementById("telno").value = data.data.hptelnum;
             document.getElementById("perid").value = data.data.prenm;
             document.getElementById("postno").value = data.data.zipcd;
@@ -1673,6 +1676,7 @@
             console.log("✅ getMyInfo 완료, searchComnm 값:", data.data.cltnm);
 
             resolve(); // ✅ 완료되면 resolve() 호출
+            }
           },
           error: function (error) {
             console.error("❌ getMyInfo 실패:", error);

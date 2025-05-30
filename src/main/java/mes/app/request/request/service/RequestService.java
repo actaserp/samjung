@@ -287,27 +287,32 @@ public class RequestService {
         return items;
     }
     // 보강재, 마감재 리스트 불러오는 함수
-    public List<Map<String, Object>> getListCgrb() {
+    public List<Map<String, Object>> getListACgrb() {
 
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
 
         String sql = """
-                SELECT Z.cgrb   cgrb,
-                       Z.cgrbnm cgrbnm,
-                       Z.sortno sortno
-                  FROM (SELECT agrb + bgrb + cgrb cgrb,
-                               cgrbnm cgrbnm,
-                               sortno sortno
-                          FROM TB_CA503_C WITH(NOLOCK)
-                         WHERE (custcd = 'SWSPANEL')
-                 and agrb = 'M'
-                         UNION ALL
-                        SELECT 'Z' + 'Z' + hgrb cgrb,
-                               hgrbnm cgrbnm,
-                               sortno sortno
-                          FROM TB_CA503_07 WITH(NOLOCK)
-                         WHERE (custcd = 'SWSPANEL')
-                           AND (grb    = '3')) Z
+                SELECT agrb + bgrb + cgrb as cgrb, 
+                 cgrbnm
+                 FROM TB_CA503_C
+                WHERE agrb = 'M'
+                AND bgrb = 'A'
+                
+                """;
+
+        List<Map<String, Object>> items = this.sqlRunner.getRows(sql, dicParam);
+        return items;
+    }
+    public List<Map<String, Object>> getListCCgrb() {
+
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+
+        String sql = """
+                SELECT agrb + bgrb + cgrb as cgrb,
+                 cgrbnm
+                 FROM TB_CA503_C
+                WHERE agrb = 'M'
+                AND bgrb = 'C'
                 
                 """;
 

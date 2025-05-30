@@ -536,8 +536,11 @@ public class RequestController {
     //보강재, 마감재 리스트 불러오는 function
     @GetMapping("/getListCgrb")
     public AjaxResult getListCgrb(){
-        List<Map<String, Object>> items = this.requestService.getListCgrb();
-
+        List<Map<String, Object>> ACgrb = this.requestService.getListACgrb();// 마감재
+        List<Map<String, Object>> CCgrb = this.requestService.getListCCgrb();// 보강재
+        Map<String, Object> items = new HashMap<>();
+        items.put("ACgrb", ACgrb);
+        items.put("CCgrb", CCgrb);
         AjaxResult result = new AjaxResult();
         result.data = items;
         return result;

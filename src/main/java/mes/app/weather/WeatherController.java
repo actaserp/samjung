@@ -25,12 +25,10 @@ public class WeatherController {
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
             User user = (User) auth.getPrincipal();
             String userId = user.getUsername(); // 또는 ID 필드
-            System.out.println("Current Weather for " + userId);
+            /*System.out.println("Current Weather for " + userId);*/
             return weatherService.getWeatherData(userId);
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
         }
     }
-
-
 }

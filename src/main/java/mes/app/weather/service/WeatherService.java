@@ -2,16 +2,12 @@ package mes.app.weather.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import mes.app.account.service.TB_XClientService;
-import mes.domain.entity.User;
-import mes.domain.repository.actasRepository.TB_XA012Repository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -42,16 +38,11 @@ public class WeatherService {
 		this.restTemplate = restTemplate;
 	}
 
-	@Autowired
-	private TB_XClientService tbXClientService;
-
-    @Value("${Geocoder.Key}")
-    private String geocoderKey;
+	@Value("${Geocoder.Key}")
+	private String geocoderKey;
 
 	@Autowired
-	TB_XA012Repository tbXA012Repository;
-
-
+	TB_xusersService xusersService;
 
 /*	❍단기예보
 - Base_time : 0200, 0500, 0800, 1100, 1400, 1700, 2000, 2300 (1일 8회)
@@ -82,31 +73,32 @@ public class WeatherService {
 		}
 	}
 
+	private String determineUltraSrtBaseTime(LocalDateTime now) {
+		int minute = now.getMinute();
+		int roundedMinute = (minute / 10) * 10;
+		LocalDateTime baseTime = now.withMinute(roundedMinute).withSecond(0).withNano(0);
+
+		// 데이터 제공 지연 보정: 40분 이전이면 한 타임 전으로
+		if (minute < 40) {
+			baseTime = baseTime.minusMinutes(10);
+		}
+
+		return baseTime.format(DateTimeFormatter.ofPattern("HHmm"));
+	}
+
 	// getWeatherData 메서드 내에서 fetchWeatherData 호출 시 latitude와 longitude를 인자로 전달
 	public ResponseEntity<?> getWeatherData(String userId){
 
-	/*	// 사용자 주소를 가져오기
-		String address = tbXClientService.getUserAddress(userId);
-//		System.out.println("조회된 사용자 주소: " + address);
-		if (address == null || address.isEmpty()) {
-			return ResponseEntity.badRequest().body("주소가 유효하지 않습니다.");
-		}*/
-		// 사용자 주소를 가져오기
-		String address = tbXClientService.getUserAddress(userId);
-
-		// 특정 사용자에 대해 대체 주소 가져오기
-		if (address == null || address.isEmpty()) {
-			address = fetchAlternativeAddress(userId); // 대체 소스에서 주소를 가져오기
-		}
-
-		// 주소가 여전히 유효하지 않으면 오류 반환
+		// 사용자 주소를 가져오기(사업장 주소 사용)
+		String address = xusersService.getUserAddress(userId);
 		if (address == null || address.isEmpty()) {
 			return ResponseEntity.badRequest().body("주소가 유효하지 않습니다.");
 		}
 
 		LocalDateTime now = LocalDateTime.now();
 		String date = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-		String time = determineBaseTime(now);
+		String ultraSrtBaseTime = determineUltraSrtBaseTime(now); // 초단기실황용
+		String forecastBaseTime = determineBaseTime(now);         // 단기예보용
 
 		// 사용자 주소를 통해 좌표를 얻기
 		double[] coordinates = getCoordinates(address, geocoderKey);
@@ -116,30 +108,11 @@ public class WeatherService {
 		System.out.println("Longitude (경도): " + coordinates[1]);*/
 
 		// 초단기실황 조회
-		ResponseEntity<?> currentWeather = fetchWeatherData("/getUltraSrtNcst", date, time, "current", latitude, longitude);
+		ResponseEntity<?> currentWeather = fetchWeatherData("/getUltraSrtNcst", date, ultraSrtBaseTime, "current", latitude, longitude);
 		// 단기예보 조회
-		ResponseEntity<?> forecastData = fetchWeatherData("/getVilageFcst", date, time, "forecast", latitude, longitude);
+		ResponseEntity<?> forecastData = fetchWeatherData("/getVilageFcst", date, forecastBaseTime, "forecast", latitude, longitude);
 
 		return combineData(currentWeather, forecastData, address);
-	}
-
-	private String fetchAlternativeAddress(String username) {
-		if (username.equalsIgnoreCase("seong")) {
-			return fetchAddressFromTbXa012(username); // TB_XA012 테이블에서 주소를 조회
-		}
-		return null; // 조건에 맞지 않으면 null 반환
-	}
-
-	private String fetchAddressFromTbXa012(String username) {
-		// tbXClientService를 통해 주소 조회
-		String address = tbXClientService.getTbXa012Address();
-
-		// 주소가 null이거나 비어 있으면 처리
-		if (address == null || address.isEmpty()) {
-			return null;
-		}
-
-		return address;
 	}
 
 	//위도(latitude)와 경도(longitude)**를 **기상청 격자 좌표(nx, ny)**로 변환
@@ -198,7 +171,7 @@ public class WeatherService {
 			URI uri = new URI(apiEndpoint + servicePath +
 					"?serviceKey=" + apiKey +
 					"&pageNo=1" +
-					"&numOfRows=10" +
+					"&numOfRows=100" +
 					"&dataType=json" +
 					"&base_date=" + date +
 					"&base_time=" + time +
@@ -206,7 +179,7 @@ public class WeatherService {
 					"&ny=" + ny
 			);
 
-			//System.out.println("날씨 uri (현재 시간): " + uri);
+//			System.out.println("날씨 uri (현재 시간): " + uri);
 
 			String response = restTemplate.getForObject(uri, String.class);
 			ResponseEntity<?> parsedResponse = parseWeatherData(response, dataSource);
@@ -218,16 +191,23 @@ public class WeatherService {
 			// 데이터가 없는 경우, 이전 시간으로 조정하여 재요청
 			System.out.println("현재 시간의 데이터가 없어 이전 시간으로 조정 중...");
 
-			// 한 시간 이전으로 시간 조정
+			// 이전 시간으로 조정
 			LocalDateTime newDateTime = LocalDateTime.parse(date + time, DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
-			newDateTime = newDateTime.minusHours(1);
+
+			if ("current".equals(dataSource)) {
+				newDateTime = newDateTime.minusMinutes(10); // 초단기실황: 10분 전
+				time = newDateTime.format(DateTimeFormatter.ofPattern("HHmm"));
+			} else {
+				newDateTime = newDateTime.minusHours(3); // 단기예보: 3시간 전
+				time = newDateTime.format(DateTimeFormatter.ofPattern("HH00"));
+			}
+
 			date = newDateTime.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-			time = newDateTime.format(DateTimeFormatter.ofPattern("HH00"));
 
 			uri = new URI(apiEndpoint + servicePath +
 					"?serviceKey=" + apiKey +
 					"&pageNo=1" +
-					"&numOfRows=10" +
+					"&numOfRows=100" +
 					"&dataType=json" +
 					"&base_date=" + date +
 					"&base_time=" + time +
@@ -276,25 +256,31 @@ public class WeatherService {
 	}
 
 	private ResponseEntity<?> combineData(ResponseEntity<?> weatherData, ResponseEntity<?> forecastData, String address) {
-		Map<String, String> weatherResult = (Map<String, String>) weatherData.getBody();
-		Map<String, String> forecastResult = (Map<String, String>) forecastData.getBody();
+		Object body1 = weatherData.getBody();
+		Object body2 = forecastData.getBody();
 
-		// 예보 데이터와 실황 데이터를 병합
-		forecastResult.forEach((key, value) -> {
-			if (weatherResult.containsKey(key)) {
-				if (!value.isEmpty()) {
-					weatherResult.put(key, value);
-				}
-			} else {
+		if (!(body1 instanceof Map) || !(body2 instanceof Map)) {
+			return ResponseEntity.badRequest().body("날씨 데이터 파싱 실패 또는 응답 오류 발생");
+		}
+
+		Map<String, String> weatherResult = (Map<String, String>) body1;     // 실황 (기온, 습도, 풍속 등)
+		Map<String, String> forecastResult = (Map<String, String>) body2;    // 예보 (POP, SKY, PTY 등)
+
+		// forecastData에서 필요한 항목만 병합 (POP, SKY, PTY만)
+		for (Map.Entry<String, String> entry : forecastResult.entrySet()) {
+			String key = entry.getKey();
+			String value = entry.getValue();
+
+			if (key.equals("POP") || key.equals("SKY") || key.equals("PTY")) {
 				weatherResult.put(key, value);
 			}
-		});
-		// 주소 추가
+		}
+
+		// 지역 주소 추가
 		weatherResult.put("address", address);
-		//System.out.println("최종 응답 데이터: " + weatherResult);
+
 		return ResponseEntity.ok(weatherResult);
 	}
-
 
 	// 좌표를 얻기 위한 메서드
 	private double[] getCoordinates(String address, String apikey) {
@@ -340,6 +326,5 @@ public class WeatherService {
 			throw new RuntimeException("좌표를 가져오는 데 실패했습니다: " + e.getMessage(), e);
 		}
 	}
-
 
 }

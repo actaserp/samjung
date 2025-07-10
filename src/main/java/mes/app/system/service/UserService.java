@@ -265,8 +265,8 @@ public class UserService {
             txc.zipcd AS postno,
             txc.*,
             CASE
-                    WHEN au.spjangcd = 'ZZ' THEN '성우에스피(주)'
-                    WHEN au.spjangcd = 'PP' THEN '성우피앤비(주)'
+                    WHEN au.spjangcd = 'ZZ' THEN '삼정엘리베이터'
+                    WHEN au.spjangcd = 'PP' THEN '삼정엘리베이터(일산)'
                     ELSE '알 수 없음'
                 END AS spjType
         FROM 
@@ -328,8 +328,8 @@ public class UserService {
             au.*,
             FORMAT(au.date_joined, 'yyyy-MM-dd') AS date_joined,
             CASE
-                    WHEN au.spjangcd = 'ZZ' THEN '성우에스피(주)'
-                    WHEN au.spjangcd = 'PP' THEN '성우피앤비(주)'
+                    WHEN au.spjangcd = 'ZZ' THEN '삼정엘리베이터'
+                    WHEN au.spjangcd = 'PP' THEN '삼정엘리베이터(일산)'
                     ELSE '알 수 없음'
                 END AS spjType
         FROM auth_user au

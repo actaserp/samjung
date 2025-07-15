@@ -85,7 +85,7 @@ public class SecurityConfiguration {
     @Bean
     @Order(0)
     SecurityFilterChain exceptResources(HttpSecurity http) throws Exception {
-    	http.requestMatchers(matchers -> matchers.antMatchers("/resource/**","/img/**","/images/**", "/js/**","/css/**","/font/**","/robots.txt","/favicon.ico","/intro", "/error", "/alive", "/api/das_device"))
+    	http.requestMatchers(matchers -> matchers.antMatchers("/resource/**","/img/**","/images/**", "/js/**","/css/**","/assets_mobile/css/**","/font/**","/robots.txt","/favicon.ico","/intro", "/error", "/alive", "/api/das_device"))
 		.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
 		.requestCache(RequestCacheConfigurer::disable)
 		.securityContext(AbstractHttpConfigurer::disable)

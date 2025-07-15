@@ -54,7 +54,8 @@
 
   "wm_safety_health":       { "name": "안전보건교육 일지", "templates": { "default": "inspec/list/safety_health.html" }},
 
-
+  "order_current":        {"name": "주문 진행현황",    "templates": { "default": "order_status/order_current.html"}},
+  "order_delivery":        {"name": "주문 출고",    "templates": { "default": "order_status/order_delivery.html"}},
 
 
 

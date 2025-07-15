@@ -233,6 +233,31 @@ public class UserService {
         return items;
     }
 
+    public List<Map<String, Object>> getSpjangList() {
+
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+
+        String sql = """
+        		select spjangcd, spjangnm, saupnum from tb_xa012;
+        		""";
+
+        List<Map<String, Object>> items = this.sqlRunner.getRows(sql, dicParam);
+        return items;
+    }
+
+    public List<Map<String, Object>> getSpjang(String spjangcd) {
+
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+        dicParam.addValue("spjangcd", spjangcd);
+
+        String sql = """
+        		select spjangcd, spjangnm, saupnum from tb_xa012 where spjangcd = :spjangcd;
+        		""";
+
+        List<Map<String, Object>> items = this.sqlRunner.getRows(sql, dicParam);
+        return items;
+    }
+
     @Transactional
     public void save(User user) {
         userRepository.save(user);

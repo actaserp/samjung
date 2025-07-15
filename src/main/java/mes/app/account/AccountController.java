@@ -99,7 +99,21 @@ public class AccountController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			HttpSession session, Authentication auth) {
-		ModelAndView mv = new ModelAndView("login");
+
+		//User-Agent를 기반으로 모바일 여부 감지
+		String userAgent = request.getHeader("User-Agent").toLowerCase();
+		boolean isMobile = userAgent.contains("mobile") || userAgent.contains("android") || userAgent.contains("iphone");
+
+		// 세션을 이용해 모바일에서 한 번만 리디렉션되도록 설정
+		Boolean isMobileRedirected = (Boolean) session.getAttribute("isMobileRedirected");
+
+		if (isMobile && (isMobileRedirected == null || !isMobileRedirected)) {
+			session.setAttribute("isMobileRedirected", true);  // ✅ 모바일에서 리디렉션 상태 저장
+			return new ModelAndView("redirect:/MobileFirstPage");
+		}
+
+		// 모바일이면 "mlogin" 뷰 반환, 웹이면 "login" 뷰 반환
+		ModelAndView mv = new ModelAndView(isMobile ? "mlogin" : "login");
 
 		Map<String, Object> userInfo = new HashMap<String, Object>();
 		Map<String, Object> gui = new HashMap<String, Object>();

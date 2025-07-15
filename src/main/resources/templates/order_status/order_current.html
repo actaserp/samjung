@@ -1,0 +1,712 @@
+<html layout:decorate="~{layout_page}" xmlns:layout="http://www.w3.org/1999/xhtml">
+<style>
+
+</style>
+<th:block layout:fragment="content">
+
+    <!--- (레이아웃) Contents 영역 -->
+    <div class="layout-contents">
+        <!-- Page Title -->
+        <div class="page-title-wrap">
+            <div class="left">
+                <h2>주문 진행현황</h2>
+                <!--                <a href="#" title="북마크" class="bookmark toggle">-->
+                <!--                    내메뉴-->
+                <!--                </a>-->
+            </div>
+            <ul class="page-navi">
+                <li><img src="/images/icon/ico-nav-home.svg" alt="홈아이콘"></li>
+                <li>주문 현황</li>
+                <li>주문 진행현황</li>
+            </ul>
+        </div>
+        <!-- Select -->
+        <!--       주문등록 탭 종료   / 주문 의뢰현황 시작       -->
+        <!-- Section -->
+        <section class="tab-item" id="tab2" style="height: 832px;">
+            <div class="section-top">
+                <div class="search-wrap">
+                    <dl>
+                        <dt>
+                            주문일자<span class="eq">*</span>
+                        </dt>
+                        <dd>
+                            <ul class="date-box">
+                                <li>
+                                    <input type="date" id="startDate" name="startDate">
+                                    <label for="startDate" class="hide">시작일</label>
+                                </li>
+                                ~
+                                <li>
+                                    <input type="date" id="endDate" name="endDate">
+                                    <label for="endDate" class="hide">종료일</label>
+                                </li>
+                            </ul>
+                        </dd>
+                    </dl>
+                    <dl>
+                        <dt>
+                            <label for="searchComnm">
+                                현장명<span class="eq">*</span>
+                            </label>
+                        </dt>
+                        <dd>
+                            <div class="srch-box">
+                                <input type="text" id="searchComnm" name="searchComnm" class="input-srch"
+                                       placeholder="현장명" style="border-radius: 5px;" readonly>
+                                <!--                                        <a href="#a" class="btn-srch" title="검색" onclick="searchData()"></a>-->
+                            </div>
+                        </dd>
+                    </dl>
+                    <dl>
+                        <dt>
+                            <label for="searchRemark">
+                                도번<span class="eq">*</span>
+                            </label>
+                        </dt>
+                        <dd>
+                            <div class="srch-box">
+                                <input type="text" id="searchRemark" name="searchRemark" class="input-srch"
+                                       placeholder="도번" style="border-radius: 5px;">
+                            </div>
+                        </dd>
+                    </dl>
+                    <dl>
+                        <dt>
+                            <label for="searchOrdflag">
+                                진행구분<span class="eq">*</span>
+                            </label>
+                        </dt>
+                        <dd>
+                            <div class="srch-box">
+                                <select id="searchOrdflag" name="searchOrdflag">
+                                    <option value="">전체</option>
+                                    <option value="0">주문등록</option>
+                                    <option value="1">주문확인</option>
+                                    <option value="2">주문확정</option>
+                                    <option value="3">제작진행</option>
+                                    <option value="4">출고</option>
+                                    <option value="5">주문취소</option>
+                                </select>
+                                <!--                                        <a href="#a" class="btn-srch" title="검색" onclick="searchData()"></a>-->
+                            </div>
+                        </dd>
+                    </dl>
+                    <dl>
+                        <dt>&nbsp;</dt>
+                        <dd>
+                            <li>
+                                <a class="btn btn-delete" title="검색" id="searchButton1" onclick="fetchListData()">
+                                    <!--                                        class 쓰이는 곳 찾고 없으면 클래스명 수정하기-->
+                                    <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
+                                    검색
+                                </a>
+                            </li>
+                        </dd>
+                    </dl>
+                    <dl>
+                        <dd>
+                            <li>
+                                <button>출하 및 인수확인서</button>
+                            </li>
+                        </dd>
+                    </dl>
+                    <dl>
+                        <dd>
+                            <li>
+                                <button>거래명세서</button>
+                            </li>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+            <div class="container-fluid">
+                <p id="selectedItem"></p>
+                <div id="theGrid" style="max-height: 714px"></div>
+            </div>
+        </section>
+    </div> <!--//layout-contents end -->
+    <footer style="margin-top:5px;">
+        <p>Copyrightⓒ 0000 corp. All rights reserved.</p>
+    </footer>
+    <div style="height: 10px"></div>
+
+    <div class="modal">
+        <div class="popup-wrapper w700" id="popup1">
+            <div class="popup-title">
+                <h3>파일 업로드</h3>
+                <a title="팝업닫기" onclick="closePopup('popup1')" class="btn-popup-close">
+                    <img src="/images/icon/btn-popup-close.svg" alt="닫기">
+                </a>
+            </div>
+            <div class="popup-contents">
+                <div class="table-wrap">
+                    <table class="write-table">
+                        <caption>전기안전 점검 첨부파일</caption>
+                        <colgroup>
+                            <col class="wp20">
+                            <col class="wp80">
+                        </colgroup>
+                        <tbody>
+                        <tr>
+                            <th>
+                                첨부파일
+                            </th>
+                            <td>
+                                <div id="uploadComponent2" class="upload-component2">
+                                    <div class="upload-filebox2">
+                                        <img src="/images/icon/ico-fileupload.svg" alt="업로드아이콘">
+                                        <a class="btn" title="파일업로드">파일 업로드</a>
+                                        <input type="file" id="fileInput2" class="fileInput2" multiple>
+                                        <p>Maximun upload file size <span>1GiB</span></p>
+                                    </div>
+
+                                    <div class="upload-filelist2">
+                                        <div class="title">
+                                            <h5>Files (0)</h5>
+                                            <a title="Delete all" class="btn-file-deleteall2">Delete all</a>
+                                        </div>
+                                        <ul class="filelist2" id="filelist2">
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="popup-button">
+                    <button type="button" onclick="closePopup('popup1')" class="btn-navy">확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--요청사항 popup -->
+    <div class="modal">
+        <div class="popup-wrapper w700" id="popup2" style="min-width: 1050px">
+            <div class="popup-title">
+                <h3>옵션 및 요청사항</h3>
+                <a title="팝업닫기" onclick="closePopup('popup2')" class="btn-popup-close">
+                    <img src="/images/icon/btn-popup-close.svg" alt="닫기">
+                </a>
+            </div>
+            <div class="popup-contents">
+                <div class="table-wrap">
+                    <colgroup>
+                        <col class="wp20">
+                        <col class="wp80">
+                    </colgroup>
+                    <div class="table-wrap">
+                        <table class="write-table">
+                            <caption>요청사항</caption>
+                            <tbody>
+                            <tr style="align-items: center">
+                                <th>
+                                    <label for="ordtext">
+                                        내&nbsp;&nbsp;용
+                                    </label>
+                                </th>
+                                <td colspan="3">
+                                    <div class="textarea-box">
+                                        <textarea id="ordtext" style="height: 300px"></textarea>
+                                        <!--<p class="text-count" id="text-count">0/100</p>-->
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <a style="color: red;margin-top: 4px;margin-left: 5px;">&nbsp;&nbsp;(첨부파일 및 이미지는 파일첨부를 이용하여 주세요)</a>
+                    </div>
+                </div>
+                <div class="popup-button">
+                    <button type="button" onclick="endtext('popup2')" class="btn-navy">작성완료</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block layout:fragment="scripts">
+    <th:block th:replace="/common/columns_setting :: columns_setting"></th:block>
+    <script type="text/javascript">
+
+        var theGrid;
+        var theGrid2;
+        var viewdata1;
+        var viewdata2;
+        let SelectItem;
+        let csrfToken = $("[name=_csrf]").val();
+
+        document.readyState === 'complete' ? init() : window.onload = init;
+
+        // 오늘 날짜 설정
+        const date = new Date();
+        date.setHours(date.getHours() + 9); // UTC+9로 한국 시간 설정
+        const today = date.toISOString().split('T')[0];
+
+        // 현재 년도와 월을 가져옵니다
+        const currentYear = date.getFullYear();
+        const currentMonth = (date.getMonth() + 1).toString().padStart(2, '0'); // 1월은 0부터 시작하므로 +1 처리
+
+        // 이번 달 1일을 설정
+        const firstDayOfMonth = `${currentYear}-${currentMonth}-01`;
+
+        // input 값 설정
+        document.getElementById('startDate').value = firstDayOfMonth;
+        document.getElementById('endDate').value = today;
+        document.getElementById('reqdate').value = today;
+
+        <!-- 초반 페이지 진입시 그리드 바인딩 끝-->
+        function init() {
+            // 🔹 sessionStorage에서 데이터 가져오기
+            const rowData = sessionStorage.getItem("selectedRowData");
+            const tabAction = sessionStorage.getItem("tabAction"); // ✅ 추가: tabAction 값 가져오기
+            const sessionDate = sessionStorage.getItem("sessionDate");
+
+            if (rowData) {
+                // 🔹 JSON 파싱하여 데이터 추출
+                const parsedData = JSON.parse(rowData);
+                console.log("✅ sessionStorage 데이터 있음:", parsedData);
+
+                // 필요한 값들 추출
+                const { saupnum, reqnum, reqdate, cltnm } = parsedData;
+
+                console.log("사업자번호 (saupnum):", saupnum);
+                document.getElementById("saupnumHidden").value = saupnum;
+                document.getElementById("reqnum").value = reqnum;
+                document.getElementById("reqdate").value = reqdate;
+                document.getElementById("searchComnm").value = cltnm;
+                document.getElementById("startDate").value = reqdate;
+                document.getElementById("endDate").value = reqdate;
+                // `saupnum`을 포함해서 데이터 요청
+                // 업체명 readonly 제거
+                document.getElementById("searchComnm").removeAttribute("readonly");
+                // 신규등록버튼 제거
+                document.getElementById("newdataBtn").style.display = "none";
+                //`saupnum`을 포함해서 데이터 요청
+                fetchListData(saupnum);
+                fetchListData2(saupnum);
+                getMyInfo(saupnum);
+                activateSection();
+
+                // 2초 후에 sessionStorage 데이터 삭제
+                setTimeout(() => {
+                    sessionStorage.removeItem("selectedRowData");
+                    console.log("🗑️ sessionStorage 데이터 삭제 완료");
+                }, 2000);
+            } else {
+                if(sessionDate != null){
+                    document.getElementById("startDate").value = sessionDate;
+                    document.getElementById("endDate").value = sessionDate;
+                }
+                console.warn("⚠️ sessionStorage에 저장된 데이터 없음. 기본 요청 실행");
+
+                // 🔹 기존 방식대로 실행 (인자 없이)
+                async function fetchData() {
+                    try {
+                        await getMyInfo();   // ✅ getMyInfo()가 완료될 때까지 기다림
+                        fetchListData();  // ✅ getMyInfo 완료 후 실행
+                        fetchListData2(); // ✅ fetchListData 완료 후 실행
+                    } catch (error) {
+                        console.error("❌ 오류 발생:", error);
+                    }
+                }
+                // 실행
+                fetchData();
+            }
+
+            // ✅ tabAction 값이 있으면 실행 후 삭제
+            if (tabAction) {
+                setTimeout(() => {
+                    console.log("🔄 tabAction 값 존재, init 실행!");
+                    sessionStorage.removeItem("tabAction"); // 실행 후 제거
+                    sessionStorage.removeItem("selectedRowData");
+                    sessionStorage.removeItem("sessionDate")
+                    console.log("🗑️ sessionStorage.tabAction 데이터 삭제 완료");
+                }, 2000);
+            }
+        }
+
+        // ✅ 탭이 활성화될 때 `tabAction` 값을 확인하고 `init()` 실행
+        window.addEventListener("storage", function (event) {
+            if (event.key === "tabAction" && event.newValue) {
+                console.log("📢 tabAction 감지됨! init 실행");
+                init();
+            }
+        });
+
+        function activateSection() {
+            $(".tab-item").hide(); // 모든 섹션 숨기기
+            $("#tab1").show(); // 해당 섹션 표시
+            $(".tab-links li").removeClass("active"); // 모든 탭에서 active 제거
+
+            // 특정 title을 가진 <a> 태그를 찾아 해당 <li>에 active 추가
+            $(".tab-links a[title='주문 등록']").parent("li").addClass("active");
+        }
+
+        // 주문현황 더블클릭 이벤트 기존탭 최신화
+        document.addEventListener("DOMContentLoaded", function () {
+            console.log("✅ order_request.html DOMContentLoaded 완료");
+
+            window.addEventListener("message", function (event) {
+                console.log("📩 메시지 수신! Origin:", event.origin);
+                console.log("📩 메시지 내용:", event.data);
+
+                if (event.data.action === "init") {
+                    console.log("📩 init 실행 요청 받음");
+                    init(); // `init()` 함수 실행
+                }
+            });
+
+            // index.html에서 보낸 메시지가 iframe이 로드되기 전에 도착했을 경우 대비
+            setTimeout(() => {
+                window.parent.postMessage({ action: "requestInit" }, "*");
+            }, 200);
+        });
+
+
+        // 주문/진행현황 그리드
+        function fetchListData(saupnum) {
+            let data2 = [];
+            const transformedData = []; // 변환된 데이터를 저장할 배열
+            $.ajax({
+                url: '/api/request/request/order_read',
+                type: 'GET',
+                data: {
+                    'saupnum':saupnum,
+                    'saupnumHidden': $('#saupnumHidden').val(),
+                    'search_startDate': $('#startDate').val(),
+                    'search_endDate': $('#endDate').val(),
+                    'search_remark': $('#searchRemark').val(),
+                    'search_ordflag': $('#searchOrdflag').val(),
+                    'search_comnm': $('#searchComnm').val()
+                },
+                async: false,
+                success: function (data) {
+                    data2 = data.data;
+                }
+            })
+            // bd_details를 파싱하여 배열로 변환
+            // bd_details가 유효한 JSON 문자열일 때만 파싱
+
+            const seenReqnum = new Set(); // reqnum을 기준으로 중복을 확인
+            data2.forEach(item => {
+                item.bd_hgrb = getHgrb((item.bd_hgrb));
+                item.bd_exfmtypedv = getListCgrb2(item.bd_exfmtypedv);
+                item.bd_infmtypedv = getListCgrb2(item.bd_infmtypedv);
+                item.bd_stframedv = getListCgrb2(item.bd_stframedv);
+                item.bd_stexplydv = getListCgrb2(item.bd_stexplydv);
+                item.originOrdtext = item.bd_ordtext;
+            });
+            viewdata1 = new wijmo.collections.CollectionView(data2); // 변환된 데이터를 CollectionView로 변환
+            const minRows = 12; // 최소 행 수
+            const rowTemplate = {
+                ordflag: null,
+                reqdate: null,
+                deldate: null,
+                panel_ht: null,
+                panel_hw: null,
+                panel_hl: null,
+                panel_hh: null,
+                remark: null,
+                downloads: null,
+                bd_hgrb: null,
+                bd_qty: null,
+                bd_panel_t: null,
+                bd_panel_w: null,
+                bd_panel_l: null,
+                bd_exfmtypedv: null,
+                bd_infmtypedv: null,
+                bd_stframedv: null,
+                bd_stexplydv: null,
+                bd_ordtext: null,
+                telno: null,
+                perid: null,
+                cltaddr: null,
+                reqnum: null,
+                isdownload: null,
+                hd_files: null,
+                saupnum:null,
+                originOrdtext: null
+            }; // 필요한 데이터 구조
+
+// 빈 행 추가
+            while (viewdata1.sourceCollection.length < minRows) {
+                viewdata1.sourceCollection.push({ ...rowTemplate });
+            }
+
+            if (!theGrid) {
+                // 데이터 그리드에 바인딩
+                theGrid = new wijmo.grid.FlexGrid('#theGrid', {
+                    autoGenerateColumns: false,
+                    showMarquee: true,
+                    isReadOnly: true,
+                    selectionMode: wijmo.grid.SelectionMode.Row,
+                    columns: [
+                        {binding: 'ordflag', header: '진행구분', width: '*', minWidth: 100, align: 'center'},
+                        {binding: 'cltnm', header: '업체명', width: '*', minWidth: 105, align: 'center'},
+                        {binding: 'reqdate', header: '주문일자', width: '*', minWidth: 120, align: 'center'},
+                        {binding: 'deldate', header: '납품희망일', width: '*', minWidth: 120, align: 'center'},
+                        {binding: 'panel_ht', header: '두께', width: '*', minWidth: 70, align: 'right'},
+                        {binding: 'panel_hw', header: '폭', width: '*', minWidth: 70, align: 'right'},
+                        {binding: 'panel_hl', header: '길이', width: '*', minWidth: 70, align: 'right'},
+                        {binding: 'panel_hh', header: '높이', width: '*', minWidth: 70, align: 'right'},
+                        {binding: 'remark', header: '제목', width: '*', minWidth: 250, align: 'left'},
+                        {binding: 'downloads', header: '첨부파일', width: '*', minWidth: 105, align: 'center'},
+
+                        {binding: 'reqnum', visible: false},  // 숨길 컬럼
+                        {binding: 'isdownload', visible: false},
+                        {binding: 'hd_files', visible: false},
+                        {binding: 'originOrdtext', visible: false},
+                        {binding: 'saupnum', visible: false},
+                    ],
+                    itemsSource: viewdata1,
+                    itemFormatter: function (panel, r, c, cell) {
+                        if (panel.cellType === wijmo.grid.CellType.Cell) {
+                            var item = panel.rows[r].dataItem; // 현재 행의 데이터 항목
+                            if (panel.columns[c].binding === 'downloads') {
+                                cell.innerHTML = ''; // 셀 내용 초기화
+                                if (item.isdownload) {
+                                    cell.innerHTML = '<a title="다운로드" class="btn-filedown" onclick="downloadFile_order()">다운로드</a>';
+                                }
+                            }
+                            if (panel.columns[c].binding === 'bd_ordtext') {
+                                if (item.bd_ordtext) {
+                                    cell.innerHTML = '<a title="수정팝업" class="" onclick="showPopup2(\'popup2\')" style="color: #03428E">요청사항 확인</a>';
+                                }
+                            }
+                        }
+                    }
+                });
+                // 헤더를 중앙 정렬하는 이벤트 핸들러
+                theGrid.formatItem.addHandler(function (s, e) {
+                    if (e.panel === s.columnHeaders) {
+                        e.cell.style.textAlign = 'center';
+                    }
+                });
+                // 더블클릭 이벤트
+                theGrid.hostElement.addEventListener('dblclick', function (e) {
+                    // 그리드의 셀 정보 가져오기
+                    let hitTest = theGrid.hitTest(e);
+                    if (hitTest.cellType === wijmo.grid.CellType.Cell) {
+                        // 행(row), 행의 데이터(item) 정보 가져오기
+                        let row = hitTest.row;
+                        let item = theGrid.rows[row].dataItem;
+                        if (!item.ordflag && item.reqnum) {
+                            let hdRow = viewdata1.items.find(data => data.reqnum === item.reqnum && data.ordflag);
+                            if (hdRow) {
+                                document.getElementById('reqdate').value = hdRow.reqdate;
+                                document.getElementById('deldate').value = hdRow.deldate;
+                                document.getElementById('telno').value = hdRow.telno;
+                                document.getElementById('perid').value = hdRow.perid;
+                                document.getElementById('postno').value = hdRow.cltzipcd;
+                                document.getElementById('address1').value = hdRow.cltaddr;
+                                document.getElementById('panel_ht').value = hdRow.panel_ht;
+                                document.getElementById('panel_hw').value = hdRow.panel_hw;
+                                document.getElementById('panel_hl').value = hdRow.panel_hl;
+                                document.getElementById('panel_hh').value = hdRow.panel_hh;
+                                document.getElementById('remark').value = hdRow.remark;
+                            }
+                        }else {
+                            document.getElementById('reqdate').value = item.reqdate;
+                            document.getElementById('deldate').value = item.deldate;
+                            document.getElementById('telno').value = item.telno;
+                            document.getElementById('perid').value = item.perid;
+                            document.getElementById('postno').value = item.cltzipcd;
+                            document.getElementById('address1').value = item.cltaddr;
+                            document.getElementById('panel_ht').value = item.panel_ht;
+                            document.getElementById('panel_hw').value = item.panel_hw;
+                            document.getElementById('panel_hl').value = item.panel_hl;
+                            document.getElementById('panel_hh').value = item.panel_hh;
+                            document.getElementById('remark').value = item.remark;
+                        }
+                        let fileList = Array.isArray(item.hd_files) ? item.hd_files : [];
+
+                        deletedFiles2 = [];
+                        uploadedFiles2 = [];
+
+                        fileList.forEach(file => {
+                            let newFile = {
+                                name: file.fileornm,
+                                type: file.fileextns,
+                                size: file.filesize,
+                                fileid: file.fileid,
+                                reqseq: item.reqseq,
+                                lastModified: new Date().getTime(),
+                            };
+                            uploadedFiles2.push(newFile); // 파일 리스트에 추가
+                        });
+
+
+                        $('.filelist2').empty(); // 파일 리스트 초기화
+                        updateFileCount2();
+                        updateFileListUI2();
+
+                        // document.getElementById('qty').value = item.bd_details.qty;
+                        // document.getElementById('panel_t').value = item.bd_details.panel_t;
+                        // document.getElementById('panel_w').value = item.bd_details.panel_w;
+                        // document.getElementById('panel_l').value = item.bd_details.panel_l;
+                        // document.getElementById('ordtext').value = item.bd_details.ordtext;
+                        //
+                        // const selectHgrb = document.getElementById('hgrb');
+                        // const selectExfmtypedv = document.getElementById('exfmtypedv');
+                        // const selectInfmtypedv = document.getElementById('infmtypedv');
+                        // const selectStframedv = document.getElementById('stframedv');
+                        // const selectStexplydv = document.getElementById('stexplydv');
+                        //
+                        // const selectedItem = item;
+                        //
+                        // setSelectedIndex(selectHgrb, selectedItem.bd_details.hgrb);
+                        // setSelectedIndex(selectExfmtypedv, selectedItem.bd_details.exfmtypedv);
+                        // setSelectedIndex(selectInfmtypedv, selectedItem.bd_details.infmtypedv);
+                        // setSelectedIndex(selectStframedv, selectedItem.bd_details.stframedv);
+                        // setSelectedIndex(selectStexplydv, selectedItem.bd_details.stexplydv);
+                        document.getElementById('btnSave').title = "수정";
+                        document.getElementById('reqnum').value = item.reqnum;
+                        resetBodyField();
+                        const tab1Link = document.getElementById('listTabLink');
+                        tab1Link.click();
+                        fetchListData2();
+                    }
+                })
+                // FlexGrid의 최대 높이를 제한하여 스크롤바를 활성화
+                theGrid.hostElement.style.maxHeight = '650px'; // 약 12개의 행 높이에 맞게 설정
+                theGrid.hostElement.style.overflowY = 'auto';
+                // 선택이 변경될 때, 현재 항목 업데이트
+                theGrid.rowHeaders.columns.splice(0, 1);  //맨 앞에 헤더부분 없애기
+                new FlexGridContextMenu(theGrid);
+                window.downloadFileName = '주문등록 첨부파일';
+            } else {
+                // 이미 FlexGrid이 존재하는 경우, 데이터만 업데이트
+                theGrid.itemsSource = viewdata1;
+            }
+        }
+
+        // 주문등록 세부내용 그리드
+        function fetchListData2(saupnum) {
+            let data2 = [];
+
+            $.ajax({
+                url: '/api/request/request/read',
+                type: 'GET',
+                data: {
+                    'saupnumHidden': $('#saupnumHidden').val(),
+                    'saupnum':saupnum,
+                    'reqnum': $('#reqnum').val(),
+                    'reqdate': $('#reqdate').val()
+                },
+                async: false,
+                success: function (data) {
+                    data2 = data.data;
+                    data2.forEach(item =>{
+                        item.hgrb = getHgrb((item.hgrb));
+                        item.exfmtypedv = getListCgrb2(item.exfmtypedv);
+                        item.infmtypedv = getListCgrb2(item.infmtypedv);
+                        item.stframedv = getListCgrb2(item.stframedv);
+                        item.stexplydv = getListCgrb2(item.stexplydv);
+                        item.originOrdtext = item.ordtext;
+                    })
+                }
+            })
+
+            viewdata2 = new wijmo.collections.CollectionView(data2);
+
+            if (!theGrid2) {
+
+                // 데이터 그리드에 바인딩
+                theGrid2 = new wijmo.grid.FlexGrid('#theGrid2', {
+                    autoGenerateColumns: false,
+                    showMarquee: true,
+                    isReadOnly: true,
+                    selectionMode: wijmo.grid.SelectionMode.Row,
+                    columns: [
+                        {binding: 'hgrb', header: '제품구성', width: '*', minWidth: 100, align: 'center'},
+                        {binding: 'qty', header: '수량', width: 80, align: 'right'},
+                        {binding: 'panel_t', header: 'T', width: 80, align: 'right'},
+                        {binding: 'panel_w', header: 'W/H', width: 80, align: 'right'},
+                        {binding: 'panel_l', header: 'L', width: 80, align: 'right'},
+                        {binding: 'exfmtypedv', header: '외부마감재', width: '*', minWidth: 100, align: 'center'},
+                        {binding: 'infmtypedv', header: '외부보강재', width: '*', minWidth: 100, align: 'center'},
+                        {binding: 'stframedv', header: '내부보강재', width: '*', minWidth: 100, align: 'center'},
+                        {binding: 'stexplydv', header: '내부마감재', width: '*', minWidth: 100, align: 'center'},
+                        {binding: 'ordtext', header: '옵션 및 요청사항', width: '*', minWidth: 100, align: 'left'},
+                        {binding: 'originOrdtext', visible: false},
+                        {binding: 'reqseq', visible: false},
+                        {binding: 'isnew', visible: false},
+                        {binding: 'saupnum',visible: false}
+                    ],
+                    itemsSource: viewdata2,
+                    itemFormatter: function (panel, r, c, cell) {
+                        if (panel.cellType === wijmo.grid.CellType.Cell) {
+                            var item = panel.rows[r].dataItem; // 현재 행의 데이터 항목
+                            if (panel.columns[c].binding === 'ordtext') {
+                                cell.innerHTML = ''; // 셀 내용 초기화
+                                if (item.ordtext) {
+                                    cell.innerHTML = '<a title="수정팝업" class="" onclick="showPopup3(\'popup2\')" style="color: #03428E">요청사항 확인</a>';
+                                }
+                            }
+                        }
+                    }
+                });
+                // 헤더를 중앙 정렬하는 이벤트 핸들러
+                theGrid2.formatItem.addHandler(function (s, e) {
+                    if (e.panel === s.columnHeaders) {
+                        e.cell.style.textAlign = 'center';
+                    }
+                });
+                // 첫열에 selectBox 추가
+                let selector = new wijmo.grid.selector.Selector(theGrid2, {
+                    itemChecked: (e, ctx) => {
+                        SelectItem = theGrid2.rows.filter(r => r.isSelected);
+
+                    }
+                })
+                // 더블클릭 이벤트
+                theGrid2.hostElement.addEventListener('dblclick', function (e) {
+                    // 그리드의 셀 정보 가져오기
+                    let hitTest = theGrid2.hitTest(e);
+                    if (hitTest.cellType === wijmo.grid.CellType.Cell) {
+                        // 행(row), 행의 데이터(item) 정보 가져오기
+                        let row = hitTest.row;
+                        let item = theGrid2.rows[row].dataItem;
+
+                        document.getElementById('qty').value = item.qty;
+                        document.getElementById('panel_t').value = item.panel_t;
+                        document.getElementById('panel_w').value = item.panel_w;
+                        document.getElementById('panel_l').value = item.panel_l;
+                        document.getElementById('reqseq').value = item.reqseq;
+                        document.getElementById('isnew').value = item.isnew;
+                        document.getElementById('ordtext').value = item.ordtext;
+
+                        const selectHgrb = document.getElementById('hgrb');
+                        const selectExfmtypedv = document.getElementById('exfmtypedv');
+                        const selectInfmtypedv = document.getElementById('infmtypedv');
+                        const selectStframedv = document.getElementById('stframedv');
+                        const selectStexplydv = document.getElementById('stexplydv');
+
+                        const selectedItem = item;
+
+                        setSelectedIndex(selectHgrb, selectedItem.hgrb);
+                        setSelectedIndex(selectExfmtypedv, selectedItem.exfmtypedv);
+                        setSelectedIndex(selectInfmtypedv, selectedItem.infmtypedv);
+                        setSelectedIndex(selectStframedv, selectedItem.stframedv);
+                        setSelectedIndex(selectStexplydv, selectedItem.stexplydv);
+                    }
+                })
+                // FlexGrid의 최대 높이를 제한하여 스크롤바를 활성화
+                theGrid2.hostElement.style.maxHeight = '300px'; // 약 5개의 행 높이에 맞게 설정
+                theGrid2.hostElement.style.overflowY = 'auto';
+                // 선택이 변경될 때, 현재 항목 업데이트
+                new FlexGridContextMenu(theGrid2);
+                window.downloadFileName = '주문등록';
+            } else {
+                // 이미 FlexGrid이 존재하는 경우, 데이터만 업데이트
+                theGrid2.itemsSource = viewdata2;
+            }
+        }
+
+    </script>
+
+</th:block>
+</html>
+

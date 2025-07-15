@@ -404,6 +404,18 @@
                                     </div>
                                 </td>
                             </tr>
+                            <tr>
+                                <th>
+                                    사업체명
+                                </th>
+                                <td>
+                                    <select id="spjType" name="spjType">
+                                        <option value="" hidden selected disabled>선택</option>
+                                        <option value="ZZ">삼정엘리베이터</option>
+                                        <option value="PP">삼정엘리베이터(일산)</option>
+                                    </select>
+                                </td>
+                            </tr>
                             </tbody>
                         </table>
                     </div>
@@ -771,6 +783,8 @@
         let popup = document.getElementById('popup1');
         let wrapper = document.getElementById('wrapper1');
 
+        // AjaxUtil.fillSelectOptions($('#spjType'), 'tb_xa012', 'choose', false);
+
         popup.style.display = 'block';
         wrapper.style.display = 'block';
     }
@@ -790,7 +804,8 @@
         document.getElementById('address2').value = '';
         document.getElementById('AuthenticationCodeRegister').value = '';
         document.getElementById('timer2').innerText = ''; // 타이머 초기화
-
+        document.getElementById('email').removeAttribute('readonly');
+        document.getElementById('id').removeAttribute('readonly');
         // 팝업 및 래퍼 숨기기
         popup.style.display = 'none';
         wrapper.style.display = 'none';

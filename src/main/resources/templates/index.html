@@ -197,14 +197,23 @@
 
                                         </ul>
                                     </li>
-                                  <!--  <li class="dep1-1">
-                                        <a href="#a" title="점검관리" class="ico-lnb04">
-                                            점검 관리
+                                    <li class="dep1-1">
+                                        <a href="#a" title="PLM등록" class="ico-lnb03">
+                                            PLM등록
                                         </a>
-                                        <ul class="dep2" id="dep2-inspection-management">
+                                        <ul class="dep2" id="dep2-plm-registration">
 
                                         </ul>
-                                    </li>-->
+                                    </li>
+                                    <li class="dep1-1">
+                                        <a href="#a" title="발주관리" class="ico-lnb03">
+                                            발주 관리
+                                        </a>
+                                        <ul class="dep2" id="dep2-balju-management">
+
+                                        </ul>
+                                    </li>
+
                                     <li class="dep1-1">
                                         <a href="#a" title="시스템설정" class="ico-lnb05">
                                             시스템 설정
@@ -535,8 +544,10 @@
             1: '#dep2-dashboard',  //대시보드
             2: '#dep2-order-request',  //주문등록
             3: '#dep2-order-status',    // 주문현황
-            4: '#dep2-inspection-management',
-            5: '#dep2-system-settings'
+            4: '#dep2-plm-registration',   //plm 등록
+            6: '#dep2-balju-management',
+            5: '#dep2-system-settings',
+            7: '#dep2-system-settings'
         };
         nthTabs = $('#main-tabs').nthTabs();
 
@@ -1153,7 +1164,6 @@
 
             return validatePassword(password, passOption);
         }
-
         //내정보 수정
         function saveUserInfo() {
             const data = {
@@ -1174,10 +1184,10 @@
                 const password = $('#loginPwd').val();
                 const confirmPassword = $('#loginPwd2').val();
 
-                if (!validatePasswordPolicy(password)) {
+            /*    if (!validatePasswordPolicy(password)) {
                     Alert.alert('', '패스워드 정책을 위반했습니다. 요구 사항을 확인하세요.');
                     return;
-                }
+                }*/
 
                 if (password !== confirmPassword) {
                     Alert.alert('', '패스워드가 일치하지 않습니다.', function () {

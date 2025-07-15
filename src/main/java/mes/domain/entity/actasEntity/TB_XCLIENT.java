@@ -49,8 +49,8 @@ public class TB_XCLIENT {
     @Column(name = "bizitemnm")
     private String bizitemnm; // 종목명
 
-    @Column(name = "cltdv")
-    private String cltdv; // 거래처구분
+   /* @Column(name = "cltdv")
+    private String cltdv; // 거래처구분*/
 
     @Column(name = "zipcd")
     private String zipcd; // 우편번호
@@ -58,11 +58,10 @@ public class TB_XCLIENT {
     @Column(name = "cltadres")
     private String cltadres; // 주소
 
-    @Column(name = "dzipcd")
+/*    @Column(name = "dzipcd")
     private String dzipcd; // DM우편주소
-
     @Column(name = "dadres")
-    private String dadres; // DM 주소
+    private String dadres; // DM 주소*/
 
     @Column(name = "telnum")
     private String telnum; // 전화번호
@@ -82,8 +81,8 @@ public class TB_XCLIENT {
     @Column(name = "agntel")
     private String agntel; // 업체담당자전화번호
 
-    @Column(name = "agnhptel")
-    private String agnhptel; // 업체담당자 HP번호
+   /* @Column(name = "agnhptel")
+    private String agnhptel; // 업체담당자 HP번호*/
 
     @Column(name = "agnercltnm")
     private String agnercltnm; // 지급처명
@@ -121,8 +120,8 @@ public class TB_XCLIENT {
     @Column(name = "relyn")
     private String relyn; // 거래중지구분
 
-    @Column(name = "bonddv")
-    private String bonddv; // recedv
+   /* @Column(name = "bonddv")
+    private String bonddv; // recedv*/
 
     @Column(name = "hptelnum")
     private String hptelnum; // 핸드폰번호
@@ -136,8 +135,8 @@ public class TB_XCLIENT {
     @Column(name = "agneremail")
     private String agneremail; // 담담자 email
 
-    @Column(name = "agneremail1")
-    private String agneremail1; // 담당자 email1
+  /*  @Column(name = "agneremail1")
+    private String agneremail1; // 담당자 email1*/
 
     @Column(name = "agnerdivinm")
     private String agnerdivinm; // 담당자부서
@@ -151,8 +150,8 @@ public class TB_XCLIENT {
     @Column(name = "bankcd")
     private String bankcd; // 은행코드
 
-    @Column(name = "bankno")
-    private String bankno; // 은행지점코드
+    /*@Column(name = "bankno")
+    private String bankno; // 은행지점코드*/
 
     @Column(name = "accnum")
     private String accnum; // 계좌번호
@@ -169,20 +168,20 @@ public class TB_XCLIENT {
     @Column(name = "setcls")
     private String setcls; // 결제 구분
 
-    @Column(name = "taxdv")
-    private String taxdv; // 계산서발행기준
+   /* @Column(name = "taxdv")
+    private String taxdv; // 계산서발행기준*/
 
     @Column(name = "givedate")
     private String givedate; // 지급일자
 
-    @Column(name = "setcls1")
+   /* @Column(name = "setcls1")
     private String setcls1; // 결제구분1
 
     @Column(name = "taxdv1")
     private String taxdv1; // 계산서발행기준1
 
     @Column(name = "givedate1")
-    private String givedate1; // 지급일자 1
+    private String givedate1; // 지급일자 1*/
 
     @Column(name = "remark", columnDefinition = "TEXT")
     private String remark; // 적요
@@ -223,13 +222,13 @@ public class TB_XCLIENT {
     @Column(name = "taxsms")
     private String taxsms; // 계산SMS
 
-    @Column(name = "carrier")
+    /*@Column(name = "carrier")
     private String carrier; // 배송업체
 
     @Column(name = "payterm")
-    private String payterm; // 결제기한
+    private String payterm; // 결제기한*/
 
-    @Column(name = "incoterm")
+    /*@Column(name = "incoterm")
     private String incoterm; // 무역조건
 
     @Column(name = "nopa", columnDefinition = "TEXT")
@@ -239,16 +238,17 @@ public class TB_XCLIENT {
     private Float cltyul; // 할인율
 
     @Column(name = "moncls")
-    private String moncls; // 화폐단위
+    private String moncls; // 화폐단위*/
 
-    @Column(name = "cltynm")
-    private String cltynm; // 약명
+    /*@Column(name = "cltynm")
+    private String cltynm; // 약명*/
 
+/*
     @Column(name = "wpass")
     private String wpass; // WPASS
-
     @Column(name = "taxcltcd")
     private String taxcltcd; // 계산서발행거래처
+*/
 
     @Column(name = "nicnm1")
     private String nicnm1; // 가맹점1
@@ -268,7 +268,7 @@ public class TB_XCLIENT {
     @Column(name = "nicnm6")
     private String nicnm6; // 가맹점6
 
-    @Column(name = "prtdv")
+    /*@Column(name = "prtdv")
     private String prtdv; // 보고서제외여부
 
     @Column(name = "stdate")
@@ -293,7 +293,7 @@ public class TB_XCLIENT {
     private String indate; // 입력일자
 
     @Column(name = "inperid")
-    private String inperid; // 입력자
+    private String inperid; // 입력자*/
 
     @Column(name = "inputdate")
     private String inputdate; // inputdate
@@ -307,9 +307,9 @@ public class TB_XCLIENT {
     @Column(name = "emcltcd")
     private String emcltcd; // emcltcd
 
-    @Column(name = "pnbcltcd")
+    /*@Column(name = "pnbcltcd")
     private String pnbcltcd; // pnbcltcd
 
     @Column(name = "swcltcd")
-    private String swcltcd; // swcltcd
+    private String swcltcd; // swcltcd*/
 }

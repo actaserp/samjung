@@ -80,6 +80,7 @@ public class ComboService {
 		this._dicFunc_.put("user_group", this.user_group);
 		this._dicFunc_.put("user_profile", this.user_profile);
 		this._dicFunc_.put("workcenter", this.workcenter);
+		this._dicFunc_.put("tb_xa012", this.tbXa012Combo);
 	}
 
 	public List<Map<String, Object>> getComboList(String comboType, String cond1, String cond2, String cond3){
@@ -869,5 +870,20 @@ public class ComboService {
         return this.sqlRunner.getRows(sql, dicParam);		
 	};
 	*/
+
+	ComboDataFunction tbXa012Combo = (cond1, cond2, cond3) -> {
+		String sql = """
+        SELECT spjangcd AS value, spjangnm AS text
+        FROM tb_xa012
+        ORDER BY spjangnm
+    """;
+
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("cond1", cond1);
+		params.addValue("cond2", cond2);
+		params.addValue("cond3", cond3);
+
+		return this.sqlRunner.getRows(sql, params);
+	};
 	
 }

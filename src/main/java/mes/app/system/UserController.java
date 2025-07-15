@@ -288,14 +288,14 @@ public class UserController {
 						.id(new TB_XCLIENTId(custcd, newCltcd))
 						.rnumchk("0")
 						.corpperclafi("0")
-						.cltdv("1")
+						//.cltdv("1")
 						.prtcltnm(cltnm)
 						.foreyn("0")
 						.relyn("0")		//거래중지컬럼 0은 해제 상태
-						.bonddv("0")
+						//.bonddv("0")
 						.nation("KR")
 						.clttype("2")
-						.cltynm("0")
+						//.cltynm("0")
 						.build();
 			}
 

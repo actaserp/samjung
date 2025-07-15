@@ -271,7 +271,8 @@ public class AccountController {
 			@RequestParam(value = "password") String password,
 			@RequestParam(value = "postno") String postno,
 			@RequestParam(value = "address1") String address1,
-			@RequestParam(value = "address2") String address2
+			@RequestParam(value = "address2") String address2,
+			@RequestParam(value = "spjType") String spjangcd
 	) {
 		AjaxResult result = new AjaxResult();
 		MapSqlParameterSource Param = new MapSqlParameterSource();
@@ -291,7 +292,7 @@ public class AccountController {
 						.date_joined(new Timestamp(System.currentTimeMillis()))
 						.superUser(false)
 						.phone(phone)
-						.spjangcd("ZZ")
+						.spjangcd(spjangcd)
 						.build();
 
 				userService.save(user); // User 저장
@@ -308,7 +309,7 @@ public class AccountController {
 				);
 				jdbcTemplate.execute("SET IDENTITY_INSERT user_profile OFF");
 
-				// TB_XA012에서 custcd와 spjangcd로 조회
+				/*// TB_XA012에서 custcd와 spjangcd로 조회
 				String custcd = "SWSPANEL";
 				List<String> spjangcds = Arrays.asList("ZZ", "YY");
 
@@ -317,7 +318,16 @@ public class AccountController {
 					result.success = false;
 					result.message = "custcd 및 spjangcd에 해당하는 데이터를 찾을 수 없습니다.";
 					return result;
+				}*/
+				Optional<TB_XA012> xa012Opt = tbXA012Repository.findById_Spjangcd(spjangcd);
+
+				if (xa012Opt.isEmpty()) {
+					result.success = false;
+					result.message = "해당 spjangcd에 해당하는 사업장 정보가 없습니다.";
+					return result;
 				}
+
+				String custcd = xa012Opt.get().getId().getCustcd();
 
 				String fullAddress = address1 + (address2 != null && !address2.isEmpty() ? " " + address2 : "");
 
@@ -341,14 +351,14 @@ public class AccountController {
 						// 기본값 설정된 필드들
 						.rnumchk(String.valueOf(0))                 // rnumchk = 0
 						.corpperclafi(String.valueOf(0))            // corpperclafi = 0 (법인구분, 기본 = 법인)
-						.cltdv(String.valueOf(1))                   // cltdv = 1 (거래처구분)
+						//.cltdv(String.valueOf(1))                   // cltdv = 1 (거래처구분)
 						.prtcltnm(cltnm) 							   // prtcltnm = "인쇄 거래처명 - 거래처명"
 						.foreyn(String.valueOf(0))                  // foreyn = 0
 						.relyn(String.valueOf(0))                   // relyn = 0
-						.bonddv(String.valueOf(0))                  // bonddv = 0
+						//.bonddv(String.valueOf(0))                  // bonddv = 0
 						/*.nation("KR")               // nation = "KR"*/
 						.clttype(String.valueOf(2))                 // clttype = 2 (거래구분)
-						.cltynm(String.valueOf(0))                  // cltynm = 0 (약명)
+						//.cltynm(String.valueOf(0))                  // cltynm = 0 (약명)
 						.build();
 
 				tbXClientService.save(tbXClient); // TB_XCLIENT 저장
@@ -379,7 +389,7 @@ public class AccountController {
 			newNumber = Integer.parseInt(numberPart) + 1; // 숫자 증가
 		}
 		// 새로운 cltcd 생성: "SW" 접두사와 5자리 숫자로 포맷
-		return String.format("SW%05d", newNumber);
+		return String.format("%05d", newNumber);
 	}
 	
 	@PostMapping("/account/updateUserInfo")

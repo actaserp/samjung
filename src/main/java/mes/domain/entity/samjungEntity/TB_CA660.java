@@ -3,10 +3,7 @@ package mes.domain.entity.samjungEntity;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
 @Table(name="TB_CA660")
@@ -15,6 +12,7 @@ import javax.persistence.Table;
 public class TB_CA660 { //외주발주관리
 
   @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name="BALJUNUM")
   Integer balJunum;  //발주번호
 
@@ -34,7 +32,7 @@ public class TB_CA660 { //외주발주관리
   private String cltcd;     //발주처코드
 
   @Column(name = "ICHDATE")
-  private String ichdate;   //납기일자
+  private String ichdate;   //납기일자(예정)
 
   @Column(name = "PERNM")
   private String pernm;     //현장PM

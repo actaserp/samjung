@@ -1,4 +1,4 @@
-package mes.app.definition;
+package mes.app._mes.definition;
 
 import java.sql.Date;
 import java.util.List;
@@ -6,6 +6,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import mes.app._mes.definition.service.CompanyService;
 import org.apache.groovy.parser.antlr4.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.util.MultiValueMap;
 
-import mes.app.definition.service.CompanyService;
 import mes.app.definition.service.PriceService;
 import mes.domain.entity.Company;
 import mes.domain.entity.User;
@@ -48,10 +48,10 @@ public class CompanyController {
 	@GetMapping("/read")
 	public AjaxResult getCompanyList(
 			@RequestParam("comp_type") String compType,
-			@RequestParam("group_name") String groupName,
+			/*@RequestParam("group_name") String groupName,*/
 			@RequestParam("keyword") String keyword) {
 		
-		List<Map<String, Object>> items = this.companyService.getCompnayList(compType, groupName, keyword);
+		List<Map<String, Object>> items = this.companyService.getCompnayList(compType,  keyword);
 		
 		AjaxResult result = new AjaxResult();
 		result.data = items;

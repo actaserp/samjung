@@ -32,7 +32,7 @@ public class TB_XCLIENT {
     private String forenum; // 주민번호
 
     @Column(name = "corpperclafi")
-    private String corpperclafi; // 법인구분
+    private String corpperclafi; // 법인구분  1: 법인, 0 : 개인
 
     @Column(name = "prenum")
     private String prenum; // 법인번호
@@ -57,11 +57,6 @@ public class TB_XCLIENT {
 
     @Column(name = "cltadres")
     private String cltadres; // 주소
-
-/*    @Column(name = "dzipcd")
-    private String dzipcd; // DM우편주소
-    @Column(name = "dadres")
-    private String dadres; // DM 주소*/
 
     @Column(name = "telnum")
     private String telnum; // 전화번호
@@ -119,9 +114,6 @@ public class TB_XCLIENT {
 
     @Column(name = "relyn")
     private String relyn; // 거래중지구분
-
-   /* @Column(name = "bonddv")
-    private String bonddv; // recedv*/
 
     @Column(name = "hptelnum")
     private String hptelnum; // 핸드폰번호

@@ -4,15 +4,15 @@
   <div class="layout-contents">
     <div class="page-title-wrap">
       <div class="left">
-        <h2>발주 등록(개별)</h2>
+        <h2>외주발주등록</h2>
         <a title="북마크" class="bookmark toggle">
           내 메뉴
         </a>
       </div>
       <ul class="page-navi">
         <li><img src="/images/icon/ico-nav-home.svg" alt="홈아이콘"></li>
-        <li>발주/수불관리</li>
-        <li>발주 등록</li>
+        <li>발주관리</li>
+        <li>외주발주등록</li>
       </ul>
     </div>
 
@@ -193,64 +193,104 @@
   .input-with-button .btn.in_btn {
     flex-shrink: 0;
   }
-    .content_wrap.popup {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
+  .content_wrap.popup {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
 
-    .table-wrap {
-      flex: 1;
-      overflow-y: auto;
-      padding-right: 5px;
-    }
-    .popup-button {
-      flex-shrink: 0;
-      padding: 10px;
-      background: #fff;
-      border-top: 1px solid #ddd;
-    }
-    .input-with-checkbox {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+  .table-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 5px;
+  }
+  .popup-button {
+    flex-shrink: 0;
+    padding: 10px;
+    background: #fff;
+    border-top: 1px solid #ddd;
+  }
+  .input-with-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
 
-    .input-with-checkbox input[type="number"] {
-      flex: 1;
-      min-width: 0;
-      padding: 4px;
-    }
+  .input-with-checkbox input[type="number"] {
+    flex: 1;
+    min-width: 0;
+    padding: 4px;
+  }
 
-    .input-with-checkbox input[type="checkbox"] {
-      flex-shrink: 0;
-      width: 18px;
-      height: 18px;
-    }
+  .input-with-checkbox input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+  }
 
-    .excel-write-table {
+  .excel-write-table {
 
-    }
-    .excel-write-table th {
-      text-align: center;
-    }
-    .excel-write-table tr {
-      height: 35px;
-    }
-    .excel-write-table td input {
-      padding: 8px;
-      border-radius: 4px;
-      height: 33px;
-    }
+  }
+  .excel-write-table th {
+    text-align: center;
+  }
+  .excel-write-table tr {
+    height: 35px;
+  }
+  .excel-write-table td input {
+    padding: 8px;
+    border-radius: 4px;
+    height: 33px;
+  }
 
-    </style>
-
+  .input-with-button {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .small-btn {
+    width: 30px;
+    height: 30px;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .small-btn img {
+  margin-right: 4px;
+  }
+  .write-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .write-table th {
+    white-space: normal;
+    word-break: break-word;
+    padding: 6px 8px;
+  }
+  .half-input-group {
+    display: flex;
+    gap: 4px;
+  }
+  .half-input-group input {
+    width: calc(50% - 2px); /* gap 4px이니까 나눠서 빼줌 */
+    min-width: 0;
+    box-sizing: border-box;
+  }
+</style>
     <div class="content_wrap popup" id="div_excel_upload">
     <div class="table-wrap">
       <form id="baljuForm">
-        <table class="write-table excel-write-table">
+       <table class="write-table excel-write-table">
+          <colgroup>
+            <col style="width: 15%;">
+            <col style="width: 35%;">
+            <col style="width: 15%;">
+            <col style="width: 35%;">
+          </colgroup>
           <caption>발주등록 테이블</caption>
           <input type="hidden" id="spjangcdHidden" name="spjangcd"/>
+          <input type="hidden" id="BALJUNUM" name="BALJUNUM"/>
           <tbody>
           <!--<tr>
             <th style="text-align: center">
@@ -266,15 +306,15 @@
             </th>
             <td>
               <input id="cboProject" name="procd" type="hidden">
-              <input class="form-control2" type="text" id="PROJECT_NM" name="PROJECT_NM"
-                     placeholder="검색버튼을 클릭하여 검색하세요" readonly/>
-              &nbsp;
-              <a class="btn btn-delete" title="프로젝트검색" id="btnProjectSearch">
-                <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
-                프로젝트 검색
-              </a>
+              <input id="projcet_no" name="projcet_no" type="hidden">
+              <div class="input-with-button">
+                <input class="form-control2" type="text" id="PROJECT_NM" name="PROJECT_NM"
+                       placeholder="검색버튼을 클릭하여 검색하세요" readonly/>
+                <a class="btn btn-delete small-btn" title="프로젝트검색" id="btnProjectSearch">
+                  <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
+                </a>
+              </div>
             </td>
-
             <th style="text-align: center">
               <label for="ichdate">납기예정일</label>
             </th>
@@ -288,13 +328,21 @@
               <label for="pernm">현장 PM</label>
             </th>
             <td>
-              <input type="text" id="pernm" name="pernm">
+              <div class="half-input-group">
+                <input type="hidden" id="pernm_rspcdcd" name="pernm_rspcdcd">
+                <input type="text" id="pernm_rspcd" name="pernm_rspcd" placeholder="현장 PM 직위">
+                <input type="text" id="pernm" name="pernm" placeholder="현장 PM">
+                <input type="hidden" id="pernmcd" name="pernmcd">
+                <a class="btn btn-delete small-btn" title="현장pm검색" id="btnPernmSearch">
+                  <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
+                </a>
+              </div>
             </td>
             <th style="text-align: center">
               <label for="pertelno">연락처</label>
             </th>
             <td>
-              <input type="text" id="pertelno" name="pertelno">
+              <input type="text" id="pertelno" name="pertelno" placeholder="현장 PM 연락처">
             </td>
           </tr>
           <tr>
@@ -302,14 +350,19 @@
               <label for="actnm">현장명</label>
             </th>
             <td>
-              <input type="text" id="actnm" name="actnm">
-              <input type="hidden" id="actcd" name="actcd">
+            <div class="input-with-button">
+              <input type="text" id="actnm" name="actnm" placeholder="현장명">
+              <input type="hidden" id="actcd" name="actcd" >
+              <a class="btn btn-delete small-btn" title="현장검색" id="btnactnmSearch">
+                  <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
+                </a>
+                </div>
             </td>
             <th style="text-align: center">
               <label for="actaddress">현장 주소</label>
             </th>
             <td>
-              <input type="text" id="actaddress" name="actaddress">
+              <input type="text" id="actaddress" name="actaddress" placeholder="현장 주소">
             </td>
           </tr>
           <tr>
@@ -317,54 +370,52 @@
               <label for="cboCompany">구매처*</label>
             </th>
             <td>
-              <input id="cboCompany" name="Company_id" type="hidden">
-              <input class="form-control2" type="text" id="CompanyName" name="CompanyName"
-                     placeholder="검색버튼을 클릭하여 구매처를 검색하세요" readonly/>
-              &nbsp;
-              <a class="btn btn-delete" title="구매처검색" id="btnCompanySearch">
-                <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
-                구매처 검색
-              </a>
+              <div class="input-with-button">
+                <input type="hidden" id="cltcd" name="cltcd" >
+                <input class="form-control2" type="text" id="CompanyName" name="CompanyName"
+                       placeholder="검색버튼을 클릭하여 구매처를 검색하세요" readonly/>
+                <a class="btn btn-delete small-btn" title="구매처검색" id="btnCompanySearch">
+                  <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
+                </a>
+              </div>
             </td>
             <th style="text-align: center">
-              <label for="StateName">담당자</label>
+              <label for="cltpernm">담당자</label>
             </th>
-            <td>
-              <input type="text" id="StateName" name="StateName">
+              <td class="half-input-group">
+                <div class="input-with-button">
+                <input type="hidden" id="cltjikcd" name="cltjikcd">
+              <input type="text" id="cltjik" name="cltjik"  placeholder="발주처 담당 직위">
+                  <input type="text" id="cltpernm" name="cltpernm" placeholder="발주처 담당자">
+                  <input type="hidden" id="cbocltcd" name="cbocltcd" >
+                  <a class="btn btn-delete small-btn" title="검색" id="btnCltpernmSearch">
+                    <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
+                  </a>
+                </div>
             </td>
           </tr>
           <tr>
-            <th style="text-align: center">
-              <label for="cltjik">직위</label>
-            </th>
-            <td>
-              <input type="text" id="cltjik" name="cltjik" >
-            </td>
             <th style="text-align: center">
               <label for="clttelno">연락처</label>
             </th>
             <td>
-              <input type="text" id="clttelno" name="clttelno" placeholder="발주처담당연락처">
+              <input type="text" id="clttelno" name="clttelno" placeholder="발주처 담당 연락처">
             </td>
-          </tr>
-          <tr>
             <th style="text-align: center">
               <label for="cltemail">이메일</label>
             </th>
             <td>
-              <input type="text" id="cltemail" name="cltemail" placeholder="발주담당이메일">
+              <input type="text" id="cltemail" name="cltemail" placeholder="발주담당 이메일">
             </td>
-            <th></th>
-            <td></td>
           </tr>
           <tr>
             <th style="text-align: center">
               <label for="remark01">특이사항</label>
             </th>
             <td colspan="6">
-              <input type="text" id="remark01" name="remark01" placeholder="1.특이사항" style="width:100%;margin-bottom: 2px;">
-              <input type="text" id="remark02" name="remark02" placeholder="2.특이사항" style="width:100%;margin-bottom: 2px;">
-              <input type="text" id="remark03" name="remark03" placeholder="3.특이사항" style="width:100%">
+              <input type="text" id="remark01" name="remark01" placeholder="1. 특이사항" style="width:100%;margin-bottom: 2px;">
+              <input type="text" id="remark02" name="remark02" placeholder="2. 특이사항" style="width:100%;margin-bottom: 2px;">
+              <input type="text" id="remark03" name="remark03" placeholder="3. 특이사항" style="width:100%">
             </td>
           </tr>
         </table>
@@ -400,14 +451,12 @@
               </tr>
             </thead>
             <tr class="item-template-row" style="display: none;">
-              <td><input type="text" name="pcode" placeholder="품목코드" readonly /></td>
+              <td><input type="text" name="pcode" placeholder="품목코드" readonly />
+              <input type="hidden" name="bpid" /></td>
+              <input type="hidden" name="punit" /></td>
               <td>
                 <div class="input-with-button">
-                  <input type="text" name="txtProductName" placeholder="입력 후 엔터" autocomplete="off" />
-                  <input type="hidden" name="MaterialGroupName" />
-                  <input type="hidden" name="Material_id" />
-                  <input type="hidden" name="product_code" />
-                  <input type="hidden" name="balju_id" />
+                  <input type="text" name="txtPname" placeholder="입력 후 엔터" autocomplete="off" />
                   <a class="btn in_btn" title="품목 검색" id="btnProductSearch" >
                     <img src="/images/icon/btn-srch-black.svg" alt="검색 아이콘" />
                   </a>
@@ -430,130 +479,21 @@
       </form>
     </div>
     <div class="popup-button">
-      <button type="button" class="btn-popup y_write_auth" id="btnPopBaljuSave">저장(Ctrl + S)</button>
-      <button type="button" class="btn-popup" id="modal-close-button">닫기</button>
+      <button type="button" class="btn-popup y_write_auth" id="btnPopBaljuSave" style="height: 40px;">저장(Ctrl + S)</button>
+      <button type="button" class="btn-popup" id="modal-close-button" style="height: 40px;">닫기</button>
     </div>
   </script>
 
-  <script type="text/x-tmpl" id="BalJuMailTemplate">
-<style>
-/* + 아이콘 버튼 (추가용) */
-.btn.in_btn.plus img {
-  width: 15px;
-  height: 15px;
-  display: block;
-  margin-right: 2px;
-}
-
-/* 버튼 자체 크기와 정렬 */
-.btn.in_btn.plus {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 15px 15px;
-  width: 24px;
-  height: 24px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-left: 6px;
-  background-color: #f9f9f9;
-  cursor: pointer;
-}
-
-.btn.in_btn.plus:hover {
-  background-color: #e0e0e0;
-}
-/* 삭제 아이콘 크기 및 정렬 */
-.btn.in_btn.del img {
-  width: 15px;
-  height: 15px;
-  display: block;
-  margin-right: 2px;
-}
-
-/* 삭제 버튼 크기와 스타일 - plus 버튼과 동일 */
-.btn.in_btn.del {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 15px 15px;
-  width: 24px;
-  height: 24px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-left: 6px;
-  background-color: #f9f9f9;
-  cursor: pointer;
-}
-
-.btn.in_btn.del:hover {
-  background-color: #e0e0e0;
-}
-
-.input-with-button {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.input-with-button input {
-  flex: 1;
-  padding: 6px;
-}
-
-</style>
-<div class="content_wrap popup" id="div_excel_upload">
-   <div class="table-wrap">
-     <form id="BalJuMailForm">
-       <table class="write-table">
-         <tbody>
-         <tr>
-           <th style="text-align: center">
-             <label for="Recipient">받는사람</label>
-           </th>
-          <td colspan="8">
-            <div id="recipient-container">
-              <div class="input-with-button">
-                <input name="Recipient" style="width: 100%;" />
-                <a class="btn in_btn plus" id="addRecipient" title="추가">
-                  <img src="/images/icon/ico-plus.svg" alt="추가 아이콘" />
-                </a>
-              </div>
-            </div>
-          </td>
-         <tr>
-           <th style="text-align: center">
-             <label for="MailTitle">제목</label>
-           </th>
-           <td colspan="8">
-             <input id="MailTitle" name="MailTitle" style="width: 100%;"></input>
-           </td>
-         </tr>
-
-         <tr>
-           <th style="text-align: center">
-             <label for="MailContent">내용</label>
-           </th>
-           <td colspan="8">
-            <textarea id="MailContent" name="MailContent" style="width: 100%; height: 120px; resize: vertical;"></textarea>
-           </td>
-         </tr>
-         </tbody>
-       </table>
-     </form>
-   </div>
-   <div class="popup-button">
-     <button type="button" class="btn-popup y_write_auth" id="btnPopBalJuMail">전송</button>
-     <button type="button" class="btn-popup" id="modal-close-button">닫기</button>
-   </div>
- </div>
-  </script>
 </th:block>
 
 <th:block layout:fragment="scripts">
   <!--<th:block th:replace="/common/columns_setting :: columns_setting"></th:block>-->
   <th:block th:replace="/common/multiform_material :: multiform_material"></th:block>
   <th:block th:replace="/common/popup_company_purchase :: popup_company_Purchase"></th:block>
+  <th:block th:replace="/common/popup_projcet :: popup_projcet"></th:block>
+  <th:block th:replace="/common/popup_staff :: popup_staff"></th:block>
+  <th:block th:replace="/common/popup_actnm :: popup_actnm"></th:block>
+  <th:block th:replace="/common/popup_part :: popup_part"></th:block>
   <script type="text/javascript">
     const ProductInputHandler = {
       bind: function ({rowSelector, $content, tryShowBaljuPrice}) {
@@ -561,11 +501,9 @@
 
         // 숫자 포맷 적용 대상 필드들
         const formatFields = [
-          'input[name^="quantity_"]',
-          'input[name^="BaljuUnitPrice_"]',
-          'input[name^="BaljuPrice_"]',
-          'input[name^="BaljuVat_"]',
-          'input[name^="totalAmount_"]'
+          'input[name^="pqty_"]',
+          'input[name^="puamt_"]',
+          'input[name^="pamt_"]'
         ];
 
         formatFields.forEach(selector => {
@@ -581,7 +519,7 @@
         });
 
         // 계산 이벤트 바인딩
-        $row.find('input[name^="quantity_"], input[name^="BaljuUnitPrice_"]').off('keyup change').on('keyup change', function () {
+        $row.find('input[name^="pqty_"], input[name^="BaljuUnitPrice_"]').off('keyup change').on('keyup change', function () {
           calculateAmount({ row: $row, $content });
           updateBaljuTotalPrice($content);
         });
@@ -618,7 +556,7 @@
         });
 
         // 제품 검색 기능 (기존 그대로 유지)
-        const $input = $row.find('input[name^="txtProductName_"]');
+        const $input = $row.find('input[name^="txtPname_"]');
         const $id = $row.find('input[name^="Material_id_"]');
         const $code = $row.find('input[name^="product_code_"]');
         const $group = $row.find('input[name^="MaterialGroupName_"]');
@@ -706,25 +644,23 @@
             }
           },
           columns: [
-            {binding: 'bh_id', header: 'bh_id', width: 150, visible: false},
-            {binding: 'CompanyName', header: '구매처', width: 150},
-            {binding: 'BaljuTypeName', header: '구분', width: 70, align: 'center'},
-            {binding: 'baljudate', header: '발주일', width: 120, align: 'center'},
-            {binding: 'MaterialGroupName', header: '제품그룹', width: 120},
-            {binding: 'product_code', header: '제품코드', width: 90, visible: false},
-            {binding: 'product_name', header: '제품명', width: 210},
-            {binding: 'unit', header: '단위', width: 60, align: 'center'},
-            {binding: 'SujuQty', header: '수량', width: 100, align: 'right', format: 'n0'},
-            {binding: 'BaljuUnitPrice', header: '단가', width: 100, align: 'right'},
-            {binding: 'BaljuPrice', header: '공급가', width: 100, align: 'right'},
-            {binding: 'BaljuVat', header: '부과세', width: 100, align: 'right'},
-            {binding: 'BaljuTotalPrice', header: '발주액', width: 100, align: 'right'},
-            {binding: 'bh_StateName', header: '상태', width: 80, align: 'center'},
-            {binding: 'SujuQty2', header: '기입고수량', width: 100, align: 'right'},
-            {binding: 'SujuQty3', header: '미입고수량', width: 100, align: 'right'},
-            {binding: 'ShipmentStateName', header: '납품장소', width: 100, align: 'center'},
-            {binding: 'ichdate', header: '납기예정일', width: 120, align: 'center'},
-            {binding: 'Description', header: '비고', width: 200}
+            {binding: 'BALJUNUM', header: '주문번호', width: 150, visible: false},
+            {binding: 'ACTNM', header: '발주처', width: 130},
+            {binding: 'BALJUDATE', header: '발주일', width: 120, align: 'center'},
+            {binding: 'projcet_no', header: '프로젝트번호', width: 120 },
+            {binding: 'PERNM', header: '현장 PM', width: 100, align: 'center'},
+            {binding: 'ACTNM', header: '현장명', width: 170, align: 'center'},
+            {binding: 'ichdate', header: '납기일자', width: 120, align: 'right'},
+            {binding: 'pname', header: '품명', width: 120, align: 'right'},
+            {binding: 'punit', header: '단위', width: 100, align: 'right', format: 'n0'},
+            {binding: 'pqty', header: '수량', width: 80, align: 'right', format: 'n0'},
+            {binding: 'puamt', header: '단가', width: 100, align: 'right',format: 'n0'},
+            {binding: 'pamt', header: '금액', width: 100, align: 'right'},
+            {binding: 'pmapseq', header: '도번', width: 100, align: 'right'},
+            {binding: 'remark', header: '비고', width: 150, align: 'center'},
+            {binding: 'chulflag', header: '발주처출고여부', width: 120, align: 'center'},
+            {binding: 'facflag', header: '공장확인여부', width: 120, align: 'center'},
+            {binding: 'hyunflag', header: '현장확인여부', width: 120, align: 'center'}
           ],
           itemsSource: this.viewData, // 데이터를 설정할 배열
         });
@@ -754,42 +690,6 @@
             spjangcd: _this.spjangcd.val()
           };
           _this.showBaljuForm(defaultData);
-        });
-
-        // 메일 팝업
-        this.$btnMail.click(function (e) {
-          let selectedItems = _this.grid.selectedItems;
-
-          if (selectedItems.length === 1) {
-            let selected = selectedItems[0];
-            let bhId = selected.bh_id;
-
-            // 거래처 이메일 요청 (다중 수신자 가정)
-            $.ajax({
-              url: '/api/balju/balju_order/receiverEmail',
-              type: 'GET',
-              data: { bhId: bhId },
-              success: function(response) {
-                //console.log('서버로부터 받은 이메일 데이터:', response);
-
-                const result = {
-                  id: bhId,
-                  mode: 'mail',
-                  recipients: Array.isArray(response.data) ? response.data : [response.data], // 반드시 배열이어야 함
-                  title: '',
-                  content: ''
-                };
-
-                _this.showBalJuMailForm(result);
-              },
-              error: function() {
-                Alert.alert('', '거래처 이메일 정보를 불러오는 데 실패했습니다.');
-              }
-            });
-
-          } else {
-            Alert.alert('', "하나의 항목만 선택해주세요.");
-          }
         });
 
         // 발주 수정 클릭
@@ -859,120 +759,6 @@
         });
       }
 
-      showBalJuMailForm(data) {
-        let _this = this;
-        let content = tmpl('BalJuMailTemplate', data);
-        let $content = $(content);
-        let csrfToken = $("[name=_csrf]").val();
-
-        let modalContainer = null;
-        if (data.mode === 'mail') {
-          modalContainer = new PopupDraggable('발주서 발송');
-        }
-
-        modalContainer.open({ width: 650, height: 410, $content });
-
-        // 수신자 필드 렌더링
-        const recipientContainer = $content.find('#recipient-container');
-
-        if (Array.isArray(data.recipients)) {
-          if (data.recipients.length === 1) {
-            //템플릿 안의 첫 번째 input을 찾아서 value 세팅만!
-            recipientContainer.find('input[name="Recipient"]').val(data.recipients[0]);
-          } else {
-            //여러 개일 경우에는 기존 필드 비우고 다 만들어줌
-            recipientContainer.empty();
-            data.recipients.forEach(email => {
-              const field = $(`
-                <div class="input-with-button" style="margin-top: 6px;">
-                  <input name="Recipient" style="width: 100%; padding: 6px;" value="${email}"/>
-                  <a class="btn in_btn del" title="삭제" onclick="this.parentElement.remove()" style="margin-left: 6px;">
-                    <img src="/images/icon/ico-delete.svg" alt="삭제 아이콘" style="width: 15px; height: 15px;" />
-                  </a>
-                </div>
-              `);
-              recipientContainer.append(field);
-            });
-          }
-        }
-
-        // + 버튼으로 수신자 필드 추가 (최대 3개)
-        const addRecipientBtn = $content.find('#addRecipient');
-        addRecipientBtn.on('click', function () {
-          const currentCount = recipientContainer.find('input[name="Recipient"]').length;
-
-          if (currentCount >= 3) {
-            Alert.alert('', '받는 사람은 최대 3명까지 추가할 수 있습니다.');
-            return;
-          }
-
-          const newField = $(`
-      <div class="input-with-button" style="margin-top: 6px;">
-        <input name="Recipient" style="width: 100%; padding: 6px;" />
-        <a class="btn in_btn del" title="삭제" onclick="this.parentElement.remove()" style="margin-left: 6px;">
-          <img src="/images/icon/ico-delete.svg" alt="삭제 아이콘" style="width: 15px; height: 15px;" />
-        </a>
-      </div>
-    `);
-          recipientContainer.append(newField);
-        });
-
-        // 전송 버튼 클릭 시
-        $content.find('#btnPopBalJuMail').on('click', function () {
-          const recipientInputs = recipientContainer.find('input[name="Recipient"]');
-
-          const recipients = recipientInputs
-            .map(function () {
-              return $(this).val().trim();
-            })
-            .get()
-            .filter(email => email); // 빈 문자열 제거
-
-          const title = $content.find('#MailTitle').val().trim();
-          const mailContent = $content.find('#MailContent').val().trim();
-
-          if (recipients.length === 0) {
-            Alert.alert('', '받는 사람 이메일을 하나 이상 입력해주세요.');
-            return;
-          }
-
-          if (!title) {
-            Alert.alert('', '메일 제목을 입력해주세요.');
-            return;
-          }
-
-          if (!mailContent) {
-            Alert.alert('', '메일 내용을 입력해주세요.');
-            return;
-          }
-
-          // Ajax로 전송
-          $.ajax({
-            url: '/api/balju/balju_order/sendBalJuMail',
-            type: 'POST',
-            contentType: 'application/json',
-            headers: {
-              'X-CSRF-TOKEN': csrfToken
-            },
-            data: JSON.stringify({
-              recipients: recipients,
-              title: title,
-              content: mailContent,
-              bhId: data.id
-            }),
-            success: function (response) {
-              Alert.alert('', '메일이 성공적으로 전송되었습니다.');
-              modalContainer.close();
-            },
-            error: function () {
-              Alert.alert('', '메일 전송 중 오류가 발생했습니다.');
-            }
-          });
-        });
-
-      }//showBalJuMailForm
-
-
       showBaljuForm(data) {
         //baljuTemplate
         let _this = this;
@@ -988,7 +774,7 @@
         }
 
         //모달 크기
-        modalContainer.open({width: 1450, height: 630, $content});
+        modalContainer.open({width: 1150, height: 630, $content});
         $('#popSrchDt1').ax5DatePicker({direction: 'top'});
         $('#popSrchDt2').ax5DatePicker({direction: 'top'});
 
@@ -997,7 +783,7 @@
         let $btnCompanySearch = $content.find('#btnCompanySearch');
         let $MaterialGroupName = $content.find('#MaterialGroupName');
         let $product_code = $content.find('#product_code');
-        let $txtProductName = $content.find('#txtProductName');
+        let $txtPname = $content.find('#txtPname');
         let $Material_id = $content.find('#Material_id');
 
         let $baljuForm = $content.find('#baljuForm');
@@ -1040,28 +826,219 @@
           let $poppage = $(poppage);
           let searchcallback = function (items) {
             console.log('btnCompanySearch', items);
-            $content.find('#cboCompany').val(items.id);
-            $content.find('#CompanyName').val(items.compname);
+            $content.find('#cltcd').val(items.cltcd);
+            $content.find('#CompanyName').val(items.cltnm);
+            $content.find('#cltemail').val(items.taxmail);
 
-            $isVatExempt = items.VatExemptionYN === 'Y';
-            if (items.VatExemptionYN === 'Y') {
-              $('#VatExempt').val('Y');
-            } else {
-              $('#VatExempt').val('N');
+          }
+          poppage.show(searchcallback);
+        });
+
+        //발주처담당자
+        $content.find('#btnCltpernmSearch').click(function () {
+          let poppage = new PopStaff();
+          let $poppage = $(poppage);
+          let searchcallback = function (items) {
+            console.log('발주담당자 팝업', items);
+            $content.find('#cbocltcd').val(items.perid);
+            $content.find('#cltpernm').val(items.pernm);
+            $content.find('#cltjikcd').val(items.rspcd);
+            $content.find('#cltjik').val(items.RSPNM);
+            $content.find('#clttelno').val(items.handphone);
+
+          }
+          poppage.show(searchcallback);
+        });
+
+        $content.find('#cltpernm').on('input', function () {
+          const val = $(this).val().trim();
+
+          if (val === '') {
+            $content.find('#cbocltcd').val('');
+            $content.find('#cltpernm').val('');
+            $content.find('#cltjikcd').val('');
+            $content.find('#cltjik').val('');
+            $content.find('#clttelno').val('');
+          }
+        });
+
+        $content.find('#cltpernm').on('keydown', function (e) {
+          if (e.key === 'Enter' || e.keyCode === 13) {
+            e.preventDefault();
+
+            const keyword = $(this).val().trim();
+            if (!keyword) {
+              Alert.alert('','이름을 입력하세요.');
+              return;
             }
 
-            // 💡 전체 품목행마다 단가 재조회
-            $content.find('tr').each(function () {
-              const $row = $(this);
-              const matId = $row.find('input[name^="Material_id_"]').val();
-              if (matId) {
-                tryShowBaljuPrice($row);  // 개별 행 기준 단가 재조회
+            AjaxUtil.getAsyncData('/api/popup/search_staff', {
+              keyword: keyword,
+              spjangcd: sessionStorage.getItem('spjangcd')
+            }, function (result) {
+              if (!result.success) {
+                alert('검색 중 오류가 발생했습니다.');
+                return;
+              }
+
+              const items = result.data;
+
+              if (items.length === 0) {
+                alert('검색 결과가 없습니다.');
+              } else if (items.length === 1) {
+                const selectedItems = items[0];  // ✅ 수정
+                $content.find('#cbocltcd').val(selectedItems.perid);
+                $content.find('#cltpernm').val(selectedItems.pernm);
+                $content.find('#cltjikcd').val(selectedItems.rspcd);
+                $content.find('#cltjik').val(selectedItems.RSPNM);
+                $content.find('#clttelno').val(selectedItems.handphone);
+
+                setTimeout(() => {
+                  $content.find('#cltemail').focus();
+                }, 50);
+
+              } else {
+                //다건일 경우: 검색어를 preset으로 넘김
+                const poppage = new PopStaff();
+                const searchcallback = function (selectedItems) {
+                  if (selectedItems && selectedItems.perid) {
+                    $content.find('#cbocltcd').val(selectedItems.perid);
+                    $content.find('#cltpernm').val(selectedItems.pernm);
+                    $content.find('#cltjikcd').val(selectedItems.rspcd);
+                    $content.find('#cltjik').val(selectedItems.RSPNM);
+                    $content.find('#clttelno').val(selectedItems.handphone);
+
+                    setTimeout(() => {
+                      $content.find('#cltemail').focus();
+                    }, 50);
+
+                  }
+                };
+                poppage.show(searchcallback, keyword); // ✅ 여기!
               }
             });
-            const $firstInput = $content.find('input[name^="txtProductName_"]').filter(':visible').first();
-            if ($firstInput.length) $firstInput.focus().select();
-          };
+          }
+        });
 
+        //현장 pm
+        $content.find('#btnPernmSearch').click(function () {
+          let poppage = new PopStaff();
+          let $poppage = $(poppage);
+          let searchcallback = function (items) {
+            $content.find('#pernmcd').val(items.perid);
+            $content.find('#pernm').val(items.pernm);
+            $content.find('#pernm_rspcdcd').val(items.rspcd);
+            $content.find('#pernm_rspcd').val(items.RSPNM);
+            $content.find('#pertelno').val(items.handphone);
+          };
+          poppage.show(searchcallback);
+          setTimeout(() => {
+            $content.find('#actnm').focus();
+          }, 50);
+        });
+
+        // ✅ 초기화 함수
+        function clearPernmInfo($context) {
+          $context.find('#pernmcd').val('');
+          $context.find('#pernm').val('');
+          $context.find('#pernm_rspcdcd').val('');
+          $context.find('#pernm_rspcd').val('');
+          $context.find('#pertelno').val('');
+        }
+
+// ✅ 자동입력 함수
+        function setPernmInfo(item, $context) {
+          $context.find('#pernmcd').val(item.perid);
+          $context.find('#pernm').val(item.pernm);
+          $context.find('#pernm_rspcdcd').val(item.rspcd);
+          $context.find('#pernm_rspcd').val(item.RSPNM);
+          $context.find('#pertelno').val(item.handphone);
+
+          // 다음 입력 포커스로 이동
+          setTimeout(() => {
+            $context.find('#actnm').focus();
+          }, 50);
+        }
+
+// ✅ 엔터키 검색 이벤트
+        $content.find('#pernm').on('keydown', function (e) {
+          if (e.key === 'Enter' || e.keyCode === 13) {
+            e.preventDefault();
+
+            const keyword = $(this).val().trim();
+
+            // ✅ 입력이 없으면 무조건 팝업
+            if (keyword === '') {
+              const poppage = new PopStaff();
+              poppage.show(function (item) {
+                if (item && item.perid) {
+                  setPernmInfo(item, $content);
+                }
+              }, ''); // preset 없음
+              return;
+            }
+
+            // ✅ 입력이 있으면 Ajax 검색
+            AjaxUtil.getAsyncData('/api/popup/search_staff', {
+              keyword: keyword,
+              spjangcd: sessionStorage.getItem('spjangcd')
+            }, function (result) {
+              if (!result.success) {
+                Alert.alert('', '검색 중 오류가 발생했습니다.');
+                return;
+              }
+
+              const items = result.data;
+
+              if (items.length === 0) {
+                Alert.alert('', '검색 결과가 없습니다.');
+                clearPernmInfo($content);
+              } else if (items.length === 1) {
+                setPernmInfo(items[0], $content);
+              } else {
+                const poppage = new PopStaff();
+                poppage.show(function (item) {
+                  if (item && item.perid) {
+                    setPernmInfo(item, $content);
+                  }
+                }, keyword); // 검색어 preset
+              }
+            });
+          }
+        });
+
+        // ✅ 입력이 비면 초기화
+        $content.find('#pernm').on('input', function () {
+          if ($(this).val().trim() === '') {
+            clearPernmInfo($content);
+          }
+        });
+
+        //현장
+        $content.find('#btnactnmSearch').click(function () {
+          let poppage = new Popacmtnm();
+          let $poppage = $(poppage);
+          let searchcallback = function (items) {
+            console.log('현장 팝업', items);
+            $content.find('#actnm').val(items.actnm);
+            $content.find('#actcd').val(items.actcd);
+            $content.find('#actaddress').val(items.address);
+          }
+          poppage.show(searchcallback);
+          setTimeout(() => {
+            $content.find('#CompanyName').focus();
+          }, 50);
+        });
+
+        $content.find('#btnProjectSearch').click(function () {
+          let poppage = new PopProjcetList();
+          let $poppage = $(poppage);
+          let searchcallback = function (items) {
+            console.log('프로젝트목록 팝업', items);
+            $content.find('#cboProject').val(items.BOMID);
+            $content.find('#projcet_no').val(items.projcet_no);
+            $content.find('#PROJECT_NM').val(items.projcet_nm);
+          }
           poppage.show(searchcallback);
         });
 
@@ -1070,7 +1047,7 @@
           $row.find('input[name^="totalEdited_"]').val('N');
           const item = {
             id: $row.find('input[name^="balju_id"]').val(),
-            productName: $row.find('input[name^="txtProductName_"]').val(),
+            productName: $row.find('input[name^="txtPname_"]').val(),
             Material_id: $row.find('input[name^="Material_id_"]').val(),
             quantity: $row.find('input[name^="quantity_"]').val().replace(/,/g, ''),
             unitPrice: $row.find('input[name^="BaljuUnitPrice_"]').val().replace(/,/g, ''),
@@ -1085,6 +1062,11 @@
 
           console.log("🔍 저장될 항목:", item);
           itemList.push(item);
+        });
+
+        //포커스 이동
+        $content.on('keydown', 'input', function (e) {
+
         });
 
 
@@ -1168,12 +1150,9 @@
 
         // 발주등록 팝업 저장버튼 클릭
         $btnPopBaljuSave.click(function (e) {
-          const isVat = $('#VatIncluded').is(':checked');
           let csrfToken = $("[name=_csrf]").val();
           let formData = FormUtil.extractForm($baljuForm); // 상단 정보
-          formData.invatyn = isVat ? 'Y' : 'N';
           formData.spjangcd = $('#spjangcdHidden').val();
-          formData.bh_id = $baljuForm.find('input[name="bh_id"]').val();
 
           let itemRows = [];
           let priceSaveList = []; // 변경된 단가만 저장
@@ -1182,45 +1161,17 @@
           $content.find('.item-table tbody tr:not(.item-template-row)').each(function () {
             const $row = $(this);
 
-            const materialId = $row.find('input[name^="Material_id_"]').val();
-            const baljuId = $row.find('input[name^="balju_id_"]').val();
-            const qty = $row.find('input[name^="quantity_"]').val();
-
-            if (!materialId || !qty) return; // 필수값 없으면 skip
-
-            const unitPrice = $row.find('input[name^="BaljuUnitPrice_"]').val().replace(/,/g, '');
-            const originalPrice = $row.find('input[name^="originalUnitPrice_"]').val(); // 기존 단가
-            const now = new Date();
-            const applyStartDate = `${formData.baljudate}T${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-
-            // 단가 변경 여부 체크
-            if (!originalPrice || parseFloat(originalPrice) !== parseFloat(unitPrice)) {
-              priceSaveList.push({
-                Material_id: materialId,
-                Company_id: formData.Company_id,
-                UnitPrice: unitPrice,
-                ApplyStartDate: applyStartDate,
-                type: '01',
-                ChangerName: userinfo.username,
-                spjangcd: formData.spjangcd
-              });
-            }
-
             const item = {
-              bh_id: bh_id,
-              baljuId: baljuId,
-              Material_id: materialId,
-              product_code: $row.find('input[name^="product_code_"]').val(),
-              product_name: $row.find('input[name^="txtProductName_"]').val(),
-              quantity: qty.replace(/,/g, ''),
-              unit_price: unitPrice,
-              supply_price: $row.find('input[name^="BaljuPrice_"]').val().replace(/,/g, ''),
-              vat: $row.find('input[name^="BaljuVat_"]').val().replace(/,/g, ''),
-              total_price: $row.find('input[name^="totalAmount_"]').val().replace(/,/g, ''),
-              totalEdited: $row.find('input[name^="totalEdited_"]').val() === 'Y',  // ✅ 이 줄 반드시 추가
-              description: $row.find('input[name^="description_"]').val(),
-              vatIncluded: $row.find('input[name^="VatIncluded"]').prop('checked') ? 'Y' : 'N',
-              cboBaljuType: $row.find('input[name^="BalJuHeadType"]').val()
+              bpid: $row.find('input[name^="bpid_"]').val(),              // 품목ID (hidden)
+              pcode: $row.find('input[name^="pcode_"]').val(),            // 품목코드
+              pname: $row.find('input[name^="txtPname_"]').val(),         // 품명
+              psize: $row.find('input[name^="psize_"]').val(),            // 규격
+              punit: $row.find('input[name^="punit_"]').val(),            // 규격
+              quantity: $row.find('input[name^="pqty_"]').val().replace(/,/g, ''), // 수량
+              unit_price: $row.find('input[name^="puamt_"]').val().replace(/,/g, ''), // 단가
+              amount: $row.find('input[name^="pamt_"]').val().replace(/,/g, ''),     // 금액
+              pmapseq: $row.find('input[name^="pmapseq_"]').val(),        // 도번
+              remark: $row.find('input[name^="remark_"]').val()           // 비고
             };
 
             itemRows.push(item);
@@ -1228,15 +1179,11 @@
 
           });
 
-          if (!formData.Company_id || itemRows.length === 0) {
-            Alert.alert('', '구매처 및 품목을 입력하세요.');
-            return;
-          }
-
           let payload = {
             ...formData,
             items: itemRows
           };
+          console.log("📦 저장할 payload:", payload);
 
           Alert.confirm('', '저장하시겠습니까?', function () {
             if (priceSaveList.length > 0) {
@@ -1335,7 +1282,7 @@
             });
 
             // 데이터 바인딩
-            $newRow.find('input[name^="txtProductName_"]').val(item.product_name);
+            $newRow.find('input[name^="txtPname_"]').val(item.product_name);
             $newRow.find('input[name^="Material_id_"]').val(item.Material_id);
             $newRow.find('input[name^="product_code_"]').val(item.product_code);
             $newRow.find('input[name^="quantity_"]').val(item.quantity);
@@ -1406,26 +1353,25 @@
           }
         });
 
-        // 품목 검색 버튼 클릭 시 팝업
         $content.on('click', 'a[title="품목 검색"]', function () {
           const $row = $(this).closest('tr');
 
-          const $productInput = $row.find('input[name^="txtProductName_"]');
-          const $productId = $row.find('input[name^="Material_id_"]');
-          const $productCode = $row.find('input[name^="product_code_"]');
-          const $materialGroup = $row.find('input[name^="MaterialGroupName_"]');
+          const $PnameInput = $row.find('input[name^="txtPname_"]');
+          const $PnameId = $row.find('input[name^="bpid_"]');
+          const $PnameCode = $row.find('input[name^="pcode_"]');
+          const $Psize = $row.find('input[name^="psize_"]');
+          const $Punit = $row.find('input[name^="punit_"]');
+          const $DRAWING_NO = $row.find('input[name^="pmapseq_"]');
 
-          const pop = new PopMatComponent();
-          pop.material_type = 'product,sangpum';
+          const pop = new PopPart();
 
           pop.show(function (item) {
-            $productInput.val(item.Name);
-            $productId.val(item.id);
-            $productCode.val(item.Code);
-            $materialGroup.val(item.group_name);
-
-            // ✅ 제품 선택 후 단가 자동 조회
-            tryShowBaljuPrice($row);
+            $PnameInput.val(item.PART_NM);
+            $PnameId.val(item.bpid);
+            $PnameCode.val(item.PART_NO);
+            $Psize.val(item.PART_SIZE);
+            $Punit.val(item.unit);
+            $DRAWING_NO.val(item.DRAWING_NO);
           });
         });
 
@@ -1441,13 +1387,13 @@
           const nameAttr = $input.attr('name') || '';
 
           const focusOrder = [
-            'txtProductName_',
-            'quantity_',
-            'BaljuUnitPrice_',
-            'BaljuPrice_',
-            'BaljuVat_',
-            'totalAmount_',
-            'description_'
+            'txtPname_',
+            'psize_',
+            'pqty_',
+            'puamt_',
+            'pamt_',
+            'pmapseq_',
+            'remark_',
           ];
 
           const currentIndex = focusOrder.findIndex(prefix => nameAttr.startsWith(prefix));
@@ -1470,7 +1416,7 @@
               ? $row.nextAll('tr:visible').first()
               : $row.prevAll('tr:visible').first();
 
-            const allowAutoAdd = ['txtProductName_', 'description_'];
+            const allowAutoAdd = ['txtPname_', 'description_'];
             const isAllowedField = allowAutoAdd.some(prefix => nameAttr.startsWith(prefix));
 
             // ⬇️ 방향키 + 현재 행이 마지막 + 허용된 필드일 경우 → 행 자동 추가
@@ -1480,7 +1426,7 @@
               setTimeout(() => {
                 const $rows = $content.find('.item-table tbody tr:visible').not('.item-template-row');
                 const $newRow = $rows.last();
-                const $newInput = $newRow.find('input[name^="txtProductName_"]');
+                const $newInput = $newRow.find('input[name^="txtPname_"]');
                 if ($newInput.length) $newInput.focus().select();
               }, 50);
               return;
@@ -1502,12 +1448,12 @@
               setTimeout(() => {
                 const $rows = $content.find('.item-table tbody tr:visible').not('.item-template-row');
                 const $newRow = $rows.last();
-                const $newInput = $newRow.find('input[name^="txtProductName_"]');
+                const $newInput = $newRow.find('input[name^="txtPname_"]');
                 if ($newInput.length) $newInput.focus().select();
               }, 50);
               return;
             } else {
-              $nextInput = $nextRow.find('input[name^="txtProductName_"]');
+              $nextInput = $nextRow.find('input[name^="txtPname_"]');
             }
           }
 
@@ -1625,68 +1571,12 @@
     }
 
     function calculateAmount({ row: $row, $content }) {
-      const qty = parseFloat($row.find('input[name^="quantity_"]').val().replace(/,/g, '') || '0');
-      const unitPrice = parseFloat($row.find('input[name^="BaljuUnitPrice_"]').val().replace(/,/g, '') || '0');
-      const isVatIncluded = $row.find('input[name^="VatIncluded"]').prop('checked');
-      const isVatExempt = $content.find('#VatExempt').val() === 'Y';
-
-      const $unitPrice = $row.find('input[name^="BaljuUnitPrice_"]');
-      const $supply = $row.find('input[name^="BaljuPrice_"]');
-      const $vat = $row.find('input[name^="BaljuVat_"]');
+      const $qty = parseFloat($row.find('input[name^="pqty_"]').val().replace(/,/g, '') || '0');
+      const $puamt = parseFloat($row.find('input[name^="puamt_"]').val().replace(/,/g, '') || '0');
       const $total = $row.find('input[name^="totalAmount_"]');
 
-      let supplyPrice = 0, vat = 0, totalPrice = 0;
-
-      const isSupplyEdited = $row.data('supplyEdited') === true;
-      const isVatEdited = $row.data('vatEdited') === true;
-
-      if (isSupplyEdited || isVatEdited) {
-        const sVal = parseFloat($supply.val().replace(/,/g, '') || '0');
-        let vVal = $vat.val() === '면세' ? 0 : parseFloat($vat.val().replace(/,/g, '') || '0');
-
-        if (!isVatExempt && isVatIncluded && !isVatEdited) {
-          // 공급가만 입력했는데 부가세 포함이면 자동 계산
-          vat = Math.round(sVal * 0.1);
-          supplyPrice = sVal;
-          totalPrice = supplyPrice + vat;
-        } else if (!isVatExempt && !isVatIncluded && !isVatEdited) {
-          // 공급가만 입력, 부가세 별도 계산
-          vat = Math.round(sVal * 0.1);
-          supplyPrice = sVal;
-          totalPrice = supplyPrice + vat;
-        } else {
-          // 수동 입력 우선 처리
-          supplyPrice = sVal;
-          vat = vVal;
-          totalPrice = supplyPrice + vat;
-        }
-      } else {
-        // 자동 계산
-        if (isVatExempt) {
-          supplyPrice = unitPrice * qty;
-          vat = 0;
-          totalPrice = supplyPrice;
-        } else if (isVatIncluded) {
-          totalPrice = unitPrice * qty;
-          supplyPrice = Math.round(totalPrice * 10 / 11);
-          vat = totalPrice - supplyPrice;
-        } else {
-          supplyPrice = unitPrice * qty;
-          vat = Math.round(supplyPrice * 0.1);
-          totalPrice = supplyPrice + vat;
-        }
-      }
 
       // 값 반영 및 포맷
-      $unitPrice.val(unitPrice);
-      formatNumberInput(unitPrice.toString(), $unitPrice);
-
-      $supply.val(supplyPrice);
-      formatNumberInput(supplyPrice.toString(), $supply);
-
-      $vat.val(vat === 0 && isVatExempt ? '면세' : vat);
-      if (!isVatExempt) formatNumberInput(vat.toString(), $vat);
-
       if ($row.data('totalEdited') !== true) {
         $total.val(totalPrice);
         formatNumberInput(totalPrice.toString(), $total);
@@ -1719,7 +1609,6 @@
 
       page = new BaljuOrderPage();
 
-//        $('#divDate').ax5DatePicker({ direction: 'top' });
       $('#srchStartDt').val(CommonUtil.getYYYYMMDD(-7));
       $('#srchEndDt').val(CommonUtil.getYYYYMMDD());
 

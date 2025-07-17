@@ -686,40 +686,47 @@
                     isReadOnly: true,
                     frozenColumns: 3,
                     formatItem: (sender, e) => {
+                        if (e.panel.cellType === wijmo.grid.CellType.Cell) {
+                            if (e.col < sender.frozenColumns) {
+                                e.cell.style.backgroundColor = '#fff';  // 겹침 방지
+                                e.cell.style.zIndex = 1;
+                            }
+                        }
+
                         if (e.panel.cellType === wijmo.grid.CellType.ColumnHeader) {
                             e.cell.style.textAlign = 'center';
                         }
                     },
                     columns: [
-                        {binding: 'comp_code', header: '업체코드', width: 150, align: 'center',},
-                        {binding: 'name', header: '업체명', width: 300, align: 'left'},
+                        {binding: 'cltcd', header: '업체코드', width: 150, align: 'center',},
+                        {binding: 'cltnm', header: '업체명', width: 300, align: 'left'},
                         {binding: 'company_type_name', header: '업체구분', width: 150, align: 'center',},
-                        {binding: 'business_number', header: '사업자번호', width: 150, align: 'left',},
+                        {binding: 'saupnum', header: '사업자번호', width: 150, align: 'left',},
                         {binding: 'ceo_name', header: '대표자', width: 150, align: 'left',},
-                        {binding: 'tel_number', header: '연락처', width: 150, align: 'left',},
+                        {binding: 'telnum', header: '연락처', width: 150, align: 'left',},
                         {binding: 'email', header: '이메일', width: 150, align: 'left',},
-                        {binding: 'zip_code', header: '우편번호', width: 150, align: 'left',},
-                        {binding: 'address', header: '주소', width: 300, align: 'left',},
+                        {binding: 'zipcd', header: '우편번호', width: 150, align: 'left',},
+                        {binding: 'cltadres', header: '주소', width: 300, align: 'left',},
                         {binding: 'relyn', header: '거래중지여부', width: 150, align: 'center',},
-                        {binding: 'our_manager', header: '자사담당자', width: 150, align: 'left',},
-                        {binding: 'tranding_bank', header: '거래은행', width: 150, align: 'left',},
-                        {binding: 'account_holder', header: '예금주', width: 150, align: 'left',},
-                        {binding: 'account_number', header: '계좌번호', width: 200, align: 'left',},
-                        {binding: 'comp_code2', header: '법인번호', width: 150, align: 'center',},
-                        {binding: 'eng_name', header: '업체영문명', width: 120, align: 'left',},
+                        {binding: 'agnernm', header: '자사담당자', width: 150, align: 'left',},
+                        // {binding: 'tranding_bank', header: '거래은행', width: 150, align: 'left',},
+                        // {binding: 'account_holder', header: '예금주', width: 150, align: 'left',},
+                        // {binding: 'account_number', header: '계좌번호', width: 200, align: 'left',},
+                        {binding: 'prenum', header: '법인번호', width: 150, align: 'center',},
+                        // {binding: 'eng_name', header: '업체영문명', width: 120, align: 'left',},
                         {binding: 'group_name', header: '분류', width: 150, align: 'left',},
-                        {binding: 'fax_number', header: '팩스', width: 150, align: 'left',},
-                        {binding: 'business_type', header: '업태', width: 150, align: 'left',},
-                        {binding: 'business_item', header: '종목', width: 150, align: 'left',},
-                        {binding: 'purchase_sales_deadline', header: '매입매출마감일', width: 150, align: 'center',},
-                        {binding: 'last_trading_day', header: '최종거래일', width: 150, align: 'center',},
-                        {binding: 'sales_manager', header: '영업담당자', width: 150, align: 'left',},
-                        {binding: 'sales_manager_phone', header: '영업담당자 연락처', width: 150, align: 'left',},
-                        {binding: 'account_manager', header: '경리담당자', width: 150, align: 'left',},
-                        {binding: 'account_manager_phone', header: '경리담당자 연락처', width: 150, align: 'left',},
-                        {binding: 'credit_limit_amount', header: '예신한도금액', width: 150, align: 'right',},
-                        {binding: 'payment_condition', header: '대금결제조건', width: 150, align: 'left',},
-                        {binding: 'description', header: '비고', width: 150, align: 'left',},
+                        {binding: 'faxnum', header: '팩스', width: 150, align: 'left',},
+                        {binding: 'biztypenm', header: '업태', width: 150, align: 'left',},
+                        {binding: 'bizitem', header: '종목', width: 150, align: 'left',},
+                        // {binding: 'purchase_sales_deadline', header: '매입매출마감일', width: 150, align: 'center',},
+                        // {binding: 'last_trading_day', header: '최종거래일', width: 150, align: 'center',},
+                        {binding: 'agnernm', header: '영업담당자', width: 150, align: 'left',},
+                        {binding: 'agntel', header: '영업담당자 연락처', width: 150, align: 'left',},
+                        {binding: 'taxpernm', header: '경리담당자', width: 150, align: 'left',},
+                        {binding: 'taxtelnum', header: '경리담당자 연락처', width: 150, align: 'left',},
+                        // {binding: 'credit_limit_amount', header: '예신한도금액', width: 150, align: 'right',},
+                        // {binding: 'payment_condition', header: '대금결제조건', width: 150, align: 'left',},
+                        {binding: 'remarks', header: '비고', width: 150, align: 'left',},
                     ],
                     itemsSource: this.viewData, // 데이터를 설정할 배열
 
@@ -788,73 +795,6 @@
                     input.value = businessNumber;
                     formatNumber(input); // 포맷 적용
                 }
-
-
-                /*let config1 = {
-                    target: $('[data-ax5grid="company-grid"]'),
-                    /!*sortable: true,*!/
-                    frozenColumnIndex: 0, // 열 고정
-                    frozenRowIndex: 0,    // 행 고정
-                    showLineNumber: false, // 열의 번호 보이기 여부
-                    showRowSelector: false,  // checkbox(선택) 보이기 여부
-                    multipleSelect: false, // 여러행 선택 가능 여부 (false시 단독 선택)
-                    sortable: true, // 모든 컬럼에 정렬 아이콘 표시 (columns에서 컬럼별 소팅여부 재설정 가능)
-                    multiSort: true, // 다중 정렬 여부
-                    header: {
-                        align: 'center',  // 헤더의 기본 정렬
-                        columnHeight: 38  // 헤더 높이
-                    },
-                    body: {
-                        columnHeight: 25, // body의 기본 높이
-                        onClick: function (e) {
-                            _this.grid1.select(this.dindex);
-                            _this.showDetail(e.item.id);
-                            _this.price_grid.setData([]);
-                            $('#priceForm')[0].reset();
-                            page.setPriceButtonState();
-
-                            if (_this.current_tab == 'tabs_unitcost') {
-                                let comp_id = $('#basicForm').find('#id').val();
-                                _this.showPriceList(comp_id);
-                            }
-                        }
-                    },
-                    page: {
-                        display: true,  // 페이징 보이기 여부
-                        statusDisplay: true,
-                    },
-                    columns: [
-                        {key: 'comp_code', label: '업체코드', width: 100, align: 'center',},
-                        {key: 'name', label: '업체명', width: 150, align: 'left'},
-                        {key: 'eng_name', label: '업체영문명', width: 100, align: 'left',},
-                        {key: 'comp_code2', label: '코드2', width: 100, align: 'center',},
-                        {key: 'company_type_name', label: '업체구분', width: 150, align: 'center',},
-                        {key: 'group_name', label: '분류', width: 150, align: 'left',},
-                        {key: 'business_number', label: '사업자번호', width: 150, align: 'left',},
-                        {key: 'description', label: '비고', width: 150, align: 'left',},
-                        {key: 'ceo_name', label: '대표자', width: 150, align: 'left',},
-                        {key: 'zip_code', label: '우편번호', width: 150, align: 'left',},
-                        {key: 'address', label: '주소', width: 150, align: 'left',},
-                        {key: 'tel_number', label: '연락처', width: 150, align: 'left',},
-                        {key: 'fax_number', label: '팩스', width: 150, align: 'left',},
-                        {key: 'business_type', label: '업태', width: 150, align: 'left',},
-                        {key: 'business_item', label: '종목', width: 150, align: 'left',},
-                        {key: 'email', label: '이메일', width: 150, align: 'left',},
-                        {key: 'purchase_sales_deadline', label: '매입매출마감일', width: 150, align: 'center',},
-                        {key: 'last_trading_day', label: '최종거래일', width: 150, align: 'center',},
-                        {key: 'our_manager', label: '자사담당자', width: 150, align: 'left',},
-                        {key: 'sales_manager', label: '영업담당자', width: 150, align: 'left',},
-                        {key: 'sales_manager_phone', label: '영업담당자 연락처', width: 150, align: 'left',},
-                        {key: 'account_manager', label: '경리담당자', width: 150, align: 'left',},
-                        {key: 'account_manager_phone', label: '경리담당자 연락처', width: 150, align: 'left',},
-                        {key: 'tranding_bank', label: '거래은행', width: 150, align: 'left',},
-                        {key: 'account_holder', label: '예금주', width: 150, align: 'left',},
-                        {key: 'account_number', label: '계좌번호', width: 150, align: 'left',},
-                        {key: 'credit_limit_amount', label: '예신한도금액', width: 150, align: 'right',},
-                        {key: 'payment_condition', label: '대금결제조건', width: 150, align: 'left',},
-                    ]
-                };*/
-
 
                 this.price_grid = new wijmo.grid.FlexGrid('#price_grid', {
                     selectionMode: wijmo.grid.SelectionMode.Row,
@@ -1554,7 +1494,7 @@
 
             AjaxUtil.fillSelectOptions($('#company_type'), 'system_code', 'choose', false, 'company_type');
 
-            AjaxUtil.fillSelectOptions($('#MaterialGroup_id'), 'material_group', 'choose', false);
+            //AjaxUtil.fillSelectOptions($('#MaterialGroup_id'), 'material_group', 'choose', false);
             //AjaxUtil.fillSelectOptions($('#Material_id'), 'material', 'choose', false);
             $('#MaterialGroup_id').change(function (ex) {
                 let mat_grp_pk = $('#MaterialGroup_id').val();

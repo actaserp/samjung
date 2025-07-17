@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.util.StringUtils;
@@ -16,6 +17,7 @@ import mes.domain.model.AjaxResult;
 import mes.domain.services.DateUtil;
 import mes.domain.services.SqlRunner;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/popup")
 public class PopupController {
@@ -25,52 +27,33 @@ public class PopupController {
 	
 	@RequestMapping("/search_material")
 	public AjaxResult getSearchMaterial(
-			@RequestParam(value="material_type", required=false) String material_type,
-			@RequestParam(value="material_group", required=false) Integer material_group,
 			@RequestParam(value="keyword", required=false) String keyword
 			) {
 		AjaxResult result = new AjaxResult();
 		
 		String sql ="""
-	            select 
-	            m.id
-	            , m."Code"
-	            , m."Name"
-	            , m."MaterialGroup_id"
-	            , mg."Name" as group_name
-	            , mg."MaterialType"
-	            , sc."Value" as "MaterialTypeName"
-	            , sc."Code" as "MaterialTypeCode"
-	            , u."Name" as unit_name
-	            from material m
-	            left join unit u on m."Unit_id" = u.id
-	            left join mat_grp mg on m."MaterialGroup_id" = mg.id
-	            left join sys_code sc on mg."MaterialType" = sc."Code" 
-	            and sc."CodeType" ='mat_type'
-	            where 1=1
+	           select
+									bpid ,
+								 eco_no,
+								 PART_NO ,
+								 PART_NM ,
+								 BLOCK_NO ,
+								 G_NO ,
+								 DRAWING_NO ,
+								 GUBUN ,
+								 unit,
+								 spec,
+								 PART_SIZE
+								 from TB_CA662
+								 where 1=1
 	    """;
-
-		if (StringUtils.hasText(material_type)){
-            sql+=""" 
-            and mg."MaterialType" =:material_type
-            """;
-		}
-
-		if(material_group!=null){
-            sql+="""            		
-            and mg."id" =:material_group
-            """;	
-		}
-
 		if(StringUtils.hasText(keyword)){
             sql+="""
-            and (m."Name" ilike concat('%%',:keyword,'%%') or m."Code" ilike concat('%%',:keyword,'%%'))
+            and (PART_NO like concat('%%',:keyword,'%%') or PART_NM like concat('%%',:keyword,'%%'))
             """;
 		}
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue("material_type", material_type);
-		paramMap.addValue("material_group", material_group, java.sql.Types.INTEGER);
 		paramMap.addValue("keyword", keyword);
 		result.data = this.sqlRunner.getRows(sql, paramMap);
 		return result;
@@ -320,52 +303,47 @@ public class PopupController {
 
 	@RequestMapping("/search_Comp_purchase")
 	public AjaxResult getSearchCompPurchase(
-			@RequestParam(value = "compCode", required = false) String compCode,
-			@RequestParam(value = "compName", required = false) String compName,
-			@RequestParam(value = "business_number", required = false) String business_number) {
+			@RequestParam(value = "cltcd", required = false) String cltcd,
+			@RequestParam(value = "cltnm", required = false) String cltnm,
+			@RequestParam(value = "saupnum", required = false) String saupnum) {
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue("compCode", compCode);
-		paramMap.addValue("compName", compName);
-		paramMap.addValue("business_number", business_number);
+		paramMap.addValue("cltcd", cltcd);
+		paramMap.addValue("cltnm", cltnm);
+		paramMap.addValue("saupnum", saupnum);
 		AjaxResult result = new AjaxResult();
 
 		String sql = """
-        SELECT 
-            id AS id,
-            [Name] AS compName,
-            [Code] AS compCode,
-            [BusinessNumber] AS business_number,
-            [TelNumber] AS tel_number,
-            [CEOName] AS invoiceeceoname,
-            [Address] AS invoiceeaddr,
-            [BusinessType] AS invoiceebiztype,
-            [BusinessItem] AS invoiceebizclass,
-            [AccountManager] AS invoiceecontactname1,
-            [AccountManagerPhone] AS invoiceetel1,
-            [Email] AS invoiceeemail1
-        FROM company
-        WHERE ([CompanyType] = 'purchase'
-            OR [CompanyType] = 'sale-purchase')
-            AND [relyn] = '0'
+       select
+				 cltcd , -- 업체코드
+				 cltnm , -- 업체명
+				 prenm, -- 재표자 명
+				 saupnum , -- 사업자 번허
+				 cltadres , -- 주소
+				 bizitemnm , -- 업종
+				 biztypenm , -- 업태
+				 telnum ,
+				 agneremail,
+				 taxmail
+				 from TB_XCLIENT where relyn ='O' -- 영문 대문자(O, X)
     """;
 
-		if (compCode != null && !compCode.isEmpty()) {
-			sql += " AND LOWER([Code]) LIKE LOWER(:compCode) ";
-			paramMap.addValue("compCode", "%" + compCode + "%");
+		if (cltcd != null && !cltcd.isEmpty()) {
+			sql += " and cltcd like :cltcd ";
+			paramMap.addValue("cltcd", "%" + cltcd + "%");
 		}
 
-		if (compName != null && !compName.isEmpty()) {
-			sql += " AND LOWER([Name]) LIKE LOWER(:compName) ";
-			paramMap.addValue("compName", "%" + compName + "%");
+		if (cltnm != null && !cltnm.isEmpty()) {
+			sql += " and cltnm like :cltnm ";
+			paramMap.addValue("cltnm", "%" + cltnm + "%");
 		}
 
-		if (business_number != null && !business_number.isEmpty()) {
-			sql += " AND LOWER([BusinessNumber]) LIKE LOWER(:business_number) ";
-			paramMap.addValue("business_number", "%" + business_number + "%");
+		if (saupnum != null && !saupnum.isEmpty()) {
+			sql += " and saupnum like :saupnum ";
+			paramMap.addValue("saupnum", "%" + saupnum + "%");
 		}
 
-		sql += " ORDER BY [Name] ASC ";
+		sql += " ORDER BY cltnm ASC ";
 
 		result.data = this.sqlRunner.getRows(sql, paramMap);
 		return result;
@@ -421,5 +399,157 @@ public class PopupController {
 
 		return result;
 	}
-	
+
+	@RequestMapping("/projcet_list")
+	public AjaxResult getProjcet_list(
+			@RequestParam(value = "PROJECT_NO", required = false) String projcet_no,
+			@RequestParam(value = "PROJECT_NM", required = false) String projcet_nm){
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue("PROJECT_NO", projcet_no);
+		paramMap.addValue("PROJECT_NM", projcet_nm);
+		AjaxResult result = new AjaxResult();
+
+		String sql = """
+				select
+					 BOMID ,
+					 ECO_NO as eco_no,
+					 PROJECT_NO as projcet_no,
+					 PROJECT_NM as projcet_nm,
+					 BPDATE ,
+					 BPPERNM 
+					 from TB_CA664
+			""";
+
+		if (projcet_no != null && !projcet_no.isEmpty()) {
+			sql += " AND PROJECT_NO ILIKE :projcet_no ";
+			paramMap.addValue("projcet_no", "%" + projcet_no + "%");
+		}
+		if (projcet_nm != null && !projcet_nm.isEmpty()) {
+				sql += " AND PROJECT_NM ILIKE :projcet_nm ";
+				paramMap.addValue("projcet_nm", "%" + projcet_nm + "%");
+		}
+
+		result.data = this.sqlRunner.getRows(sql, paramMap);
+
+		return result;
+	}
+
+	@RequestMapping("/search_staff")
+	public AjaxResult getsearch_staffchase(
+			@RequestParam(value = "pernm", required = false) String pernm,
+			@RequestParam(value = "perid", required = false) String perid) {
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue("pernm", pernm);
+		paramMap.addValue("perid", perid);
+		AjaxResult result = new AjaxResult();
+
+		String sql = """
+       select
+				 j.rspcd ,
+				 p.RSPNM ,
+				 j.perid ,
+				 j.pernm ,
+				 j.handphone ,
+				 j.spjangcd ,
+				 t.spjangnm
+				 from tb_ja001 j
+				 left join tb_pz001 p on j.spjangcd = p.SPJANGCD and j.rspcd = p.RSPCD
+				 left join tb_xa012 t on j.spjangcd = t.spjangcd
+				 where j.rtclafi = '001'
+    """;
+
+		if (pernm != null && !pernm.isEmpty()) {
+			sql += " and j.pernm like :pernm ";
+			paramMap.addValue("pernm", "%" + pernm + "%");
+		}
+
+		if (perid != null && !perid.isEmpty()) {
+			sql += " and j.perid like :perid ";
+			paramMap.addValue("perid", "%" + perid + "%");
+		}
+
+		sql += " ORDER BY j.pernm ASC ";
+
+		result.data = this.sqlRunner.getRows(sql, paramMap);
+		return result;
+	}
+
+	@RequestMapping("/search_acmtnm")
+	public AjaxResult getsearch_acmtnmchase(
+			@RequestParam(value = "actnm", required = false) String actnm,
+			@RequestParam(value = "address", required = false) String address) {
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue("actnm", actnm);
+		paramMap.addValue("address", address);
+		AjaxResult result = new AjaxResult();
+
+		String sql = """
+      SELECT
+				  actcd ,
+				  actnm,
+				  address
+				  FROM TB_E601
+				  where 1 = 1
+    """;
+
+		if (actnm != null && !actnm.isEmpty()) {
+			sql += " and actnm like :actnm ";
+			paramMap.addValue("actnm", "%" + actnm + "%");
+		}
+
+		if (address != null && !address.isEmpty()) {
+			sql += " and address like :address ";
+			paramMap.addValue("address", "%" + address + "%");
+		}
+		sql += " ORDER BY actnm ASC ";
+
+		result.data = this.sqlRunner.getRows(sql, paramMap);
+		return result;
+	}
+
+	@RequestMapping("/search_part")
+	public AjaxResult getSearch_part(
+			@RequestParam(value = "PART_NM", required = false) String PART_NM,
+			@RequestParam(value = "PART_NO", required = false) String PART_NO) {
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue("PART_NM", PART_NM);
+		paramMap.addValue("PART_NO", PART_NO);
+		AjaxResult result = new AjaxResult();
+
+		String sql = """
+			select
+				bpid ,
+				eco_no,
+				PART_NO ,
+				PART_NM ,
+				BLOCK_NO ,
+				G_NO ,
+				DRAWING_NO ,
+				GUBUN ,
+				unit,
+				spec,
+				PART_SIZE
+				from TB_CA662
+				where 1=1
+    """;
+
+		if (PART_NM != null && !PART_NM.isEmpty()) {
+			sql += " and PART_NM like :PART_NM ";
+			paramMap.addValue("PART_NM", "%" + PART_NM + "%");
+		}
+
+		if (PART_NO != null && !PART_NO.isEmpty()) {
+			sql += " and PART_NO like :PART_NO ";
+			paramMap.addValue("PART_NO", "%" + PART_NO + "%");
+		}
+		sql += " ORDER BY bpid ASC ";
+
+		result.data = this.sqlRunner.getRows(sql, paramMap);
+		return result;
+	}
+
 }

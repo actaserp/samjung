@@ -2,7 +2,6 @@ package mes.domain.entity.samjungEntity;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import mes.domain.entity.AbstractAuditModel;
 
 import javax.persistence.*;
 
@@ -11,13 +10,15 @@ import javax.persistence.*;
 @NoArgsConstructor
 @Data
 public class TB_CA661 { //외주발주상세관리
+
   @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "BALJUSEQ")
   private Integer baljuseq; //발주상세번호
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "BALJUNUM", referencedColumnName = "BALJUNUM")
-  private TB_CA660 tbCa660;   //발주번호
+  private TB_CA660 balJunum;   //발주번호
 
   @Column(name = "CUSTCD")
   private String custcd;  //회사코드
@@ -41,7 +42,7 @@ public class TB_CA661 { //외주발주상세관리
   private String psize;   //규격
 
   @Column(name = "PUNIT")
-  private String punit;   //비고
+  private String punit;   //단위
 
   @Column(name = "PQTY")
   private Integer pqty;   //수량

@@ -1,8 +1,9 @@
-package mes.app.definition.service;
+package mes.app._mes.definition.service;
 
 import java.util.List;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.stereotype.Service;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import io.micrometer.core.instrument.util.StringUtils;
 import mes.domain.services.SqlRunner;
 
+@Slf4j
 @Service
 public class CompanyService {
 
@@ -17,52 +19,43 @@ public class CompanyService {
 	SqlRunner sqlRunner;
 	
 	//업체 목록 조회
-	public List<Map<String, Object>> getCompnayList(String compType, String groupName, String keyword) {
+	public List<Map<String, Object>> getCompnayList(String compType, String keyword) {
 		
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue("comp_type", compType);
-		paramMap.addValue("group_name", groupName);
 		paramMap.addValue("keyword", keyword);
 		
 		String sql = """
-			select c.id as id
-            , "Name" as name
-            , "EngName" as eng_name
-            , "Code" as comp_code
-            , "Code2" as comp_code2
-            , "CompanyType"  as company_type
-            , fn_code_name('company_type', c."CompanyType") as company_type_name
-            , "BusinessNumber" as business_number
-            , "CEOName"  as ceo_name
-            , "ZipCode"  as zip_code
-            , "Address" as address
-            , "TelNumber" as tel_number
-            , "FaxNumber" as fax_number
-            , "BusinessType" as business_type
-            , "BusinessItem" as business_item
-            , "Email" as email
-            , "PurchaseSalesDeadline" as purchase_sales_deadline
-            , "LastTradingDay" as last_trading_day
-            , "OurManager" as our_manager
-            , "SalesManager" as sales_manager
-            , "SalesManagerPhone" as sales_manager_phone
-            , "AccountManager" as account_manager
-            , "AccountManagerPhone" as account_manager_phone
-            , "TrandingBank" as tranding_bank
-            , "AccountHolder" as account_holder
-            , "AccountNumber" as account_number
-            , "CreditLimitAmount" as credit_limit_amount
-            , "PaymentCondition" as payment_condition
-            , "Description" as description
-            , "GroupName" as group_name
-            from company c 
-            where 1 = 1
+				select
+				cltcd ,
+				custcd,
+				cltnm,
+				saupnum ,
+				prenm as ceo_name,
+				clttype,
+				telnum,
+				zipcd,
+				cltadres,
+				relyn,
+				perid,
+				agnernm,
+				prenum,
+				faxnum,
+				biztypenm,
+				bizitem,
+				agnernm,
+				agntel,
+				taxpernm,
+				taxtelnum,
+				remarks
+				from TB_XCLIENT
+				where 1 = 1
 			""";
-		if (StringUtils.isEmpty(compType)==false) sql +="and c.\"CompanyType\" = :comp_type ";
-		if (StringUtils.isEmpty(groupName)==false) sql +="and upper(c.\"GroupName\") like concat('%%',upper(:group_name),'%%')";
-		if (StringUtils.isEmpty(keyword)==false) sql+="and upper(c.\"Name\") like concat('%%',upper(:keyword),'%%')";
+		/*if (StringUtils.isEmpty(compType)==false) sql +="and c.\"CompanyType\" = :comp_type ";
+		if (StringUtils.isEmpty(groupName)==false) sql +="and upper(c.\"GroupName\") like concat('%%',upper(:group_name),'%%')";*/
+		if (StringUtils.isEmpty(keyword)==false) sql+="and upper(cltnm) like concat('%%',upper(:keyword),'%%')";
 		
-		sql += "order by c.\"id\" desc";
+		sql += "order by cltcd desc";
 		
 		List<Map<String,Object>> items = this.sqlRunner.getRows(sql, paramMap);
 		

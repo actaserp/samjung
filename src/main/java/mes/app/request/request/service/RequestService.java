@@ -82,12 +82,13 @@ public class RequestService {
         List<Map<String, Object>> items = this.sqlRunner.getRows(sql, dicParam);
         return items;
     }
-    //주문의뢰현황 불러오기
-    public List<Map<String, Object>> getOrderList(TB_DA006W_PK tbDa006W_pk,
+    //주문출고 불러오기
+    public List<Map<String, Object>> getOrderList(
+                                                  String spjangcd,
                                                   String searchStartDate,
                                                   String searchEndDate,
                                                   String searchRemark,
-                                                  String searchOrdflag,
+                                                  String searchChulflag,
                                                   String saupnum,
                                                   String cltcd,
                                                   String searchComnm) {
@@ -99,83 +100,47 @@ public class RequestService {
         dicParam.addValue("searchStartDate", searchStartDate);
         dicParam.addValue("searchEndDate", searchEndDate);
         dicParam.addValue("searchRemark", "%" + searchRemark + "%");
-        dicParam.addValue("searchOrdflag",  searchOrdflag);
+        dicParam.addValue("searchOrdflag",  searchChulflag);
         dicParam.addValue("cltcd",  cltcd);
         dicParam.addValue("searchComnm",  "%" + searchComnm + "%");
 
         StringBuilder sql = new StringBuilder("""
                 SELECT
-                    hd.custcd AS hd_custcd,
-                    hd.spjangcd AS hd_spjangcd,
-                    hd.reqnum,
-                    hd.reqdate,
-                    hd.indate AS hd_indate,
-                    hd.ordflag,
-                    hd.deldate,
-                    hd.telno,
-                    hd.perid,
-                    hd.cltzipcd,
-                    hd.cltaddr,
-                    hd.panel_ht,
-                    hd.panel_hw,
-                    hd.panel_hl,
-                    hd.panel_hh,
-                    hd.remark,
-                    hd.saupnum,
-                    hd.cltnm,
-                
-                    (
-                         SELECT bd.filepath, bd.filesvnm, bd.fileextns, bd.fileurl, bd.fileornm, bd.filesize, bd.fileid
-                         FROM tb_DA006WFILE bd
-                         WHERE bd.custcd = hd.custcd
-                           AND bd.spjangcd = hd.spjangcd
-                           AND bd.reqdate = hd.reqdate
-                           AND bd.reqnum = hd.reqnum
-                         ORDER BY bd.indatem DESC
-                         FOR JSON PATH
-                     ) AS hd_files
-                
+                    hd.BALJUNUM,
+                    hd.ACTNM,
+                    dt.*
                 FROM
-                    TB_DA006W hd
-                
+                    TB_CA660 hd
+                JOIN
+                    TB_CA661 dt
+                    ON hd.BALJUNUM = dt.BALJUNUM
                 WHERE
-                    hd.custcd = :custcd
-                    AND hd.spjangcd = :spjangcd
+                    1=1
                 """);
         // cltcd 필터
-        if (cltcd != null && !cltcd.isEmpty()) {
-            sql.append(" AND hd.cltcd = :cltcd");
-        }
-        // 사업자 번호 필터
-        if (saupnum != null && !saupnum.isEmpty()) {
-            sql.append(" AND hd.saupnum = :saupnum");
-        }
+//        if (cltcd != null && !cltcd.isEmpty()) {
+//            sql.append(" AND hd.cltcd = :cltcd");
+//        }
         // 날짜 필터
         if (searchStartDate != null && !searchStartDate.isEmpty()) {
-            sql.append(" AND hd.reqdate >= :searchStartDate");
+            sql.append(" AND hd.BALJUDATE >= :searchStartDate");
         }
         //
         if (searchEndDate != null && !searchEndDate.isEmpty()) {
-            sql.append(" AND hd.reqdate <= :searchEndDate");
+            sql.append(" AND hd.BALJUDATE <= :searchEndDate");
         }
-        // 제목필터
-        if (searchRemark != null && !searchRemark.isEmpty()) {
-            sql.append(" AND hd.remark LIKE :searchRemark");
-        }
-        // 업체명 필터
+        // 현장명 필터
         if (searchComnm != null && !searchComnm.isEmpty()) {
             sql.append(" AND hd.cltnm LIKE :searchComnm");
         }
         // 진행구분 필터
-        if (searchOrdflag != null && !searchOrdflag.isEmpty()) {
+        if (searchChulflag != null && !searchChulflag.isEmpty()) {
             sql.append(" AND hd.ordflag = :searchOrdflag");
         }
         // 정렬 조건 추가
-        sql.append(" ORDER BY hd.reqdate ASC");
+        sql.append(" ORDER BY hd.BALJUDATE ASC");
 
-        dicParam.addValue("custcd", tbDa006W_pk.getCustcd());
-        dicParam.addValue("spjangcd", tbDa006W_pk.getSpjangcd());
-        dicParam.addValue("saupnum", saupnum);
+        dicParam.addValue("spjangcd", spjangcd);
         List<Map<String, Object>> items = this.sqlRunner.getRows(sql.toString(), dicParam);
         return items;
     }

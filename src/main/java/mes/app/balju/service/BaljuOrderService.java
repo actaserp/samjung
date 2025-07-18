@@ -128,12 +128,12 @@ WITH main_data AS (
         p.PROJECT_NM ,
         STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-') as ichdate,
         h.PERNM as pernm,
-        jp.rspcd as pernm_rspcd,
-        pz.rspnm as pernm_rspcdcd,
+        jp.rspcd as pernm_rspcdcd,
+        pz.rspnm as pernm_rspcd,
         jp.perid as pernmcd,
         h.PERTELNO as pertelno,
-        h.ACTCD,
-        h.ACTNM as actcd,
+        h.ACTCD as actcd,
+        h.ACTNM as actnm,
         h.ACTADDRESS as actaddress,
         h.CLTCD as cltcd,
         c.cltnm as CompanyName,
@@ -147,11 +147,13 @@ WITH main_data AS (
         h.remark02,
         h.remark01,
         d.BALJUSEQ,
+        d.pcode,
         d.procd ,
         d.PNAME as txtPname,
         d.psize,
         d.pqty, d.punit,
-        d.puamt,d.pamt, d.pmapseq, d.remark
+        d.puamt,d.pamt, d.pmapseq, d.remark,
+        d.chulflag, d.facflag, d.hyunflag
         from tb_ca660 h
         left join tb_ca661 d on h.BALJUNUM = d.BALJUNUM and d.BALJUDATE = h.BALJUDATE
         left join tb_ca664 p on h.PROCD = p.PROJECT_NO
@@ -161,8 +163,8 @@ WITH main_data AS (
         left join TB_XCLIENT c on c.cltcd =h.CLTCD
         where h.BALJUNUM = :baljunum;
         """;
-    log.info("발주상세 데이터 SQL: {}", sql);
-    log.info("SQL Parameters: {}", paramMap.getValues());
+//    log.info("발주상세 데이터 SQL: {}", sql);
+//    log.info("SQL Parameters: {}", paramMap.getValues());
     List<Map<String, Object>> rows = sqlRunner.getRows(sql, paramMap);
 
     if (rows.isEmpty()) return Collections.emptyMap();
@@ -181,8 +183,8 @@ WITH main_data AS (
     header.put("pernm_rspcdcd", first.get("pernm_rspcdcd"));
     header.put("pernmcd", first.get("pernmcd"));
     header.put("pertelno", first.get("pertelno"));
-    header.put("ACTCD", first.get("ACTCD"));
-    header.put("actnm", first.get("actcd"));  // 중복 있음
+    header.put("ACTCD", first.get("actcd"));
+    header.put("actnm", first.get("actnm"));
     header.put("actaddress", first.get("actaddress"));
     header.put("cltcd", first.get("cltcd"));
     header.put("CompanyName", first.get("CompanyName"));
@@ -200,6 +202,7 @@ WITH main_data AS (
     for (Map<String, Object> row : rows) {
       Map<String, Object> item = new LinkedHashMap<>();
       item.put("BALJUSEQ", row.get("BALJUSEQ"));
+      item.put("pcode", row.get("pcode"));
       item.put("procd", row.get("procd"));
       item.put("punit", row.get("punit"));
       item.put("txtPname", row.get("txtPname"));
@@ -209,6 +212,9 @@ WITH main_data AS (
       item.put("pamt", row.get("pamt"));
       item.put("pmapseq", row.get("pmapseq"));
       item.put("remark", row.get("remark"));
+      item.put("chulflag", row.get("chulflag"));
+      item.put("facflag", row.get("facflag"));
+      item.put("hyunflag", row.get("hyunflag"));
 
       items.add(item);
     }

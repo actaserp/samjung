@@ -75,6 +75,12 @@
               </a>
             </li>-->
             <li>
+              <a class="btn btn-excell" title="외주발주서" id="btnbaljuPrinted">
+                <img src="/images/icon/printer.svg" alt="등록 아이콘">
+                외주발주서
+              </a>
+            </li>
+            <li>
               <a class="btn btn-excell" title="구매품의서" id="btnPrinted">
                 <img src="/images/icon/printer.svg" alt="등록 아이콘">
                 구매품의서
@@ -423,13 +429,13 @@
 
             <colgroup>
               <col style="width: 7%">
-              <col style="width: 22%">
+              <col style="width: 18%">
               <col style="width: 16%">
               <col style="width: 6%">
               <col style="width: 12%">
               <col style="width: 12%">
               <col style="width: 12%">
-              <col style="width: 6%">
+              <col style="width: 12%">
               <col style="width: 4%">
             </colgroup>
             <thead>
@@ -450,10 +456,15 @@
               </tr>
             </thead>
             <tr class="item-template-row" style="display: none;">
-              <td><input type="text" name="pcode" placeholder="품목코드" readonly />
-              <input type="hidden" name="bpid" /></td>
-              <input type="hidden" name="punit" /></td>
-              <input type="hidden" name="BALJUSEQ" /></td>
+              <td>
+                <input type="text" name="pcode" placeholder="품목코드" readonly />
+                <input type="hidden" name="bpid" />
+                <input type="hidden" name="punit" />
+                <input type="hidden" name="BALJUSEQ" />
+                <input type="hidden" name="chulflag" />
+                <input type="hidden" name="facflag" />
+                <input type="hidden" name="hyunflag" />
+              </td>
               <td>
                 <div class="input-with-button">
                   <input type="text" name="txtPname" placeholder="입력 후 엔터" autocomplete="off" />
@@ -501,9 +512,9 @@
 
         // 숫자 포맷 적용 대상 필드들
         const formatFields = [
-          'input[name^="pqty_"]',
-          'input[name^="puamt_"]',
-          'input[name^="pamt_"]'
+          'input[name^="pqty_"]',   //수량
+          'input[name^="puamt_"]',  //단가
+          'input[name^="pamt_"]'    //금액
         ];
 
         formatFields.forEach(selector => {
@@ -520,30 +531,6 @@
 
         // 계산 이벤트 바인딩
         $row.find('input[name^="pqty_"], input[name^="BaljuUnitPrice_"]').off('keyup change').on('keyup change', function () {
-          calculateAmount({ row: $row, $content });
-          updateBaljuTotalPrice($content);
-        });
-
-        $row.find('input[name^="VatIncluded"]').off('change').on('change', function () {
-          $row.data('supplyEdited', false);  // ✅ 플래그 초기화
-          $row.data('vatEdited', false);     // ✅ 플래그 초기화
-          calculateAmount({ row: $row, $content });
-          updateBaljuTotalPrice($content);
-        });
-        // ✅ 공급가 수동 입력 시 플래그 추가하고 계산
-        $row.find('input[name^="BaljuPrice_"]').off('input').on('input', function () {
-          $row.data('supplyEdited', false);  // ✅ 플래그 초기화
-          $row.data('vatEdited', false);     // ✅ 플래그 초기화
-          $row.data('supplyEdited', true);
-          calculateAmount({ row: $row, $content });
-          updateBaljuTotalPrice($content);
-        });
-
-        // ✅ 부가세 수동 입력 시 플래그 추가하고 계산
-        $row.find('input[name^="BaljuVat_"]').off('input').on('input', function () {
-          $row.data('supplyEdited', false);  // ✅ 플래그 초기화
-          $row.data('vatEdited', false);     // ✅ 플래그 초기화
-          $row.data('vatEdited', true);
           calculateAmount({ row: $row, $content });
           updateBaljuTotalPrice($content);
         });
@@ -587,12 +574,11 @@
         $input.off('keydown').on('keydown', function (e) {
           if (e.key === 'Enter') {
             e.preventDefault();
-            const keyword = $input.val();
-            const spjangcd = sessionStorage.getItem('spjangcd');
+            const keyword = $input.val().trim();
 
             if (!keyword) return showPopup();
 
-            $.get('/api/popup/search_material', { keyword, spjangcd }, function (res) {
+            $.get('/api/popup/search_part', { PART_NM: keyword }, function (res) {
               if (res.data?.length === 1) {
                 set(res.data[0]);
               } else {
@@ -601,8 +587,7 @@
             });
 
             function showPopup() {
-              const pop = new PopMatComponent();
-              pop.material_type = 'product,sangpum';
+              const pop = new PopPart();
 
               pop.show(set, keyword);
 
@@ -728,17 +713,16 @@
         $('#btnDelete').click(function (e) {
           let items = _this.grid.selectedItems;
           if (items.length > 0) {
-            let id = items[0].bh_id;
-            let state = (items[0].BalJuHeadType || '').toLowerCase();  // 상태 값 확인
-
-            if (state !== 'draft') {
-              Alert.alert('', '미입고 상태일 때만 삭제할 수 있습니다.');
+            //console.log('🔍 삭제 대상 데이터:', items);
+            let id = items[0].BALJUNUM;
+            const isDraft = ["chulflag", "facflag", "hyunflag"].every(flag => items[0][flag] === "미확인");
+            if (!isDraft) {
+              Alert.alert('', '미확인 시에만 삭제 할 수 있습니다.');
               return;
             }
-
             Alert.confirm('', '삭제하시겠습니까?',
               function () {
-                _this.deleteSujuData(id, state);
+                _this.deleteBalJuData(id);
               },
               function () {}
             );
@@ -1111,8 +1095,9 @@
         let $btnPopBaljuSave = $('#btnPopBaljuSave');
 
         // 상태 값 정리
-        const isDraft = (data.State || '').toLowerCase() === 'draft';
-        const isFullyReceived = Number(data.SujuQty3 || 0) === 0;
+        const isDraft = Array.isArray(data.items) && data.items.every(item =>
+          item.chulflag === "0" && item.facflag === "0" && item.hyunflag === "0"
+        );
 
         // 등록 모드일 경우 → 버튼 숨김
         if (data.mode === 'new') {
@@ -1137,7 +1122,6 @@
           if (data.Company_id) {
             $CompanyName.attr('readonly', true);
           }
-          originalUnitPrice = parseFloat(data.BaljuUnitPrice || '0');
         }
         FormUtil.BindDataForm(data, $baljuForm);
 
@@ -1265,7 +1249,9 @@
         if (data.mode === 'edit' && Array.isArray(data.items)) {
           const $tbody = $content.find('.item-table tbody');
           const $template = $tbody.find('.item-template-row');
-          const isDraft = data.State === 'draft';
+          const isDraft = data.items.every(item =>
+            item.chulflag === "0" && item.facflag === "0" && item.hyunflag === "0"
+          );
 
           for (let i = 0; i < data.items.length; i++) {
             const item = data.items[i];
@@ -1291,10 +1277,12 @@
             $newRow.find('input[name^="pamt_"]').val(item.pamt);
             $newRow.find('input[name^="pmapseq_"]').val(item.pmapseq);
             $newRow.find('input[name^="remark_"]').val(item.remark);
+            $newRow.find('input[name^="chulflag_"]').val(item.chulflag);
+            $newRow.find('input[name^="facflag_"]').val(item.facflag);
+            $newRow.find('input[name^="hyunflag_"]').val(item.hyunflag);
 
             if (!isDraft) {
               $newRow.find('input').prop('readonly', true);
-              $newRow.find('input[type="checkbox"]').prop('disabled', true);
               $newRow.find('a.btn').hide();
             }
 
@@ -1491,10 +1479,10 @@
       }
 
 
-      deleteSujuData(id, state) {
+      deleteBalJuData(id) {
         let _this = this;
         let url = _this.url + '/delete';
-        let data = {'id': id, 'State': state}
+        let data = {'id': id  }
         let fnsuccess = function (res) {
           if (res.success) {
             Notify.success('삭제되었습니다.');
@@ -1566,7 +1554,7 @@
     function calculateAmount({ row: $row, $content }) {
       const $qty = parseFloat($row.find('input[name^="pqty_"]').val().replace(/,/g, '') || '0');
       const $puamt = parseFloat($row.find('input[name^="puamt_"]').val().replace(/,/g, '') || '0');
-      const $total = $row.find('input[name^="totalAmount_"]');
+      const $total = $row.find('input[name^="pamt_"]');
 
 
       // 값 반영 및 포맷

@@ -75,7 +75,7 @@ public class BaljuOrderController {
 
       String rawIchdate = (String) payload.get("ichdate");
       String ichdate = rawIchdate != null ? rawIchdate.replaceAll("-", "") : null;
-      log.info("📅 입고예정일: {} → {}", rawIchdate, ichdate);
+      log.info("📅 납기예정일: {} → {}", rawIchdate, ichdate);
 
       String spjangcd = user.getSpjangcd();
       String custcd = baljuOrderService.getCustcd(spjangcd);
@@ -196,117 +196,16 @@ public class BaljuOrderController {
     return result;
   }
 
+  @GetMapping("/detail")
+  public AjaxResult getDetail (@RequestParam(value="id") Integer baljunum) {
 
+    Map<String, Object> item = this.baljuOrderService.getBaljuDetail(baljunum);
 
-  /*@PostMapping("/multi_save")
-  @Transactional
-  public AjaxResult saveBaljuMulti(@RequestBody Map<String, Object> payload, Authentication auth) {
-    log.info("발주등록 들어옴");
-    log.info("📦 payload keys: {}", payload.keySet());  // items가 포함되어야 함
-    log.info("🧾 payload 내용: {}", payload);
-    log.info("🧾 items 내용: {}", payload.get("items"));
-    User user = (User) auth.getPrincipal();
-
-    Integer balJunum = CommonUtil.tryIntNull(payload.get("BALJUNUM"));
-    String rawIchdate = (String) payload.get("ichdate");
-    String ichdate = rawIchdate != null ? rawIchdate.replaceAll("-", "") : null;
-    String spjangcd = user.getSpjangcd();
-    String custcd = baljuOrderService.getCustcd(spjangcd);
-    String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-
-    TB_CA660 head;
-
-    if (balJunum != null) {
-      // ✅ 수정 로직
-      head = tb_ca660repository.findById(balJunum)
-          .orElseThrow(() -> new RuntimeException("발주 헤더 없음"));
-
-      head.setPernm((String) payload.get("pernm"));
-      head.setCustcd(custcd);
-      head.setPertelno((String) payload.get("pertelno"));
-      head.setActcd((String) payload.get("actcd")); //현장 코드
-      head.setActnm((String) payload.get("actnm")); //현장명
-      head.setCltcd((String) payload.get("cltcd"));
-      head.setIchdate(ichdate);
-      head.setActaddress((String) payload.get("actaddress")); //현장주소
-      head.setCltpernm((String) payload.get("cltpernm")); //발주처 담당자
-      head.setCltjik((String) payload.get("cltjik"));
-      head.setClttelno((String) payload.get("clttelno"));
-      head.setCltemail((String) payload.get("cltemail"));
-      head.setRemark01((String) payload.get("remark01"));
-      head.setRemark02((String) payload.get("remark02"));
-      head.setRemark03((String) payload.get("remark03"));
-
-
-      tb_ca660repository.save(head);
-      log.info("✅ 헤더 수정 완료");
-    } else {
-      // ✅ 신규 등록 로직
-
-      head = new TB_CA660();
-      head.setPernm((String) payload.get("pernm"));
-      head.setCustcd(custcd);
-      head.setPertelno((String) payload.get("pertelno"));
-      head.setActcd((String) payload.get("actcd")); //현장 코드
-      head.setActnm((String) payload.get("actnm")); //현장명
-      head.setCltcd((String) payload.get("cltcd"));
-      head.setIchdate(ichdate);
-      head.setActaddress((String) payload.get("actaddress")); //현장주소
-      head.setCltpernm((String) payload.get("cltpernm")); //발주처 담당자
-      head.setCltjik((String) payload.get("cltjik"));
-      head.setClttelno((String) payload.get("clttelno"));
-      head.setCltemail((String) payload.get("cltemail"));
-      head.setRemark01((String) payload.get("remark01"));
-      head.setRemark02((String) payload.get("remark02"));
-      head.setRemark03((String) payload.get("remark03"));
-      head.setBaljudate(today);
-
-      // 저장 시 자동으로 BALJUNUM 생성됨 (IDENTITY)
-      tb_ca660repository.save(head);
-      balJunum = head.getBalJunum(); // 신규 발번
-      log.info("✅ 신규 헤더 저장 완료: BALJUNUM = {}", balJunum);
-
-    }
-
-    //품목 저장
-    // 기존 상세 삭제 (수정 시)
-    if (balJunum != null) {
-      tb_ca661repository.deleteByBaljunum(head.getBalJunum());
-    }
-
-    // 상세 저장
-    List<Map<String, Object>> items = (List<Map<String, Object>>) payload.get("items");
-
-    for (Map<String, Object> item : items) {
-      TB_CA661 detail = new TB_CA661();
-
-      // 💡 발주헤더 객체를 직접 주입 (FK 매핑 처리)
-      detail.setBalJunum(head);  // 여기서 Integer가 아니라 TB_CA660 객체임
-
-      detail.setCustcd(custcd);
-      detail.setSpjangcd(user.getSpjangcd()); // 사업장코드
-      detail.setProcd((String) payload.get("actcd")); // 현장코드를 프로젝트코드로 저장
-
-      // 현재 날짜를 발주일자로 저장
-      detail.setBaljudate(today);
-
-      detail.setPcode((String) item.get("pcode"));
-      detail.setPname((String) item.get("pname"));
-      detail.setPsize((String) item.get("psize"));
-      detail.setPqty((Integer) item.get("quantity")); //수량
-      detail.setPmapseq((String) item.get("pmapseq"));  //도번
-      detail.setRemark((String) item.get("remark"));
-
-      detail.setPqty(CommonUtil.tryIntNull(item.get("quantity")));
-      detail.setPuamt(CommonUtil.tryIntNull(item.get("unit_price")));
-      detail.setPamt(CommonUtil.tryIntNull(item.get("amount")));
-
-      tb_ca661repository.save(detail);
-      log.info("상세 데이터 저장 :{}", detail);
-    }
     AjaxResult result = new AjaxResult();
+    result.data = item;
+
     return result;
-  }*/
+  }
 
 }
 

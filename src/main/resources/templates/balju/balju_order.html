@@ -302,10 +302,10 @@
           </tr>-->
           <tr>
             <th style="text-align: center">
-              <label for="cboProject">프로젝트 목록*</label>
+              <label for="procd">프로젝트 목록*</label>
             </th>
             <td>
-              <input id="cboProject" name="procd" type="hidden">
+              <input id="procd" name="procd" type="hidden">
               <input id="projcet_no" name="projcet_no" type="hidden">
               <div class="input-with-button">
                 <input class="form-control2" type="text" id="PROJECT_NM" name="PROJECT_NM"
@@ -319,7 +319,6 @@
               <label for="ichdate">납기예정일</label>
             </th>
             <td>
-             <input type="hidden" id="JumunDate" name="JumunDate">
               <input type="date" id="ichdate" name="ichdate">
             </td>
           </tr>
@@ -454,6 +453,7 @@
               <td><input type="text" name="pcode" placeholder="품목코드" readonly />
               <input type="hidden" name="bpid" /></td>
               <input type="hidden" name="punit" /></td>
+              <input type="hidden" name="BALJUSEQ" /></td>
               <td>
                 <div class="input-with-button">
                   <input type="text" name="txtPname" placeholder="입력 후 엔터" autocomplete="off" />
@@ -657,10 +657,10 @@
             {binding: 'puamt', header: '단가', width: 100, align: 'right',format: 'n0'},
             {binding: 'pamt', header: '금액', width: 100, align: 'right'},
             {binding: 'pmapseq', header: '도번', width: 100, align: 'right'},
-            {binding: 'remark', header: '비고', width: 150, align: 'center'},
             {binding: 'chulflag', header: '발주처출고여부', width: 120, align: 'center'},
             {binding: 'facflag', header: '공장확인여부', width: 120, align: 'center'},
-            {binding: 'hyunflag', header: '현장확인여부', width: 120, align: 'center'}
+            {binding: 'hyunflag', header: '현장확인여부', width: 120, align: 'center'},
+            {binding: 'remark', header: '비고', width: 150, align: 'center'},
           ],
           itemsSource: this.viewData, // 데이터를 설정할 배열
         });
@@ -701,8 +701,7 @@
             let selected = selectedItems[0];
 
             let data = {
-              id: selected.bh_id,
-              SujuQty3: selected.SujuQty3,
+              id: selected.BALJUNUM,
               action: 'detail'
             };
             // console.info("가지고 가는 데이터", data);
@@ -713,7 +712,6 @@
               }
 
               result.data['mode'] = 'edit';
-              result.data['SujuQty3'] = selected.SujuQty3;
               _this.showBaljuForm(result.data);
               // console.log("팝업 응답 JSON:", JSON.stringify(result.data, null, 2));
             };
@@ -1035,7 +1033,7 @@
           let $poppage = $(poppage);
           let searchcallback = function (items) {
             console.log('프로젝트목록 팝업', items);
-            $content.find('#cboProject').val(items.BOMID);
+            $content.find('#procd').val(items.BOMID);
             $content.find('#projcet_no').val(items.projcet_no);
             $content.find('#PROJECT_NM').val(items.projcet_nm);
           }
@@ -1282,21 +1280,17 @@
             });
 
             // 데이터 바인딩
-            $newRow.find('input[name^="txtPname_"]').val(item.product_name);
-            $newRow.find('input[name^="Material_id_"]').val(item.Material_id);
-            $newRow.find('input[name^="product_code_"]').val(item.product_code);
-            $newRow.find('input[name^="quantity_"]').val(item.quantity);
-            $newRow.find('input[name^="BaljuUnitPrice_"]').val(item.unit_price);
-            $newRow.find('input[name^="BaljuPrice_"]').val(item.supply_price);
-            $newRow.find('input[name^="BaljuVat_"]').val(item.vat);
-            $newRow.find('input[name^="totalAmount_"]').val(item.total_price);
-            $newRow.find('input[name^="description_"]').val(item.description);
-            $newRow.find('input[name^="State_"]').val(item.State);
-            $newRow.find('input[name^="balju_StateName_"]').val(item.balju_StateName);
-            $newRow.find('input[name^="VatIncluded"]').prop('checked', item.vatIncluded === 'Y');
-            $newRow.find('input[name^="balju_id_"]').val(item.balju_id);
-            $baljuForm.find('input[name="bh_id"]').val(data.id);
-            $baljuForm.find('input[name^="ichdate"]').val(data.DeliveryDate);
+            $newRow.find('input[name^="pcode_"]').val(item.pcode);
+            $newRow.find('input[name^="bpid_"]').val(item.bpid);
+            $newRow.find('input[name^="punit_"]').val(item.punit);
+            $newRow.find('input[name^="BALJUSEQ_"]').val(item.BALJUSEQ);
+            $newRow.find('input[name^="txtPname_"]').val(item.txtPname);
+            $newRow.find('input[name^="psize_"]').val(item.psize);
+            $newRow.find('input[name^="pqty_"]').val(item.pqty);
+            $newRow.find('input[name^="puamt_"]').val(item.puamt);
+            $newRow.find('input[name^="pamt_"]').val(item.pamt);
+            $newRow.find('input[name^="pmapseq_"]').val(item.pmapseq);
+            $newRow.find('input[name^="remark_"]').val(item.remark);
 
             if (!isDraft) {
               $newRow.find('input').prop('readonly', true);
@@ -1328,7 +1322,6 @@
             $tbody.append($emptyRow);
             itemIndex++;
           }
-          updateBaljuTotalPrice($content);
         }
 
         // 행 추가
@@ -1347,7 +1340,7 @@
             });
 
             $tbody.append($newRow);
-            ProductInputHandler.bind({ rowSelector: $newRow, $content: $content, tryShowBaljuPrice });
+           ProductInputHandler.bind({ rowSelector: $newRow, $content: $content, tryShowBaljuPrice });
 
             itemIndex++;
           }

@@ -117,97 +117,52 @@ WITH main_data AS (
     return sqlRunner.getRows(sql, param);
   }
 
-  public Map<String, Object> getBaljuDetail(int id) {
+  public Map<String, Object> getBaljuDetail(int baljunum) {
     MapSqlParameterSource paramMap = new MapSqlParameterSource();
-    paramMap.addValue("id", id);
+    paramMap.addValue("baljunum", baljunum);
 
     String sql = """
-        WITH balju_total AS (
-            SELECT 
-                "BaljuHead_id" AS bh_id,
-                SUM(COALESCE("TotalAmount", 0)) AS total_amount_sum
-            FROM balju
-            GROUP BY "BaljuHead_id"
-        )
-        SELECT
-            bh.id AS bh_id,
-            bh."Company_id",
-            c."Name" AS "CompanyName",
-            bh."JumunDate",
-            bh."DeliveryDate",
-            bh.special_note,
-            bh."JumunNumber",
-            b.id AS balju_id,
-            b."Material_id",
-            COALESCE(m."Code", '') AS product_code,
-            COALESCE(m."Name", '') AS product_name,
-            COALESCE(mg."Name", '') AS "MaterialGroupName",
-            COALESCE(mg.id, 0) AS "MaterialGroup_id",
-            fn_code_name('mat_type', mg."MaterialType") AS "MaterialTypeName",
-            s."Value" as "BaljuTypeName",
-            b."SujuQty",
-            u."Name" AS unit,
-            b."UnitPrice" AS "BaljuUnitPrice",
-            b."Price" AS "BaljuPrice",
-            b."Vat" AS "BaljuVat",
-            b."InVatYN",
-            b."TotalAmount" AS "LineTotalAmount",
-            COALESCE(bt.total_amount_sum, 0) AS "BaljuTotalPrice", 
-            TO_CHAR(b."ProductionPlanDate", 'yyyy-mm-dd') AS production_plan_date,
-            TO_CHAR(b."ShipmentPlanDate", 'yyyy-mm-dd') AS shiment_plan_date,
-            b."Description",
-            b."AvailableStock",
-            b."ReservationStock",
-            mi."SujuQty2",
-            -- 동적 계산된 Head 상태
-            (
-                SELECT
-                    CASE
-                        WHEN COUNT(*) FILTER (WHERE b2."State" = 'received') = COUNT(*) THEN 'received'
-                        WHEN COUNT(*) FILTER (WHERE b2."State" = 'draft') = COUNT(*) THEN 'draft'
-                        WHEN COUNT(*) FILTER (WHERE b2."State" = 'canceled') = COUNT(*) THEN 'canceled'
-                        ELSE 'partial'
-                    END
-                FROM balju b2
-                WHERE b2."BaljuHead_id" = bh.id
-            ) AS "BalJuHeadType",
-            -- Head 상태명
-            fn_code_name(
-                'balju_state',
-                (
-                    SELECT
-                        CASE
-                            WHEN COUNT(*) FILTER (WHERE b2."State" = 'received') = COUNT(*) THEN 'received'
-                            WHEN COUNT(*) FILTER (WHERE b2."State" = 'draft') = COUNT(*) THEN 'draft'
-                            WHEN COUNT(*) FILTER (WHERE b2."State" = 'canceled') = COUNT(*) THEN 'canceled'
-                            ELSE 'partial'
-                        END
-                    FROM balju b2
-                    WHERE b2."BaljuHead_id" = bh.id
-                )
-            ) AS "bh_StateName",
-            -- 개별 balju 상태
-            b."State" AS "BalJuType",
-            fn_code_name('balju_state', b."State") AS "balju_StateName",
-            TO_CHAR(b."_created", 'yyyy-mm-dd') AS create_date
-        FROM balju_head bh
-        LEFT JOIN balju b ON b."BaljuHead_id" = bh.id
-        LEFT JOIN material m ON m.id = b."Material_id" AND m.spjangcd = b.spjangcd
-        LEFT JOIN mat_grp mg ON mg.id = m."MaterialGroup_id" AND mg.spjangcd = b.spjangcd
-        LEFT JOIN unit u ON m."Unit_id" = u.id AND u.spjangcd = b.spjangcd
-        LEFT JOIN company c ON c.id = b."Company_id"
-        left join sys_code s on bh."SujuType" = s."Code" and s."CodeType" = 'Balju_type'
-        LEFT JOIN (
-            SELECT "SourceDataPk", SUM("InputQty") AS "SujuQty2"
-            FROM mat_inout
-            WHERE "SourceTableName" = 'balju' AND COALESCE("_status", 'a') = 'a'
-            GROUP BY "SourceDataPk"
-        ) mi ON mi."SourceDataPk" = b.id
-        LEFT JOIN balju_total bt ON bt.bh_id = bh.id
-        WHERE bh.id = :id
+        select
+        h.BALJUNUM,
+        h.PROCD as projcet_no,
+        p.PROJECT_NM ,
+        STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-') as ichdate,
+        h.PERNM as pernm,
+        jp.rspcd as pernm_rspcd,
+        pz.rspnm as pernm_rspcdcd,
+        jp.perid as pernmcd,
+        h.PERTELNO as pertelno,
+        h.ACTCD,
+        h.ACTNM as actcd,
+        h.ACTADDRESS as actaddress,
+        h.CLTCD as cltcd,
+        c.cltnm as CompanyName,
+        jb.rspcd as cltjikcd,
+        h.CLTJIK as cltjik,
+        jb.perid as cbocltcd,
+        h.CLTPERNM as cltpernm,
+        h.CLTTELNO as clttelno,
+        h.CLTEMAIL as cltemail,
+        h.remark01,
+        h.remark02,
+        h.remark01,
+        d.BALJUSEQ,
+        d.procd ,
+        d.PNAME as txtPname,
+        d.psize,
+        d.pqty, d.punit,
+        d.puamt,d.pamt, d.pmapseq, d.remark
+        from tb_ca660 h
+        left join tb_ca661 d on h.BALJUNUM = d.BALJUNUM and d.BALJUDATE = h.BALJUDATE
+        left join tb_ca664 p on h.PROCD = p.PROJECT_NO
+        left join tb_ja001 jp on h.PERNM = jp.pernm
+        left join tb_ja001 jb on jb.pernm = h.CLTPERNM
+        left join tb_pz001 pz on pz.RSPCD = jp.rspcd
+        left join TB_XCLIENT c on c.cltcd =h.CLTCD
+        where h.BALJUNUM = :baljunum;
         """;
-//    log.info("발주상세 데이터 SQL: {}", sql);
-//    log.info("SQL Parameters: {}", paramMap.getValues());
+    log.info("발주상세 데이터 SQL: {}", sql);
+    log.info("SQL Parameters: {}", paramMap.getValues());
     List<Map<String, Object>> rows = sqlRunner.getRows(sql, paramMap);
 
     if (rows.isEmpty()) return Collections.emptyMap();
@@ -217,33 +172,43 @@ WITH main_data AS (
     Map<String, Object> first = rows.get(0);
 
     header.put("mode", "edit");
-    header.put("id", first.get("bh_id"));
-    header.put("Company_id", first.get("Company_id"));
+    header.put("BALJUNUM", first.get("BALJUNUM"));
+    header.put("project_no", first.get("projcet_no"));
+    header.put("PROJECT_NM", first.get("PROJECT_NM"));
+    header.put("ichdate", first.get("ichdate"));
+    header.put("pernm", first.get("pernm"));
+    header.put("pernm_rspcd", first.get("pernm_rspcd"));
+    header.put("pernm_rspcdcd", first.get("pernm_rspcdcd"));
+    header.put("pernmcd", first.get("pernmcd"));
+    header.put("pertelno", first.get("pertelno"));
+    header.put("ACTCD", first.get("ACTCD"));
+    header.put("actnm", first.get("actcd"));  // 중복 있음
+    header.put("actaddress", first.get("actaddress"));
+    header.put("cltcd", first.get("cltcd"));
     header.put("CompanyName", first.get("CompanyName"));
-    header.put("JumunDate", first.get("JumunDate"));
-    header.put("DeliveryDate", first.get("DeliveryDate"));
-    header.put("State", first.get("BalJuHeadType"));
-    header.put("StateName", first.get("bh_StateName"));
-    header.put("special_note", first.get("special_note"));
-    header.put("JumunNumber", first.get("JumunNumber"));
+    header.put("cltjikcd", first.get("cltjikcd"));
+    header.put("cltjik", first.get("cltjik"));
+    header.put("cbocltcd", first.get("cbocltcd"));
+    header.put("cltpernm", first.get("cltpernm"));
+    header.put("clttelno", first.get("clttelno"));
+    header.put("cltemail", first.get("cltemail"));
+    header.put("remark01", first.get("remark01"));
+    header.put("remark02", first.get("remark02"));
 
+// items 처리
     List<Map<String, Object>> items = new ArrayList<>();
     for (Map<String, Object> row : rows) {
       Map<String, Object> item = new LinkedHashMap<>();
-
-      item.put("id", row.get("balju_id"));
-      item.put("Material_id", row.get("Material_id"));
-      item.put("product_code", row.get("product_code"));
-      item.put("product_name", row.get("product_name"));
-      item.put("quantity", row.get("SujuQty"));
-      item.put("unit_price", row.get("BaljuUnitPrice"));
-      item.put("supply_price", row.get("BaljuPrice"));
-      item.put("vat", row.get("BaljuVat"));
-      item.put("total_price", row.get("LineTotalAmount"));
-      item.put("description", row.get("Description"));
-      item.put("vatIncluded", row.get("InVatYN"));
-      item.put("State", row.get("BalJuType"));
-      item.put("balju_StateName", row.get("balju_StateName"));
+      item.put("BALJUSEQ", row.get("BALJUSEQ"));
+      item.put("procd", row.get("procd"));
+      item.put("punit", row.get("punit"));
+      item.put("txtPname", row.get("txtPname"));
+      item.put("psize", row.get("psize"));
+      item.put("pqty", row.get("pqty"));
+      item.put("puamt", row.get("puamt"));
+      item.put("pamt", row.get("pamt"));
+      item.put("pmapseq", row.get("pmapseq"));
+      item.put("remark", row.get("remark"));
 
       items.add(item);
     }

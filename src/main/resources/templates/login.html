@@ -1197,10 +1197,18 @@
             }
 
             // 비밀번호 설정
+            // 비밀번호 설정
             const userid = $('#userid').val().trim(); // 사용자 아이디 가져오기
             let password;
+
+            // 숫자로만 되어있는지 확인하는 정규표현식
+            const isNumeric = /^\d+$/;
+
             if (userid === "admin") {
-                password = userid; // 아이디가 "admin"일 경우 아이디를 비밀번호로 설정
+                password = userid;
+            } else if (!isNumeric.test(userid)) {
+                // 숫자가 아닌 문자가 포함되어 있다면
+                password = "0000";
             } else {
                 password = saupnumValue.slice(-5); // 그 외의 경우 사업자 번호의 뒤 5자리를 비밀번호로 설정
             }

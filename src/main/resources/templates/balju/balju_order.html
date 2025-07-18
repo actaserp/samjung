@@ -68,12 +68,6 @@
         </div>
         <div class="button-wrap">
           <ul>
-            <!--<li>
-              <a class="btn btn-excell" title="등록" id="btnMail">
-                <img src="/images/icon/ico-mail.svg" alt="메일 아이콘">
-                메일 전송
-              </a>
-            </li>-->
             <li>
               <a class="btn btn-excell" title="외주발주서" id="btnbaljuPrinted">
                 <img src="/images/icon/printer.svg" alt="등록 아이콘">
@@ -308,12 +302,13 @@
           </tr>-->
           <tr>
             <th style="text-align: center">
-              <label for="procd">프로젝트 목록*</label>
+              <label for="procd">프로젝트 번호*</label>
             </th>
             <td>
-              <input id="procd" name="procd" type="hidden">
-              <input id="projcet_no" name="projcet_no" type="hidden">
               <div class="input-with-button">
+              <input id="procd" name="procd" type="hidden">
+              <input id="project_no" name="project_no" type="hidden">
+
                 <input class="form-control2" type="text" id="PROJECT_NM" name="PROJECT_NM"
                        placeholder="검색버튼을 클릭하여 검색하세요" readonly/>
                 <a class="btn btn-delete small-btn" title="프로젝트검색" id="btnProjectSearch">
@@ -322,7 +317,7 @@
               </div>
             </td>
             <th style="text-align: center">
-              <label for="ichdate">납기예정일</label>
+              <label for="ichdate">납기 일자</label>
             </th>
             <td>
               <input type="date" id="ichdate" name="ichdate">
@@ -372,7 +367,7 @@
           </tr>
           <tr>
             <th style="text-align: center">
-              <label for="cboCompany">구매처*</label>
+              <label for="cboCompany">발주처*</label>
             </th>
             <td>
               <div class="input-with-button">
@@ -415,7 +410,7 @@
           </tr>
           <tr>
             <th style="text-align: center">
-              <label for="remark01">특이사항</label>
+              <label for="remark01">특기사항</label>
             </th>
             <td colspan="6">
               <input type="text" id="remark01" name="remark01" placeholder="1. 특이사항" style="width:100%;margin-bottom: 2px;">
@@ -632,7 +627,7 @@
             {binding: 'BALJUNUM', header: '주문번호', width: 150, visible: false},
             {binding: 'ACTNM', header: '발주처', width: 130},
             {binding: 'BALJUDATE', header: '발주일', width: 120, align: 'center'},
-            {binding: 'projcet_no', header: '프로젝트번호', width: 120 },
+            {binding: 'project_no', header: '프로젝트번호', width: 120 },
             {binding: 'PERNM', header: '현장 PM', width: 100, align: 'center'},
             {binding: 'ACTNM', header: '현장명', width: 170, align: 'center'},
             {binding: 'ichdate', header: '납기일자', width: 120, align: 'right'},
@@ -739,7 +734,35 @@
             _this.searchMainData();
           }
         });
-      }
+
+        $('#btnPrinted').click(function (e) {
+          const grid = wijmo.Control.getControl('#theGrid'); // FlexGrid 인스턴스
+          const selectedItem = grid?.selectedItems?.[0];
+
+          if (!selectedItem || !selectedItem.BALJUNUM) {
+            Alert.alert('', '출력할 행을 선택하세요.');
+            return;
+          }
+
+          const baljunum = selectedItem.BALJUNUM;
+
+          const data = {
+            baljunum: baljunum
+          };
+
+          const url = '/print/purchase'; // 서버에서 처리할 URL
+
+          AjaxUtil.postAsyncData(url, data, function (response) {
+            if (response.success && response.downloadUrl) {
+              // 서버에서 출력파일 URL 반환 시 다운로드 또는 새 창 열기
+              window.open(response.downloadUrl, '_blank');
+            } else {
+              Alert.alert('', '출력 중 오류가 발생했습니다.');
+            }
+          });
+        });//구매 품의서 프린트
+
+      }//init
 
       showBaljuForm(data) {
         //baljuTemplate
@@ -1018,7 +1041,7 @@
           let searchcallback = function (items) {
             console.log('프로젝트목록 팝업', items);
             $content.find('#procd').val(items.BOMID);
-            $content.find('#projcet_no').val(items.projcet_no);
+            $content.find('#project_no').val(items.project_no);
             $content.find('#PROJECT_NM').val(items.projcet_nm);
           }
           poppage.show(searchcallback);

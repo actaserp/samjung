@@ -9,14 +9,23 @@ import mes.domain.model.AjaxResult;
 import mes.domain.repository.samjangRepository.TB_CA660repository;
 import mes.domain.repository.samjangRepository.TB_CA661repository;
 import mes.domain.services.CommonUtil;
-import org.aspectj.weaver.loadtime.Aj;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
-import java.sql.Date;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -92,7 +101,7 @@ public class BaljuOrderController {
         // 수정 항목 로그 생략 가능
         head.setPernm((String) payload.get("pernm"));
         head.setCustcd(custcd);
-        head.setProcd((String) payload.get("projcet_no"));
+        head.setProcd((String) payload.get("project_no"));
         head.setPertelno((String) payload.get("pertelno"));
         head.setActcd((String) payload.get("actcd"));
         head.setActnm((String) payload.get("actnm"));
@@ -121,7 +130,7 @@ public class BaljuOrderController {
         head = new TB_CA660();
         head.setSpjangcd(user.getSpjangcd());
         head.setPernm((String) payload.get("pernm"));
-        head.setProcd((String) payload.get("projcet_no"));
+        head.setProcd((String) payload.get("project_no"));
         head.setCustcd(custcd);
         head.setPertelno((String) payload.get("pertelno"));
         head.setActcd((String) payload.get("actcd"));
@@ -156,7 +165,7 @@ public class BaljuOrderController {
           detail.setBalJunum(head);
           detail.setCustcd(custcd);
           detail.setSpjangcd(spjangcd);
-          detail.setProcd((String) payload.get("projcet_no"));
+          detail.setProcd((String) payload.get("project_no"));
           detail.setBaljudate(today);
 
           detail.setPcode((String) item.get("pcode"));
@@ -233,6 +242,125 @@ public class BaljuOrderController {
     result.success = true;
     return result;
   }
+
+  @PostMapping("/print/purchase")
+  public ResponseEntity<Map<String, Object>> printPurchase(@RequestBody Map<String, Object> payload) {
+    try {
+      Integer bhId = (Integer) payload.get("bhId");
+      Map<String, Object> baljuData = baljuOrderService.getBaljuDetail(bhId);
+
+      String jumunNumber = (String) baljuData.get("JumunNumber");  // 주문번호
+      String companyName = (String) baljuData.get("CompanyName");
+      String fileName = String.format("%s_%s_외주발주서.xlsx", jumunNumber, companyName.replaceAll("[\\\\/:*?\"<>|]", ""));
+
+      Path tempXlsx = Paths.get("C:/Temp/mes21/외주발주서" + fileName);
+      Files.createDirectories(tempXlsx.getParent());
+      Files.deleteIfExists(tempXlsx);
+
+      try (FileInputStream fis = new FileInputStream("C:/Temp/mes21/문서/외주발주서.xlsx");
+           Workbook workbook = new XSSFWorkbook(fis);
+           FileOutputStream fos = new FileOutputStream(tempXlsx.toFile())) {
+
+        Sheet sheet = workbook.getSheetAt(0);
+
+        // 날짜 바인딩
+        String dateStr = String.valueOf(baljuData.get("ichdate")); // 예: "2025-07-19"
+        LocalDate date = LocalDate.parse(dateStr);
+        String formatted = date.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+        setCell(sheet, 2, 6, formatted); // G3 셀에 납기일자
+
+        // 업체명
+        setCell(sheet, 2, 1, (String) baljuData.get("CompanyName")); // B3
+
+        // 현장명
+        setCell(sheet, 3, 1, (String) baljuData.get("actnm")); // C6~F6 -->병합하고 가운데게 맞춤 되어있음
+
+        // 특이사항
+        setCell(sheet, 34, 1, (String) baljuData.get("remark01")); // B35
+        setCell(sheet, 35, 1, (String) baljuData.get("remark02")); // B36
+        setCell(sheet, 36, 1, (String) baljuData.get("remark03")); // B37
+
+        // 품목 리스트 바인딩
+        List<Map<String, Object>> items = (List<Map<String, Object>>) baljuData.get("items");
+        int maxItemsPerPage = 14;
+        int totalItems = items.size();
+        int totalPages = (int) Math.ceil(totalItems / (double) maxItemsPerPage);
+
+        for (int page = 0; page < totalPages; page++) {
+
+          if (page == 0) {
+            sheet = workbook.getSheetAt(0); // 첫 페이지는 원본 시트
+          } else {
+            sheet = workbook.cloneSheet(0); // 복제
+          }
+
+          workbook.setSheetName(workbook.getSheetIndex(sheet), "Page " + (page + 1));
+
+          int startIdx = page * maxItemsPerPage;
+          int endIdx = Math.min(startIdx + maxItemsPerPage, totalItems);
+          List<Map<String, Object>> subItems = items.subList(startIdx, endIdx);
+
+          // 품목 바인딩 시작 행
+          int startRow = 14;
+
+          for (int i = 0; i < subItems.size(); i++) {
+            Map<String, Object> item = subItems.get(i);
+            Row row = sheet.getRow(startRow + i);
+            if (row == null) row = sheet.createRow(startRow + i);
+
+            row.createCell(0).setCellValue(startIdx + i + 1); // NO (전체 인덱스 기준)
+            row.createCell(1).setCellValue((String) item.get("txtPname")); // 품명
+            row.createCell(2).setCellValue((String) item.get("psize"));    // 규격
+            row.createCell(3).setCellValue((String) item.get("punit"));    // 단위
+            row.createCell(4).setCellValue(((Number) item.get("pqty")).doubleValue()); // 수량
+            row.createCell(5).setCellValue(((Number) item.get("puamt")).doubleValue()); // 단가
+            row.createCell(6).setCellValue(((Number) item.get("pamt")).doubleValue()); // 금액
+            row.createCell(7).setCellValue((String) item.get("remark")); // 비고
+          }
+
+          // 마지막 시트일 경우만 특이사항/기본정보 바인딩
+          if (page == totalPages - 1) {
+            // 날짜 바인딩
+            dateStr = String.valueOf(baljuData.get("ichdate"));
+            date = LocalDate.parse(dateStr);
+            formatted = date.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+            setCell(sheet, 2, 6, formatted); // G3
+
+            setCell(sheet, 2, 1, (String) baljuData.get("CompanyName")); // 업체명
+            setCell(sheet, 3, 1, (String) baljuData.get("actnm")); // 현장명
+            setCell(sheet, 34, 1, (String) baljuData.get("remark01")); // 특이사항1
+            setCell(sheet, 35, 1, (String) baljuData.get("remark02")); // 특이사항2
+            setCell(sheet, 36, 1, (String) baljuData.get("remark03")); // 특이사항3
+          }
+        }
+
+
+        workbook.write(fos);
+      }
+
+      // 파일 경로 반환
+      return ResponseEntity.ok(Map.of(
+          "success", true,
+          "filePath", tempXlsx.toAbsolutePath().toString(),
+          "fileName", fileName
+      ));
+    } catch (Exception e) {
+      e.printStackTrace();
+      return ResponseEntity.status(500).body(Map.of(
+          "success", false,
+          "message", e.getMessage()
+      ));
+    }
+  }
+
+  private void setCell(Sheet sheet, int rowIdx, int colIdx, String value) {
+    Row row = sheet.getRow(rowIdx);
+    if (row == null) row = sheet.createRow(rowIdx);
+    Cell cell = row.getCell(colIdx);
+    if (cell == null) cell = row.createCell(colIdx);
+    cell.setCellValue(value);
+  }
+
 
 }
 

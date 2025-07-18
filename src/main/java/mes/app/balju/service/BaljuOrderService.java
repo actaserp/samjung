@@ -38,7 +38,7 @@ WITH main_data AS (
             h.SPJANGCD,
             STUFF(STUFF(h.BALJUDATE, 5, 0, '-'), 8, 0, '-') AS BALJUDATE,
             h.CLTCD,
-            h.PROCD as projcet_no,
+            h.PROCD as project_no,
             STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-') as ichdate,
             h.PERNM,
             h.PERTELNO,
@@ -132,7 +132,7 @@ WITH main_data AS (
         pz.rspnm as pernm_rspcd,
         jp.perid as pernmcd,
         h.PERTELNO as pertelno,
-        h.ACTCD as actcd,
+        h.actcd, 
         h.ACTNM as actnm,
         h.ACTADDRESS as actaddress,
         h.CLTCD as cltcd,
@@ -183,7 +183,7 @@ WITH main_data AS (
     header.put("pernm_rspcdcd", first.get("pernm_rspcdcd"));
     header.put("pernmcd", first.get("pernmcd"));
     header.put("pertelno", first.get("pertelno"));
-    header.put("ACTCD", first.get("actcd"));
+    header.put("actcd", first.get("actcd"));
     header.put("actnm", first.get("actnm"));
     header.put("actaddress", first.get("actaddress"));
     header.put("cltcd", first.get("cltcd"));

@@ -91,10 +91,7 @@ public class RequestService {
                                                   String searchChulflag,
                                                   String saupnum,
                                                   String cltcd,
-                                                  String searchComnm) {
-        System.out.println("saupnum : " + saupnum);
-        System.out.println("cltcd : " + cltcd);
-        System.out.println("searchComnm : " + searchComnm);
+                                                  String searchActnm) {
 
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("searchStartDate", searchStartDate);
@@ -102,12 +99,11 @@ public class RequestService {
         dicParam.addValue("searchRemark", "%" + searchRemark + "%");
         dicParam.addValue("searchOrdflag",  searchChulflag);
         dicParam.addValue("cltcd",  cltcd);
-        dicParam.addValue("searchComnm",  "%" + searchComnm + "%");
+        dicParam.addValue("searchActnm",  "%" + searchActnm + "%");
 
         StringBuilder sql = new StringBuilder("""
                 SELECT
-                    hd.BALJUNUM,
-                    hd.ACTNM,
+                    hd.*,
                     dt.*
                 FROM
                     TB_CA660 hd
@@ -117,10 +113,10 @@ public class RequestService {
                 WHERE
                     1=1
                 """);
-        // cltcd 필터
-//        if (cltcd != null && !cltcd.isEmpty()) {
-//            sql.append(" AND hd.cltcd = :cltcd");
-//        }
+        // cltcd 필터(자기 발주처건만 확인할 수 있도록)
+        if (cltcd != null && !cltcd.isEmpty()) {
+            sql.append(" AND hd.CUSTCD = :CUSTCD");
+        }
         // 날짜 필터
         if (searchStartDate != null && !searchStartDate.isEmpty()) {
             sql.append(" AND hd.BALJUDATE >= :searchStartDate");
@@ -130,8 +126,8 @@ public class RequestService {
             sql.append(" AND hd.BALJUDATE <= :searchEndDate");
         }
         // 현장명 필터
-        if (searchComnm != null && !searchComnm.isEmpty()) {
-            sql.append(" AND hd.cltnm LIKE :searchComnm");
+        if (searchActnm != null && !searchActnm.isEmpty()) {
+            sql.append(" AND hd.ACTNM LIKE :searchActnm");
         }
         // 진행구분 필터
         if (searchChulflag != null && !searchChulflag.isEmpty()) {
@@ -143,6 +139,50 @@ public class RequestService {
         dicParam.addValue("spjangcd", spjangcd);
         List<Map<String, Object>> items = this.sqlRunner.getRows(sql.toString(), dicParam);
         return items;
+    }
+    // 주문출고 flag값 update
+    public void updateChulInfo(String username, String today, String CHULFLAG, Integer BALJUNUM, Integer BALJUSEQ) {
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+        dicParam.addValue("username", username);
+        dicParam.addValue("today", today);
+        dicParam.addValue("CHULFLAG", CHULFLAG);
+        dicParam.addValue("BALJUNUM", BALJUNUM);
+        dicParam.addValue("BALJUSEQ", BALJUSEQ);
+        String sql = """
+                update TB_CA661
+                set "CHULFLAG" = :CHULFLAG
+                , "CHULDATE" = :today
+                , "CHULPERNM" = :username
+                where BALJUNUM = :BALJUNUM
+                AND BALJUSEQ = :BALJUSEQ
+                """;
+
+        int result = this.sqlRunner.execute(sql, dicParam);
+    }
+    // 주문출고 해제 메서드
+    public void clearChulInfo(String chulFlag, Integer baljuNum, Integer baljuSeq) {
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+        dicParam.addValue("CHULFLAG", chulFlag);
+        dicParam.addValue("BALJUNUM", baljuNum);
+        dicParam.addValue("BALJUSEQ", baljuSeq);
+        String sql = """
+        update TB_CA661
+        set "CHULFLAG" = :CHULFLAG
+          , "CHULDATE" = ''
+          , "CHULPERNM" = ''
+        where BALJUNUM = :BALJUNUM
+          AND BALJUSEQ = :BALJUSEQ
+    """;
+        // 파라미터 세팅 후 update() 호출
+        int result = this.sqlRunner.execute(sql, dicParam);
+    }
+    public Map<String, Object> getChulFlag(Integer baljuNum, Integer baljuSeq) {
+        // queryForObject나 queryForString 사용
+        String sql = "SELECT CHULFLAG FROM TB_CA661 WHERE BALJUNUM = :BALJUNUM AND BALJUSEQ = :BALJUSEQ";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("BALJUNUM", baljuNum)
+                .addValue("BALJUSEQ", baljuSeq);
+        return sqlRunner.getRow(sql, params);
     }
     // 주문의뢰현황 head정보 불러오기
     public List<Map<String, Object>> getHeadList(TB_DA006W_PK tbDa006W_pk) {
@@ -451,6 +491,60 @@ public class RequestService {
                 """;
 
         List<Map<String, Object>> items = this.sqlRunner.getRows(sql, dicParam);
+        return items;
+    }
+
+    // pdf 파일 미리보기 데이터
+    public List<Map<String, Object>> getVacFileList(String searchDate,
+                                                    String searchActnm,
+                                                    String cltcd,
+                                                    String spjangcd
+    ) {
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+        dicParam.addValue("searchDate", searchDate);
+        dicParam.addValue("CUSTCD",  cltcd);
+        dicParam.addValue("searchActnm",  "%" + searchActnm + "%");
+
+        StringBuilder sql = new StringBuilder("""
+                SELECT
+                    hd.*,
+                    dt.*,
+                    au.last_name,
+                --    xc.cltnm,
+                    au.phone
+                
+                FROM
+                    TB_CA660 hd
+                JOIN
+                    TB_CA661 dt
+                    ON hd.BALJUNUM = dt.BALJUNUM
+                JOIN
+                    auth_user au
+                    ON au.username = dt.CHULPERNM
+                -- JOIN
+                --     X_CLIENT xc
+                --     ON au.username = xc.saupnum
+                WHERE
+                    1=1
+                AND dt.CHULFLAG = '1'
+                """);
+        // cltcd 필터(자기 발주처건만 확인할 수 있도록)
+        if (cltcd != null && !cltcd.isEmpty()) {
+            sql.append(" AND hd.CUSTCD = :CUSTCD");
+        }
+        // 날짜 필터
+        if (searchDate != null && !searchDate.isEmpty()) {
+            sql.append(" AND dt.CHULDATE = :searchDate");
+        }
+        // 현장명 필터
+        if (searchActnm != null && !searchActnm.isEmpty()) {
+            sql.append(" AND hd.ACTNM LIKE :searchActnm");
+        }
+        // 정렬 조건 추가
+        sql.append(" ORDER BY hd.BALJUDATE ASC");
+
+        dicParam.addValue("spjangcd", spjangcd);
+        List<Map<String, Object>> items = this.sqlRunner.getRows(sql.toString(), dicParam);
         return items;
     }
 }

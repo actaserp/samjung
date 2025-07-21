@@ -46,13 +46,13 @@
           </dl>
           <dl>
             <dt>
-              <label for="searchComnm">
+              <label for="searchActnm">
                 현장명<span class="eq">*</span>
               </label>
             </dt>
             <dd>
               <div class="srch-box">
-                <input type="text" id="searchComnm" name="searchComnm" class="input-srch"
+                <input type="text" id="searchActnm" name="searchActnm" class="input-srch"
                        placeholder="현장명" style="border-radius: 5px;">
                 <!--                                        <a href="#a" class="btn-srch" title="검색" onclick="searchData()"></a>-->
               </div>
@@ -147,13 +147,9 @@
               <tbody>
               <tr >
                 <!--                <th>전표 보기</th>-->
-                <th>시작일</th>
+                <th>출고일</th>
                 <td colspan="">
-                  <input type="date">
-                </td>
-                <th>종료일</th>
-                <td colspan="">
-                  <input type="date">
+                  <input type="date" id="popupDate">
                 </td>
                 <td>
                   <button type="button" id="searchExcelBtn" style="background-color: #0a68b4; color: #FFFFFF; width: 100% " onclick="modifyData()">조회</button>
@@ -195,6 +191,7 @@
 
 <th:block layout:fragment="scripts">
   <th:block th:replace="/common/columns_setting :: columns_setting"></th:block>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script><!-- PDF.js 라이브러리 추가 -->
   <script type="text/javascript">
 
     var theGrid;
@@ -223,10 +220,24 @@
     $(document).ready(function () {
       // 출고 진행구분 select option 바인드
       AjaxUtil.fillSelectOptions($('#searchChulflag'), 'system_code', 'all', false, 'delivery_type');
-      fetchListData();
     });
     // 주문출고 그리드
     function fetchListData(saupnum) {
+      // 필수 요소 안내 alert
+      let requiredFields = [
+        {id: '#searchActnm', label: '현장명을 작성해주세요'},
+      ];
+      for (let i = 0; i < requiredFields.length; i++) {
+        let field = requiredFields[i];
+        let $element = $(field.id);
+        let value = $element.val();
+
+        // 요소가 존재하지 않거나, 값이 빈 문자열(선택되지 않은 경우)인 경우 경고
+        if ($element.length === 0 || value === null || value.trim() === '') {
+          Alert.alert('', field.label);
+          return;
+        }
+      }
       let data2 = [];
       const transformedData = []; // 변환된 데이터를 저장할 배열
       $.ajax({
@@ -234,11 +245,10 @@
         type: 'GET',
         data: {
           'saupnum': saupnum,
-          'saupnumHidden': $('#saupnumHidden').val(),
           'search_startDate': $('#startDate').val(),
           'search_endDate': $('#endDate').val(),
           'search_chulflag': $('#searchChulflag').val(), // 진행구분
-          'search_comnm': $('#searchComnm').val() // 현장명
+          'search_actnm': $('#searchActnm').val() // 현장명
         },
         async: false,
         success: function (data) {
@@ -316,73 +326,6 @@
         theGrid.itemsSource = viewdata1;
       }
     }
-
-    // 프론트엔드 JavaScript PDF 렌더링 (modifyData + showPdf 통합)
-    function modifyData() {
-      const container = document.getElementById("pdfContainer");
-      const spinner = document.getElementById("loadingSpinner");
-
-      // ✅ 이전 PDF 제거
-      container.querySelectorAll("canvas").forEach(canvas => canvas.remove());
-
-      // ✅ 스피너 표시 (PDF 전에)
-      spinner.style.display = "flex";
-      const url = `/api/request/request/readVacFile?appnum=${encodeURIComponent(rowData.appnum)}`;
-
-      spinner.style.display = "flex"; // 스피너 보이기
-
-      fetch(url)
-              .then(res => res.blob())
-              .then(blob => {
-                const blobURL = URL.createObjectURL(blob);
-                renderPdf(blobURL);
-              })
-              .catch(() => {
-                spinner.style.display = "none"; // 오류 시 스피너 숨기기
-                container.innerHTML = "<p style='color:red;'>휴가서 양식을 불러올 수 없습니다.</p>";
-              });
-    }
-    function renderPdf(url) {
-      const container = document.getElementById("pdfContainer");
-      const spinner = document.getElementById("loadingSpinner");
-      // PDF 내용(canvas)만 지우고 스피너는 유지
-      Array.from(container.querySelectorAll("canvas")).forEach(canvas => canvas.remove());
-      spinner.style.display = "flex";
-
-      pdfjsLib.getDocument({ url }).promise.then(pdf => {
-        spinner.style.display = "none"; // 성공 시 스피너 숨기기
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          pdf.getPage(pageNum).then(page => {
-            const viewport = page.getViewport({ scale: 1.3 });
-            const canvas = document.createElement("canvas");
-            const context = canvas.getContext("2d");
-
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            container.appendChild(canvas);
-
-            page.render({
-              canvasContext: context,
-              viewport: viewport
-            });
-          });
-        }
-      }).catch(error => {
-        spinner.style.display = "none";
-        console.error("❌ PDF 렌더링 오류:", error);
-        alert("PDF를 표시할 수 없습니다.");
-      });
-    }
-    function NewSave() {
-      let popup = document.getElementById('popup1');
-      let wrapper = document.getElementById('wrapper1');
-
-      const appgubun = $('#appgubun').val();
-      console.log("📌 팝업 열기 - appgubun:", appgubun);  // 로그로 확인
-
-      popup.style.display = 'block';
-      wrapper.style.display = 'block';
-    }
     // 출하 및 인수확인서 클릭 메서드
     function deliveryDoc(){
       NewSave(); // 팝업 열기
@@ -393,24 +336,131 @@
       NewSave(); // 팝업 열기
       document.getElementById('searchExcelType').value = 'prov';
     }
-    // 자재출고 update 메서드
-    function deliverySave(){
-      $.ajax({
-        url: '/api/request/request/saveDelivery',
-        type: 'GET',
-        data: {
-          'search_comnm': $('#searchComnm').val() // 현장명
-        },
-        async: false,
-        success: function (data) {
-          data2 = data.data;
-          data2.forEach(item => {
-            if (item.CHULFLAG !== undefined && item.CHULFLAG !== null) {
-              item.CHULFLAG = Number(item.CHULFLAG);
+    function NewSave() {
+      let popup = document.getElementById('popup1');
+      let wrapper = document.getElementById('wrapper1');
+
+
+      popup.style.display = 'block';
+      wrapper.style.display = 'block';
+    }
+    // 프론트엔드 JavaScript PDF 렌더링
+    function modifyData() {
+      // 필수 요소 안내 alert
+      let requiredFields = [
+        {id: '#searchActnm', label: '현장명을 작성해주세요'},
+        {id: '#popupDate', label: '시작일을 선택해주세요'},
+      ];
+      for (let i = 0; i < requiredFields.length; i++) {
+        let field = requiredFields[i];
+        let $element = $(field.id);
+        let value = $element.val();
+
+        // 요소가 존재하지 않거나, 값이 빈 문자열(선택되지 않은 경우)인 경우 경고
+        if ($element.length === 0 || value === null || value.trim() === '') {
+          Alert.alert('', field.label);
+          return;
+        }
+      }
+      const container = document.getElementById("pdfContainer");
+      const spinner = document.getElementById("loadingSpinner");
+
+
+      let searchDate = document.getElementById('popupDate').value;
+      let excelType = document.getElementById('searchExcelType').value;
+      let searchActnm = document.getElementById('searchActnm').value;
+      // let spjangcd = document.getElementById('search_spjangcd').value;
+
+
+      if(excelType === 'delivery') {
+
+        // ✅ 이전 PDF 제거
+        container.querySelectorAll("canvas").forEach(canvas => canvas.remove());
+
+        // ✅ 스피너 표시 (PDF 전에)
+        spinner.style.display = "flex";
+        const url = `/api/request/request/readVacFile`
+                + `?search_Date=${encodeURIComponent(searchDate)}`
+                + `&search_actnm=${encodeURIComponent(searchActnm)}`;
+        //&spjangcd=${encodeURIComponent(spjangcd)}
+        spinner.style.display = "flex"; // 스피너 보이기
+
+        fetch(url)
+          .then(res => {
+            // PDF 아닌 경우 바로 catch
+            if (res.ok && res.headers.get("content-type").includes("pdf")) {
+              return res.blob();
+            } else {
+              throw new Error("PDF 생성 실패!");
             }
+          })
+          .then(blob => {
+            console.log("PDF Blob size:", blob.size);
+            const blobURL = URL.createObjectURL(blob);
+            renderPdf(blobURL);
+          })
+          .catch(() => {
+            spinner.style.display = "none";
+            container.innerHTML = "<p style='color:red;'>휴가서 양식을 불러올 수 없습니다.</p>";
+          });
+      }else if(excelType === 'prov'){
+
+      }
+    }
+    function renderPdf(url) {
+      const container = document.getElementById("pdfContainer");
+      const spinner = document.getElementById("loadingSpinner");
+      // PDF 내용(canvas)만 지우고 스피너는 유지
+      Array.from(container.querySelectorAll("canvas")).forEach(canvas => canvas.remove());
+      spinner.style.display = "flex";
+
+      pdfjsLib.getDocument({ url }).promise.then(pdf => {
+        spinner.style.display = "none";
+        console.log("PDF 페이지 개수:", pdf.numPages);
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          pdf.getPage(pageNum).then(page => {
+            const viewport = page.getViewport({ scale: 1.3 });
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            container.appendChild(canvas);
+            page.render({
+              canvasContext: context,
+              viewport: viewport
+            });
+          }).catch(err => {
+            console.error("PDF 페이지 렌더링 실패:", err);
           });
         }
-      })
+      }).catch(error => {
+        spinner.style.display = "none";
+        console.error("❌ PDFjs getDocument 오류:", error);
+        alert("PDF를 표시할 수 없습니다: " + error.message);
+      });
+    }
+    // 자재출고 update 메서드
+    function deliverySave(){
+      const items = theGrid.itemsSource.items;
+      const sendData = items
+              .filter(item => item.CHULFLAG !== null && item.BALJUNUM && item.BALJUSEQ) // null 제거, reqnum등 PK 포함
+              .map(item => ({
+                BALJUNUM: item.BALJUNUM,
+                BALJUSEQ: item.BALJUSEQ,
+                CHULFLAG: item.CHULFLAG
+              }));
+      let data = {
+        'sendData': JSON.stringify(sendData),
+        '_csrf': csrfToken
+      };
+
+      let fnSuccess = function (res) {
+        if (res.success) {
+          Alert.alert('', '출고상태가 변경되었습니다.');
+          fetchListData();
+        }
+      };
+      AjaxUtil.postAsyncData('/api/request/request/saveDelivery', data, fnSuccess);
     }
     // 엑셀파일 미리보기 팝업 닫기 메서드
     function NewClose() {

@@ -1,5 +1,6 @@
 package mes.app.request.request;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import mes.app.request.request.service.RequestService;
@@ -74,24 +75,16 @@ public class RequestController {
                                    @RequestParam(value = "search_chulflag", required = false) String searchChulflag,
                                    @RequestParam(value = "saupnumHidden", required = false) String saupnumHidden,
                                    @RequestParam(value = "saupnum", required = false) String Saupnum,
-                                   @RequestParam(value = "search_comnm", required = false) String searchComnm,
+                                   @RequestParam(value = "search_actnm", required = false) String searchActnm,
                                    @RequestParam(value = "spjangcd", required = false) String spjangcd,
                                    Authentication auth) {
-        String username = (Saupnum != null && !Saupnum.isEmpty()) ? Saupnum : "";
+        User user = (User) auth.getPrincipal();
+        String username = user.getUsername();
         String saupnum;
         String cltcd;
-        // username이 없을경우/session삭제후 진입(관리자 진입)
-        if (username.isEmpty()) {
-            username = (saupnumHidden != null && !saupnumHidden.isEmpty()) ? saupnumHidden : "";
-        }
-        if (username.isEmpty()) {
-            User user = (User) auth.getPrincipal();
-            username = user.getUsername();
-        }
-
         Map<String, Object> userInfo = requestService.getUserInfo(username);
 
-        // 관리자 진입시 사업자 번호 없이 업체명(searchComnm)만으로 조회
+        // 관리자 진입시 사업자 번호 없이 업체명(searchActnm)만으로 조회
         if(userInfo == null) {
             saupnum = null;
             cltcd = null;
@@ -102,7 +95,7 @@ public class RequestController {
         String search_startDate = (searchStartDate).replaceAll("-","");
         String search_endDate = (searchEndDate).replaceAll("-","");
         List<Map<String, Object>> items = this.requestService.getOrderList(spjangcd,
-                search_startDate, search_endDate, searchRemark, searchChulflag, saupnum, cltcd, searchComnm);
+                search_startDate, search_endDate, searchRemark, searchChulflag, saupnum, cltcd, searchActnm);
 //        Map<String, Object> headitem = this.requestService.getHeadList(tbDa006WPk);
 //        items.add(headitem);
         for (Map<String, Object> item : items) {
@@ -121,280 +114,207 @@ public class RequestController {
 
         return result;
     }
-
-    @PostMapping("/downloader")
-    public ResponseEntity<?> downloadFile(@RequestBody List<Map<String, Object>> reqnums) throws IOException {
-
-        // 파일 목록과 파일 이름을 담을 리스트 초기화
-        List<File> filesToDownload = new ArrayList<>();
-        List<String> fileNames = new ArrayList<>();
-
-        // ZIP 파일 이름을 설정할 변수 초기화
-        String tketcrdtm = null;
-        String tketnm = null;
-
-        // 파일을 메모리에 쓰기
-        for (Map<String, Object> reqnum : reqnums) {
-            // 다운로드 위한 파일 정보 조회
-            List<Map<String, Object>> fileList = requestService.download(reqnum);
-
-            for (Map<String, Object> fileInfo : fileList) {
-                String filePath = (String) fileInfo.get("filepath");    // 파일 경로
-                String fileName = (String) fileInfo.get("filesvnm");    // 파일 이름(uuid)
-                String originFileName = (String) fileInfo.get("fileornm");  //파일 원본이름(origin Name)
-
-                if (tketcrdtm == null) {
-                    tketcrdtm = (String) fileInfo.get("reqdate");
-                }
-                if (tketnm == null) {
-                    tketnm = "주문등록";
-                }
-
-                File file = new File(filePath + File.separator + fileName);
-
-                // 파일이 실제로 존재하는지 확인
-                if (file.exists()) {
-                    filesToDownload.add(file);
-                    fileNames.add(originFileName); // 다운로드 받을 파일 이름을 originFileName으로 설정
-                }
+    // 주문출고 flag값 update
+    @PostMapping("/saveDelivery")
+    public AjaxResult saveDelivery(@RequestParam Map<String, Object> param,
+                                   Authentication auth) {
+        AjaxResult result = new AjaxResult();
+        User user = (User) auth.getPrincipal();
+        String username = user.getUsername();
+        String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        // sendData를 List<Map<String, Object>>로 안전하게 변환
+        ObjectMapper mapper = new ObjectMapper();
+        String sendDataStr = (String) param.get("sendData");
+        List<Map<String, Object>> sendData = new ArrayList<>();
+        if (sendDataStr != null && !sendDataStr.isEmpty() && !"null".equals(sendDataStr)) {
+            try {
+                sendData = mapper.readValue(sendDataStr,
+                        new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {});
+            } catch (JsonProcessingException e) {
+                // 에러시 값, 에러 메시지 출력
+                System.out.println("파싱에러: " + e.getMessage());
+                sendData = new ArrayList<>(); // 혹은 적절히 처리
             }
-        }
-
-        // 파일이 없는 경우
-        if (filesToDownload.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        // 파일이 하나인 경우 그 파일을 바로 다운로드
-        if (filesToDownload.size() == 1) {
-            File file = filesToDownload.get(0);
-            String originFileName = fileNames.get(0); // originFileName 가져오기
-
-            HttpHeaders headers = new HttpHeaders();
-            String encodedFileName = URLEncoder.encode(originFileName, StandardCharsets.UTF_8.toString()).replaceAll("\\+", "%20");
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=*''" + encodedFileName);
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.setContentLength(file.length());
-
-            ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(file.toPath()));
-
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .body(resource);
-        }
-
-        String zipFileName = (tketcrdtm != null && tketnm != null) ? tketcrdtm + "_" + tketnm + ".zip" : "download.zip";
-
-        // 파일이 두 개 이상인 경우 ZIP 파일로 묶어서 다운로드
-        ByteArrayOutputStream zipBaos = new ByteArrayOutputStream();
-        try (ZipOutputStream zipOut = new ZipOutputStream(zipBaos)) {
-
-            Set<String> addedFileNames = new HashSet<>(); // 이미 추가된 파일 이름을 저장할 Set
-            int fileCount = 1;
-
-            for (int i = 0; i < filesToDownload.size(); i++) {
-                File file = filesToDownload.get(i);
-                String originFileName = fileNames.get(i); // originFileName 가져오기
-
-                // 파일 이름이 중복될 경우 숫자를 붙여 고유한 이름으로 만듦
-                String uniqueFileName = originFileName;
-                while (addedFileNames.contains(uniqueFileName)) {
-                    uniqueFileName = originFileName.replace(".", "_" + fileCount++ + ".");
-                }
-
-                // 고유한 파일 이름을 Set에 추가
-                addedFileNames.add(uniqueFileName);
-
-                try (FileInputStream fis = new FileInputStream(file)) {
-                    ZipEntry zipEntry = new ZipEntry(originFileName);
-                    zipOut.putNextEntry(zipEntry);
-
-                    byte[] buffer = new byte[1024];
-                    int len;
-                    while ((len = fis.read(buffer)) > 0) {
-                        zipOut.write(buffer, 0, len);
-                    }
-
-                    zipOut.closeEntry();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-                }
-            }
-
-            zipOut.finish();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-
-        ByteArrayResource zipResource = new ByteArrayResource(zipBaos.toByteArray());
-
-        HttpHeaders headers = new HttpHeaders();
-        String encodedZipFileName = URLEncoder.encode(zipFileName, StandardCharsets.UTF_8.toString()).replaceAll("\\+", "%20");
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=*''" + encodedZipFileName);
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        headers.setContentLength(zipResource.contentLength());
-
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(zipResource);
-    }
-    //제품구성 리스트 불러오는 function
-    @GetMapping("/getListHgrb")
-    public AjaxResult getListHgrb(){
-        List<Map<String, Object>> items = this.requestService.getListHgrb();
-
-        AjaxResult result = new AjaxResult();
-        result.data = items;
-        return result;
-    }
-    //보강재, 마감재 리스트 불러오는 function
-    @GetMapping("/getListCgrb")
-    public AjaxResult getListCgrb(){
-        List<Map<String, Object>> ACgrb = this.requestService.getListACgrb();// 마감재
-        List<Map<String, Object>> CCgrb = this.requestService.getListCCgrb();// 보강재
-        Map<String, Object> items = new HashMap<>();
-        items.put("ACgrb", ACgrb);
-        items.put("CCgrb", CCgrb);
-        AjaxResult result = new AjaxResult();
-        result.data = items;
-        return result;
-    }
-    // 유저정보 불러와 input태그 value
-    @GetMapping("/getUserInfo")
-    public AjaxResult getUserInfo(@RequestParam(value = "saupnum", required = false) String Saupnum,
-                                  Authentication auth){
-        String username;
-        if (Saupnum != null && !Saupnum.isEmpty()) {
-            username = Saupnum;
-        } else {
-            User user = (User) auth.getPrincipal();
-            username = user.getUsername();
-            System.out.println("username : " + username);
-        }
-        Map<String, Object> userInfo = requestService.getMyInfo(username);
-
-        AjaxResult result = new AjaxResult();
-        result.data = userInfo;
-        return result;
-    }
-    @PostMapping("/uploadEditor")
-    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
-        String uploadDir = "c:\\temp\\editorFile\\";
-        File directory = new File(uploadDir);
-        if (!directory.exists()) {
-            directory.mkdirs();
         }
         try {
-            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-            File destinationFile = new File(uploadDir + fileName);
-            file.transferTo(destinationFile);
+            for (Map<String, Object> item : sendData) {
+                String chulFlag = normalizeChulFlag(item.get("CHULFLAG"));
+                Integer baljuNum = toInt(item.get("BALJUNUM"));
+                Integer baljuSeq = toInt(item.get("BALJUSEQ"));
 
-            String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
-            String fileUrl = baseUrl + "/editorFile/" + fileName; // 클라이언트 접근 URL
+                // 1. 기존값 조회 (null이면 0 취급, 필요시 변환)
+                String oldFlag = (String) requestService.getChulFlag(baljuNum, baljuSeq).get("CHULFLAG");
+                if (oldFlag == null) oldFlag = "0";
 
-            return ResponseEntity.ok(Collections.singletonMap("location", fileUrl));
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Collections.singletonMap("error", "파일 업로드 실패: " + e.getMessage()));
+                // 2. 값이 다를 때만 처리
+                if (!Objects.equals(oldFlag, chulFlag)) {
+                    if ("1".equals(chulFlag)) { // 출고처리
+                        // 0 → 1
+                        requestService.updateChulInfo(username, today, chulFlag, baljuNum, baljuSeq);
+                    } else { // 출고 해제
+                        // 1 → 0
+                        requestService.clearChulInfo("0", baljuNum, baljuSeq);
+                    }
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+            result.success = true;
         }
-    }
-    
-    // 휴일 조회 메서드
-    @GetMapping("/getHoliday")
-    public AjaxResult getHoliday(){
-        AjaxResult result = new AjaxResult();
-        result.data = requestService.getHoliday();
         return result;
+    }
+    private Integer toInt(Object value) {
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Number) return ((Number) value).intValue();
+        if (value != null) return Integer.parseInt(value.toString());
+        return null;
+    }
+    private String normalizeChulFlag(Object flag) {
+        if (flag == null) return "0";
+        if (flag instanceof Boolean) return (Boolean) flag ? "1" : "0";
+        if (flag instanceof Number) return ((Number) flag).intValue() == 1 ? "1" : "0";
+        String s = flag.toString().trim();
+        if ("1".equals(s) || "true".equalsIgnoreCase(s)) return "1";
+        return "0";
     }
 
     // 엑셀파일 조회 및 파일 보기 메서드
     @GetMapping("/readVacFile")
-    public void readVacFile(@RequestParam("appnum") String appnum, HttpServletResponse response) throws Exception {
-        Map<String, Object> vacData = new HashMap<>(); // paymentDetailService.getVacFileList(appnum);
+    public void readVacFile(@RequestParam(value = "search_Date", required = false) String searchDate,
+                            @RequestParam(value = "search_actnm", required = false) String searchActnm,
+//                            @RequestParam(value = "spjangcd", required = false) String spjangcd,
+                            HttpServletResponse response,
+                            Authentication auth) throws Exception {
+        Path tempXlsx = null;
+        Path tempPdf = null;
+        try {
+            User user = (User) auth.getPrincipal();
+            String username = user.getUsername();
+            String spjangcd = "ZZ";
 
-        String frdateStr = vacData.get("frdate").toString();  // "YYYYMMDD"
-        String todateStr = vacData.get("todate").toString();  // "YYYYMMDD"
-        String daynum = vacData.get("daynum").toString();     //
-        String reqdateStr = vacData.get("reqdate").toString();
+            Map<String, Object> userInfo = requestService.getUserInfo(username);
+            String cltcd = userInfo != null ? (String) userInfo.get("cltcd") : null;
 
-        DateTimeFormatter ymdFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-        DateTimeFormatter displayFormatter = DateTimeFormatter.ofPattern("yyyy 년 MM 월 dd 일");
+            // 주문출고 리스트 조회
+            String search_Date = (searchDate).replaceAll("-", "");
+            List<Map<String, Object>> vacData = requestService.getVacFileList(
+                    search_Date,
+                    searchActnm,
+                    cltcd,
+                    spjangcd
+            );
+            if (vacData == null || vacData.isEmpty()) {
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"데이터가 없습니다\"}");
+                response.flushBuffer();
+                return;
+            }
+            Map<String, Object> head = vacData.get(0);
+            // 1. UUID 기반 임시 파일명 생성
+            String uuid = UUID.randomUUID().toString();
+            tempXlsx = Files.createTempFile(uuid, ".xlsx");
+            tempPdf = Path.of(tempXlsx.toString().replace(".xlsx", ".pdf"));
+            // 2. 엑셀 템플릿 불러오기 및 수정(설치자재 출하 및 인수확인서)
+            System.out.println(">>> PDF 응답 직전");
+            try (FileInputStream fis = new FileInputStream("C:/Temp/mes21/문서/ReceiptConfirmation.xlsx");
+                 Workbook workbook = new XSSFWorkbook(fis);
+                 FileOutputStream fos = new FileOutputStream(tempXlsx.toFile())) {
 
-        LocalDate frDate = LocalDate.parse(frdateStr, ymdFormatter);
-        LocalDate toDate = LocalDate.parse(todateStr, ymdFormatter);
-        LocalDate reqDate = LocalDate.parse(reqdateStr, ymdFormatter);
+                Sheet sheet = workbook.getSheetAt(0);
+                // 660 정보 setCell
+                // HEAD 정보
+                setCell(sheet, 4, 2, (String) head.get("PROCD"));           // C5
+                setCell(sheet, 5, 2, (String) head.get("ACTNM"));           // C6
+                String chulDateStr = head.get("CHULDATE") == null ? "" : head.get("CHULDATE").toString();
+                setCell(sheet, 4, 13, formatToKorean((String) head.get("CHULDATE"))); // N5
 
-        String repodateFormat = String.format("%s  ~  %s  ( %s ) 일간",
-                frDate.format(displayFormatter),
-                toDate.format(displayFormatter),
-                daynum);
+                String remarkAll =
+                        (head.get("REMARK01") != null ? head.get("REMARK01") + "\n" : "") +
+                                (head.get("REMARK02") != null ? head.get("REMARK02") + "\n" : "") +
+                                (head.get("REMARK03") != null ? head.get("REMARK03") : "");
+                setCell(sheet, 29, 5, remarkAll.trim()); // F30
+
+                setCell(sheet, 34, 15, (String) head.get("last_name"));              // P35
+                setCell(sheet, 34, 6, (String) head.get("xclientCltnm"));               // G35
+                setCell(sheet, 34, 12, (String) head.get("userPhone"));                 // M35
+                setCell(sheet, 34, 3, formatToDash((String) head.get("CHULDATE")));   // D35 yyyy-mm-dd
+                setCell(sheet, 38, 3, formatToDash((String) head.get("HYUNDATE")));   // D39
 
 
-        // 1. UUID 기반 임시 파일명 생성
-        String uuid = UUID.randomUUID().toString();
-        Path tempXlsx = Files.createTempFile(uuid, ".xlsx");
-        Path tempPdf = Path.of(tempXlsx.toString().replace(".xlsx", ".pdf"));
+                // BODY 정보 (표 9행~29행, 최대 21개 row)
+                for (int i = 0; i < 21; i++) {
+                    int row = 8 + i; // B9부터
+                    if (i < vacData.size()) {
+                        Map<String, Object> line = vacData.get(i);
+                        setCell(sheet, row, 0, String.valueOf(i + 1));      // 번호, A9~A32
+                        setCell(sheet, row, 1, (String) line.get("PNAME"));        // 품목, B9~B32
+                        setCell(sheet, row, 5, (String) line.get("PSIZE"));        // 규격, F9~F32
+                        setCell(sheet, row, 9, (String) line.get("PUNIT"));        // 단위, J9~J32
+                        setCell(sheet, row, 11, line.get("PQTY").toString());        // 수량, L9~L32
+                        setCell(sheet, row, 13, (String) line.get("CHULFLAG"));    // 출하여부, N9~N32
+                        setCell(sheet, row, 14, (String) line.get("REMARK"));      // 비고, O9~O32
+                    } else {
+                        // 빈 row 초기화 (공백)
+                        setCell(sheet, row, 0, "");
+                        setCell(sheet, row, 1, "");
+                        setCell(sheet, row, 5, "");
+                        setCell(sheet, row, 9, "");
+                        setCell(sheet, row, 11, "");
+                        setCell(sheet, row, 13, "");
+                        setCell(sheet, row, 14, "");
+                    }
+                }
 
-        // 2. 엑셀 템플릿 불러오기 및 수정
-        try (FileInputStream fis = new FileInputStream("C:/Temp/mes21/문서/VacDemoFile.xlsx");
-             Workbook workbook = new XSSFWorkbook(fis);
-             FileOutputStream fos = new FileOutputStream(tempXlsx.toFile())) {
+                workbook.write(fos);
+            }
+            System.out.println(">>> PDF 응답 후");
 
-            Sheet sheet = workbook.getSheetAt(0);
-            // sheet.getRow(5).getCell(2).setCellValue((String) vacData.get("papernm")); // 서류구분 (휴가신청서)
-//      sheet.getRow(2).getCell(2).setCellValue((String) vacData.get("worknm")); //  휴가구분 (연차, 반차, 병가 등)
-//      sheet.getRow(9).getCell(2).setCellValue((String) vacData.get("repopernm")); // 휴가신청자 이름
-//      sheet.getRow(7).getCell(2).setCellValue((String) vacData.get("jiknm")); // 직급명
-//      sheet.getRow(5).getCell(2).setCellValue((String) vacData.get("departnm")); // 부서명
-//      sheet.getRow(16).getCell(0).setCellValue((String) vacData.get("remark")); // 사유
-//      sheet.getRow(11).getCell(2).setCellValue(repodateFormat); // 기간
-//      sheet.getRow(24).getCell(3).setCellValue((String) vacData.get("worknm")); // 신청휴가구분
-//      sheet.getRow(27).getCell(0).setCellValue(reqDate.format(displayFormatter)); // 신청일
-//      sheet.getRow(29).getCell(10).setCellValue((String) vacData.get("repopernm")); // 제출인
-            setCell(sheet, 2, 2, (String) vacData.get("worknm"));
-            setCell(sheet, 9, 2, (String) vacData.get("repopernm"));
-            setCell(sheet, 7, 2, (String) vacData.get("jiknm"));
-            setCell(sheet, 5, 2, (String) vacData.get("departnm"));
-            setCell(sheet, 16, 0, (String) vacData.get("remark"));
-            setCell(sheet, 11, 2, repodateFormat);
-            setCell(sheet, 24, 3, (String) vacData.get("worknm"));
-            setCell(sheet, 27, 0, reqDate.format(displayFormatter));
-            setCell(sheet, 30, 10, (String) vacData.get("repopernm"));
+            // 3. LibreOffice로 PDF 변환
+            ProcessBuilder pb = new ProcessBuilder(
+                    "C:/Program Files/LibreOffice/program/soffice.exe",
+                    "--headless",
+                    "--convert-to", "pdf",
+                    "--outdir", tempPdf.getParent().toString(),
+                    tempXlsx.toAbsolutePath().toString()
+            );
+            pb.inheritIO();
+            Process process = pb.start();
+            process.waitFor();
 
-            workbook.write(fos);
-        }
+            // 4. PDF 파일이 실제로 존재하는지 체크
+            if (!Files.exists(tempPdf) || Files.size(tempPdf) == 0) {
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"PDF 생성 실패\"}");
+                response.flushBuffer();
+                return;
+            }
 
-        // 3. LibreOffice로 PDF 변환
-        ProcessBuilder pb = new ProcessBuilder(
-                "C:/Program Files/LibreOffice/program/soffice.exe",
-                "--headless",
-                "--convert-to", "pdf",
-                "--outdir", tempPdf.getParent().toString(),
-                tempXlsx.toAbsolutePath().toString()
-        );
-        pb.inheritIO();
-        Process process = pb.start();
-        process.waitFor();
-
-        // 4. PDF 응답 전송
-        try (FileInputStream fis = new FileInputStream(tempPdf.toFile())) {
+            // 5. PDF 응답 전송 (정상 동작)
             response.setContentType("application/pdf");
             response.setHeader("Content-Disposition", "inline; filename=vacation.pdf");
-            IOUtils.copy(fis, response.getOutputStream());
-            response.flushBuffer();
-        }
-
-        // 5. 일정 시간 후 임시파일 자동 삭제 (5분)
-        Executors.newSingleThreadScheduledExecutor().schedule(() -> {
-            try {
-                Files.deleteIfExists(tempXlsx);
-                Files.deleteIfExists(tempPdf);
-            } catch (IOException e) {
-                e.printStackTrace();
+            try (FileInputStream fis = new FileInputStream(tempPdf.toFile())) {
+                IOUtils.copy(fis, response.getOutputStream());
+                response.flushBuffer();
             }
-        }, 5, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            // 예외 발생 시 명확한 메시지 반환
+            System.out.println(">>> 예외 발생: " + e.getMessage());
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\":\"서버 에러: " + e.getMessage() + "\"}");
+            response.flushBuffer();
+        } finally {
+            // 6. 임시 파일 삭제 (즉시)
+            final Path deleteXlsx = tempXlsx;
+            final Path deletePdf = tempPdf;
+
+            Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+                try { if (deleteXlsx != null) Files.deleteIfExists(deleteXlsx); } catch (Exception ex) {}
+                try { if (deletePdf != null) Files.deleteIfExists(deletePdf); } catch (Exception ex) {}
+            }, 5, TimeUnit.MINUTES);
+        }
     }
     private void setCell(Sheet sheet, int rowIdx, int colIdx, String value) {
         Row row = sheet.getRow(rowIdx);
@@ -402,6 +322,30 @@ public class RequestController {
         Cell cell = row.getCell(colIdx);
         if (cell == null) cell = row.createCell(colIdx);
         cell.setCellValue(value);
+    }
+    // "yyyyMMdd" -> "yyyy년 MM월 dd일"
+    public static String formatToKorean(String yyyymmdd) {
+        if (yyyymmdd == null || yyyymmdd.length() != 8) return "";
+        try {
+            DateTimeFormatter ymd = DateTimeFormatter.ofPattern("yyyyMMdd");
+            DateTimeFormatter kor = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일");
+            LocalDate date = LocalDate.parse(yyyymmdd, ymd);
+            return date.format(kor);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+    // "yyyyMMdd" -> "yyyy-MM-dd"
+    public static String formatToDash(String yyyymmdd) {
+        if (yyyymmdd == null || yyyymmdd.length() != 8) return "";
+        try {
+            DateTimeFormatter ymd = DateTimeFormatter.ofPattern("yyyyMMdd");
+            DateTimeFormatter dash = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            LocalDate date = LocalDate.parse(yyyymmdd, ymd);
+            return date.format(dash);
+        } catch (Exception e) {
+            return "";
+        }
     }
 
 

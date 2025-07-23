@@ -653,6 +653,16 @@ let FormUtil = {
 };
 
 let AjaxUtil = {
+    showLoading: function () {
+        try {
+            window.parent.$('#loader2').show(); // 여기만 바꾸면 됨
+        } catch (e) {}
+    },
+    hideLoading: function () {
+        try {
+            window.parent.$('#loader2').hide();
+        } catch (e) {}
+    },
     failureCallback: function (req, status, error) {
         let message = '에러가 발생했습니다.';
 
@@ -775,6 +785,49 @@ let AjaxUtil = {
 
                     AjaxUtil.failureCallback(req, status, error);
                 }
+            }
+        });
+    },
+    postJsonAsyncData: function (url, data, fn_success, fn_failure) {
+        let result = null;
+
+        let csrf = $('[name=_csrf]').val();
+
+        // let spjangcd = sessionStorage.getItem('spjangcd');
+
+        data = data || [];
+
+        // if (Array.isArray(data)) {
+        //     data = data.map(item => ({
+        //         ...item,
+        //         spjangcd: spjangcd
+        //     }));
+        // }
+
+        AjaxUtil.showLoading();
+        $.ajax({
+            async: true,
+            dataType: 'json',
+            type: 'POST',
+            url: url,
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader('X-CSRF-TOKEN', csrf); // 헤더로 명시적 전달
+            },
+            success: function (res) {
+                fn_success(res);
+            },
+            error: function (req, status, error) {
+                if (typeof fn_failure !== 'undefined') {
+                    fn_failure(req, status, error);
+                } else {
+
+                    AjaxUtil.failureCallback(req, status, error);
+                }
+            },
+            complete: function () {
+                AjaxUtil.hideLoading();
             }
         });
     },

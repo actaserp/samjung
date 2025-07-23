@@ -51,6 +51,61 @@
         background-color: #f5f5f5; /* 테이블 헤더 배경색 */
         font-weight: bold; /* 헤더 텍스트 굵게 */
     }
+    #loader2 {
+        position: fixed;
+        top: 0;
+        left: 0;
+        background-color: #f0f0f0;
+        opacity: 0.8;
+        width: 100%;
+        height: 100%;
+        display: none; /* 처음에는 숨김 상태 */
+        z-index: 999999;
+    }
+
+    #loader2 .loader {
+        position: fixed;
+        top: calc(50% - 48px);
+        left: calc(50% - 48px);
+        width: 96px;
+        height: 96px;
+        border-radius: 12px;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    #loader2 .loader > span {
+        position: fixed;
+        top: calc(50% - 27px);
+        left: calc(50% - 27px);
+        width: 48px;
+        height: 48px;
+        border: 3px solid #FFF;
+        border-radius: 50%;
+        display: inline-block;
+        animation: rotation 1s linear infinite;
+    }
+
+    #loader2 .loader > span::after {
+        content: '';
+        box-sizing: border-box;
+        position: absolute;
+        left: 0;
+        top: 0;
+        background: #5ddfde;
+        width: 16px;
+        height: 16px;
+        transform: translate(-50%, 50%);
+        border-radius: 50%;
+    }
+
+    @keyframes rotation {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
 </style>
 <body>
 <div class="page-wrapper sub-page">
@@ -1350,5 +1405,10 @@
 
 </script>
 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+<div id="loader2">
+    <div class="loader">
+        <span></span>
+    </div>
+</div>
 </body>
 </html>

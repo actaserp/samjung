@@ -1,33 +1,41 @@
 package mes.domain.services.impl;
 
 
-import java.util.List;
-import java.util.Map;
-
+import mes.domain.services.LogWriter;
+import mes.domain.services.SqlRunner;
 import org.hibernate.exception.DataException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import mes.domain.services.LogWriter;
-import mes.domain.services.SqlRunner;
+import java.util.List;
+import java.util.Map;
 
 
-@Repository("sqlRunner")
-@Primary
-public class SqlRunQueryImpl implements SqlRunner {
+@Repository("sqlRunnerOracle")
+@Lazy
+public class SqlRunQueryOracleImpl implements SqlRunner {
 
 	@Autowired(required = true)
-	@Qualifier("namedParameterJdbcTemplate")
+	@Qualifier("oracleNamedParameterJdbcTemplate")
     private NamedParameterJdbcTemplate  jdbcTemplate;
 	
 	@Autowired
 	LogWriter logWriter;
+
+	@Autowired
+	public SqlRunQueryOracleImpl(
+			@Qualifier("oracleNamedParameterJdbcTemplate") NamedParameterJdbcTemplate jdbcTemplate,
+			LogWriter logWriter
+	) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.logWriter = logWriter;
+	}
 	
 	
     public List<Map<String, Object>> getRows(String sql, MapSqlParameterSource dicParam){    	

@@ -1,0 +1,490 @@
+<html layout:decorate="~{layout_page}">
+
+<head>
+    <style>
+        .container-fluid {
+            padding: 0;
+        }
+
+        .container-fluid.d-flex {
+            gap: 10px; /* 원하는 간격 (px, rem, %, 등 가능) */
+        }
+
+        .bg-new { background-color: #e6f7ff; }
+        .bg-modified { background-color: #fff7e6; }
+        .bg-deleted { background-color: #ffe6e6; }
+
+        .diff-new { background-color: #e6f7ff !important; }
+        .diff-modified_both { background-color: #fff1b8 !important; }
+        .diff-modified_bom { background-color: #ffd666 !important; }
+        .diff-modified_part { background-color: #ffccc7 !important; }
+        .diff-deleted { background-color: #f0f0f0 !important; }
+        .diff-unchanged { background-color: #ffffff !important; }
+        .diff-new_parent { background-color: #d9f7be !important; }
+        .diff-deleted_parent { background-color: #f0f0f0 !important; }
+
+    </style>
+</head>
+
+<th:block layout:fragment="content">
+    <div class="layout-contents">
+        <div class="page-title-wrap">
+            <div class="left">
+                <h2>BOM 등록</h2>
+                <a title="북마크" class="bookmark toggle">
+                    내 메뉴
+                </a>
+            </div>
+            <ul class="page-navi">
+                <li><img src="/images/icon/ico-nav-home.svg" alt="홈아이콘"></li>
+                <li>PLM 등록</li>
+                <li>BOM 등록</li>
+            </ul>
+        </div>
+
+        <section class="section">
+            <div class="section-top">
+                <div class="search-wrap">
+                    <dl>
+                        <dt>
+                            <label for="txtDescription">
+                                프로젝트
+                            </label>
+                        </dt>
+                        <dd>
+                            <div class="srch-box">
+                                <input id="txtDescription" name="txtDescription"/>
+                            </div>
+                        </dd>
+                    </dl>
+                    <dl>
+                        <dt>
+                            <label>완료 포함</label>
+                        </dt>
+                        <dd>
+                            <input class="form-control2" type="checkbox" id="input_flag" name="input_flag" value="N" >
+                        </dd>
+                    </dl>
+                    <dl id="dateSection" style="display: none;">
+                        <dt>
+                            등록일
+                        </dt>
+                        <dd>
+                            <ul class="date-box">
+                                <li>
+                                    <input type="date" id="srchStartDt" name="srchStartDt">
+                                    <label for="srchStartDt" class="hide">시작일</label>
+                                </li>
+                                <li>
+                                    <input type="date" id="srchEndDt" name="srchEndDt">
+                                    <label for="srchEndDt" class="hide">종료일</label>
+                                </li>
+                            </ul>
+                        </dd>
+                    </dl>
+                    <dl>
+                        <dt>&nbsp;</dt>
+                        <dd>
+                            <li>
+                                <a class="btn btn-delete" title="검색" id="btnSearch">
+                                    <!--                                        class 쓰이는 곳 찾고 없으면 클래스명 수정하기-->
+                                    <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
+                                    검색
+                                </a>
+                            </li>
+                        </dd>
+                    </dl>
+                </div>
+                <div class="button-wrap">
+                    <ul>
+                        <li>
+                            <a class="btn btn-excell" title="PLM자재등록" id="btnInputPLM">
+                                PLM 자재등록
+                            </a>
+                        </li>
+                        <li>
+                            <a class="btn btn-excell" title="트리 보기" id="btnTreeView">
+                                트리 보기
+                            </a>
+                        </li>
+                        <li>
+                            <a class="btn btn-excell" title="자재 합계 보기" id="btnFlatView">
+                                자재 합계 보기
+                            </a>
+                        </li>
+<!--                        <li>-->
+<!--                            <a class="btn btn-excell" title="품목등록" id="btnAddMat">-->
+<!--                                프로젝트 등록-->
+<!--                            </a>-->
+<!--                        </li>-->
+                    </ul>
+                </div>
+            </div>
+            <div class="container-fluid d-flex">
+                <div id="theGrid" style="height: 730px; flex: 1; border: 1px solid #ccc;"></div>
+                <div id="theGrid2" style="height: 730px; flex: 2; border: 1px solid #ccc;"></div>
+            </div>
+        </section>
+    </div>
+
+
+
+</th:block>
+
+<th:block layout:fragment="scripts">
+    <script type="text/javascript">
+
+        class InputBomPage {
+            constructor() {
+                this.url = '/api/plm/plm';
+                this.grid = null;
+                this.grid2 = null;
+                this.$btnAddNew = $('#btnAddNew');
+                this.viewData = new wijmo.collections.CollectionView();
+                this.viewData2 = new wijmo.collections.CollectionView();
+                this.init();
+            }
+
+            init() {
+                let _this = this;
+                this.grid = new wijmo.grid.FlexGrid('#theGrid', {
+                    selectionMode: wijmo.grid.SelectionMode.Row,
+                    headersVisibility: wijmo.grid.HeadersVisibility.All,
+                    autoGenerateColumns: false,
+                    showMarquee: true,
+                    isReadOnly: true,
+                    formatItem: (sender, e) => {
+                        if (e.panel.cellType === wijmo.grid.CellType.ColumnHeader) {
+                            e.cell.style.textAlign = 'center';
+                        }
+                        if (e.panel.cellType === wijmo.grid.CellType.Cell) {
+                            const col = sender.columns[e.col];
+
+                            if (col.binding === 'BPDATE') {
+                                const raw = e.cell.textContent?.trim();
+                                if (/^\d{8}$/.test(raw)) {
+                                    const formatted = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+                                    e.cell.textContent = formatted;
+                                }
+                            }
+                        }
+                    },
+                    columns: [
+                        {binding: 'ECO_NO', header: '번호', width: 90},
+                        {binding: 'PROJECT_NO', header: '프로젝트 번호', width: 150, align: 'center'},
+                        {binding: 'PROJECT_NM', header: '프로젝트명', width: 150},
+                        {binding: 'ERP_YN', header: '전송 여부', width: 100, align: 'center'},
+                        {binding: 'BPDATE', header: '전송 일자', width: 120, align: 'center'},
+                        {binding: 'BPPERNM', header: '수신자', width: 120, align: 'center'}
+                    ],
+                    itemsSource: this.viewData, // 데이터를 설정할 배열
+                });
+
+                new FlexGridContextMenu(this.grid);
+                this.grid.downloadFileName = '프로젝트 리스트';
+                let selector = new wijmo.grid.selector.Selector(this.grid);
+
+                this.grid2 = new wijmo.grid.FlexGrid('#theGrid2', {
+                    selectionMode: wijmo.grid.SelectionMode.Row,
+                    headersVisibility: wijmo.grid.HeadersVisibility.Column,
+                    autoGenerateColumns: false,
+                    showMarquee: true,
+                    isReadOnly: true,
+                    formatItem: (sender, e) => {
+                        const col = sender.columns[e.col];
+                        const row = sender.rows[e.row];
+
+                        if (e.panel.cellType === wijmo.grid.CellType.ColumnHeader) {
+                            e.cell.style.textAlign = 'center';
+                            return;
+                        }
+
+                        if (e.panel.cellType === wijmo.grid.CellType.Cell) {
+                            const item = row.dataItem;
+                            if (!item) return;
+
+                            // 날짜 포맷 처리
+                            if (col.binding === 'BPDATE') {
+                                const raw = e.cell.textContent?.trim();
+                                if (/^\d{8}$/.test(raw)) {
+                                    e.cell.textContent = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+                                }
+                            }
+
+                            // 트리 indent 처리
+                            if (col.binding === 'ECO_NO') {
+                                const depth = row.level;
+                                const indentPerLevel = 15;
+
+                                const cell = e.cell;
+                                const button = cell.querySelector('button.wj-elem-collapse');
+                                const textNode = [...cell.childNodes].find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim() !== '');
+
+                                if (textNode) {
+                                    const span = document.createElement('span');
+                                    span.textContent = textNode.textContent.trim();
+                                    span.style.marginLeft = `${depth * indentPerLevel}px`;
+                                    span.style.display = 'inline-block';
+                                    cell.replaceChild(span, textNode);
+                                }
+
+                                if (button) {
+                                    button.style.height = '5px';
+                                    button.style.padding = '0';
+                                    button.style.lineHeight = '5px';
+                                }
+                            }
+
+                            //  diff 색상 적용
+                            const diffType = item.DIFF_TYPE;
+                            if (diffType) {
+                                e.cell.classList.add(`diff-${diffType.toLowerCase()}`);
+                            }
+                        }
+                    },
+                    columns: [
+                        {binding: 'ECO_NO', header: '번호', width: 120},
+                        {binding: 'PART_NO', header: '품목코드', width: 150, align: 'center'},
+                        {binding: 'PART_NM', header: '퓸목명', width: 200},
+                        {binding: 'SPEC', header: '규격', width: 150},
+                        {binding: 'PART_SIZE', header: '사이즈', width: 120},
+                        {binding: 'UNIT', header: '단위', width: 120},
+                        {binding: 'QTY', header: '사용수량', width: 100, align: 'center'},
+                        {binding: 'DRAWING_NO', header: '도면 번호', width: 100, align: 'center'},
+                        {binding: 'ERP_YN', header: '전송 여부', width: 100, align: 'center'},
+                        {binding: 'BPDATE', header: '전송 일자', width: 120, align: 'center'},
+                        {binding: 'BPPERNM', header: '수신자', width: 120, align: 'center'}
+                    ],
+                    itemsSource: this.viewData2, // 데이터를 설정할 배열
+                });
+
+                new FlexGridContextMenu(this.grid2);
+                this.grid2.downloadFileName = 'BOM 내역';
+
+                this.grid.hostElement.addEventListener('dblclick', function (e) {
+                    let items = _this.grid.selectedItems;
+                    if (items.length === 0) {
+                        return false;
+                    }
+
+                    _this.searchDetailData(items);
+                });
+            }
+
+            searchMainData() {
+                let _this = this;
+                let url = this.url + '/read_pj_synch';
+
+                let data = {
+                    'srchStartDt': $("#srchStartDt").val(),
+                    'srchEndDt': $("#srchEndDt").val(),
+                    'input_flag': $("#input_flag").val(),
+                    'txtDescription': $("#txtDescription").val(),
+                };
+                let fnsuccess = function (result) {
+                    if (result != null) {
+                        console.log()
+                        _this.viewData.sourceCollection = result.data;
+                    }
+                };
+                AjaxUtil.getAsyncData(url, data, fnsuccess);
+
+            }
+
+            searchDetailData(items) {
+                let _this = this;
+                let url = this.url + '/compare_bom_buffer';
+
+
+                const selected = items[0];
+                const ecoNo = selected.ECO_NO;
+                const projectNo = selected.PROJECT_NO;
+                const erpyn = selected.ERP_YN;
+
+                let data = {
+                    'ecoNo': ecoNo,
+                    'projectNo': projectNo,
+                    'erpyn': erpyn
+                };
+
+                let fnsuccess = function (result) {
+                    if (result != null) {
+                        let items = result.data;
+                        _this.originalBomData = items; // 원본 BOM 데이터 저장
+                        // 기본 트리 형식으로 표시
+                        _this.currentViewType = 'tree';
+                        const treeData = _this.buildBomTree(_this.originalBomData);
+                        _this.viewData2.sourceCollection = treeData;
+
+                        // 트리 설정
+                        _this.grid2.childItemsPath = 'items';
+                    }
+                };
+                AjaxUtil.getAsyncData(url, data, fnsuccess);
+
+            }
+
+            buildBomTree(flatList) {
+                const map = new Map();  // PART_NO 기준 맵핑
+                const roots = [];
+
+                // 1. 모든 노드를 Map에 등록
+                flatList.forEach(item => {
+                    const key = item.CHILD_NO;
+                    if (!map.has(key)) {
+                        map.set(key, { ...item, items: [] });
+                    } else {
+                        // 이미 있으면 정보 보완
+                        Object.assign(map.get(key), item);
+                    }
+                });
+
+                // 2. 부모-자식 관계 구성
+                flatList.forEach(item => {
+                    const parentKey = item.PARENT_NO;
+                    const childKey = item.CHILD_NO;
+
+                    if (parentKey && map.has(parentKey) && map.has(childKey)) {
+                        const parent = map.get(parentKey);
+                        const child = map.get(childKey);
+                        parent.items.push(child);
+                    }
+                });
+
+                // 3. 루트 노드 수집 (부모가 없는 노드)
+                map.forEach((node, key) => {
+                    const isRoot = !flatList.some(item => item.CHILD_NO === key && item.PARENT_NO);
+                    if (isRoot) {
+                        roots.push(node);
+                    }
+                });
+
+                console.log('roots', roots);
+                return roots;
+            }
+
+            flattenBomList(flatList) {
+                const resultMap = new Map();
+
+                // 자품목이 있는 모품목 목록 수집
+                const parentSet = new Set();
+                flatList.forEach(item => {
+                    if (item.PARENT_NO) {
+                        parentSet.add(item.PARENT_NO);
+                    }
+                });
+
+                flatList.forEach(item => {
+                    // 조건 1: CHILD_NO가 없으면 제외
+                    if (!item.CHILD_NO) return;
+
+                    // 조건 2: 자품목이 있는 모품목이면 제외
+                    if (parentSet.has(item.CHILD_NO)) return;
+
+                    const key = item.CHILD_NO;
+                    if (!resultMap.has(key)) {
+                        resultMap.set(key, { ...item });
+                    } else {
+                        const existing = resultMap.get(key);
+                        existing.QTY = parseFloat(existing.QTY || 0) + parseFloat(item.QTY || 0);
+                    }
+                });
+
+                return Array.from(resultMap.values());
+            }
+
+            inputPlm(){
+                let url = this.url + '/save_plm';
+                let items = this.grid.rows
+                    .filter(row => row.isSelected)
+                    .map(row => row.dataItem);
+
+                if (!items || items.length === 0) {
+                    Alert.alert('', '동기화할 프로젝트를 선택하세요.');
+                    return;
+                }
+
+                // DIFF_TYPE이 'UNCHANGED' 또는 'UNCHANGED_PARENT'만 있는지 확인
+                const hasDiff = items.some(item =>
+                    item.DIFF_TYPE && !['UNCHANGED', 'UNCHANGED_PARENT'].includes(item.DIFF_TYPE)
+                );
+
+                if (!hasDiff) {
+                    Alert.alert('', '변경된 내용이 없습니다.');
+                    return;
+                }
+
+                let fnSuccess = function (res) {
+                    if (!res.success) {
+                        Alert.alert('', res.message);
+                    } else {
+                        Notify.success('저장되었습니다.');
+                    }
+                };
+
+                AjaxUtil.postJsonAsyncData(url, items, fnSuccess);
+
+            }
+
+        }
+
+
+        let page = null;
+
+
+        $(document).ready(function (e) {
+
+            page = new InputBomPage();
+
+            document.querySelector('#btnInputPLM').addEventListener('click', function () {
+                page.inputPlm();
+            });
+
+            document.querySelector('#btnTreeView').addEventListener('click', function () {
+                const treeData = page.buildBomTree(page.originalBomData);
+                page.viewData2.sourceCollection = treeData;
+                page.grid2.childItemsPath = 'items';
+                page.currentViewType = 'tree';
+            });
+
+            document.querySelector('#btnFlatView').addEventListener('click', function () {
+                const flatData = page.flattenBomList(page.originalBomData);
+                page.viewData2.sourceCollection = flatData;
+                page.grid2.childItemsPath = null; // 트리 모드 해제
+                page.currentViewType = 'flat';
+            });
+
+
+            $('#srchStartDt').val(CommonUtil.getYYYYMMDD(-7));
+            $('#srchEndDt').val(CommonUtil.getYYYYMMDD());
+
+            page.searchMainData();
+
+            // 검색
+            $('#btnSearch').click(function (e) {
+                page.searchMainData();
+            });
+
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const inputFlag = document.getElementById('input_flag');
+            const dateSection = document.getElementById('dateSection');
+
+            inputFlag.addEventListener('change', function () {
+                if (inputFlag.checked) {
+                    inputFlag.value = 'Y';
+                    dateSection.style.display = '';
+                } else {
+                    inputFlag.value = 'N';
+                    dateSection.style.display = 'none';
+                }
+            });
+        });
+
+
+    </script>
+
+</th:block>
+<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+</html>

@@ -9,6 +9,9 @@
 
   "wm_balju_order":      {"name": "외주발주등록", "templates": { "default": "balju/balju_order.html" }},
 
+  "input_bom":           {"name": "BOM 등록", "templates":  { "default": "plm/input_bom.html"}},
+  "project_list":        {"name": "프로젝트 관리", "templates":  { "default": "plm/project_list.html"}},
+
   "wm_user_group":          { "name": "사용자 그룹", "templates": { "default": "system/usergroup.html" }  },
   "wm_user":                { "name": "사용자 관리", "templates": { "default": "system/user_main.html" }},
   "wm_menu_log":            { "name": "로그 현황", "templates": { "default": "system/menu_log.html" } },

@@ -2,6 +2,7 @@ package mes.config;
 
 import java.util.HashMap;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
@@ -82,8 +84,30 @@ public class DataSourceConfig {
 		//properties.put("hibernate.storage_engine", property.getStorage_engine());
 		emf.setJpaPropertyMap(properties);	
 		return emf;
-    } 
-	
+    }
+
+	@ConfigurationProperties(prefix = "oracle.datasource")
+	@Bean(name = "oracleDataSource")
+	public DataSource oracleDataSource() {
+		return DataSourceBuilder.create().build();
+	}
+
+	@Bean(name = "oracleJdbcTemplate")
+	public JdbcTemplate oracleJdbcTemplate(@Qualifier("oracleDataSource") DataSource ds) {
+		return new JdbcTemplate(ds);
+	}
+
+	@Bean(name = "namedParameterJdbcTemplate") //
+	public NamedParameterJdbcTemplate namedParameterJdbcTemplate(@Qualifier("dataSource") DataSource ds) {
+		return new NamedParameterJdbcTemplate(ds);
+	}
+
+	@Bean(name = "oracleNamedParameterJdbcTemplate")
+	public NamedParameterJdbcTemplate oracleNamedParameterJdbcTemplate(@Qualifier("oracleDataSource") DataSource ds) {
+		return new NamedParameterJdbcTemplate(ds);
+	}
+
+
 	@Bean	
 	PlatformTransactionManager transactionManager(){
 		

@@ -1,543 +1,752 @@
 <html layout:decorate="~{layout_page}" xmlns:layout="http://www.w3.org/1999/xhtml">
 <style>
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 9999; /* z-index를 더 높임 */
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
 
+    /* 공통 Modal 컨텐츠 스타일 */
+    .modal-content {
+        background: white;
+        border-radius: 8px;
+        margin: 10% auto;
+        padding: 20px;
+        width: 600px;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        position: relative;
+        top: 15%;
+    }
+
+    .btn-popup-close img {
+        float: right;
+    }
+
+    #modalGrid {
+        height: auto; /* 높이를 자동으로 조정 */
+        max-height: 500px; /* 필요에 따라 최대 높이를 지정 */
+        overflow-y: auto; /* 스크롤 활성화 */
+    }
+
+    /* 체크박스를 수직 및 수평 중앙 정렬 */
+    .wj-cell.wj-header .wj-cell-element,
+    .wj-cell.wj-header input[type="checkbox"],
+    .wj-cell input[type="checkbox"] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .section-card-wrap {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 10px;
+    }
+
+    .fetchCard {
+        flex: 0 0 calc(16.66% - 10px); /* 카드 너비를 반응형으로 조절 */
+        padding: 10px;
+        box-sizing: border-box;
+        width: auto;
+    }
 </style>
 <th:block layout:fragment="content">
 
-    <!--- (레이아웃) Contents 영역 -->
-    <div class="layout-contents">
-        <!-- Page Title -->
-        <div class="page-title-wrap">
-            <div class="left">
-                <h2>Dashboard</h2>
-                <img src="/images/icon/exclamation/exclamation-circle.svg"
-                     class="zoom-img"
-                     onclick="openPopup('https://foms.atlassian.net/wiki/external/MDlmNjZmZmQwN2MyNDNjMmI5NGQxOWY1YWVhNmMxNDI')" alt="도움말">
-                <!--                <a href="#" title="북마크" class="bookmark toggle">-->
-                <!--                    내메뉴-->
-                <!--                </a>-->
-            </div>
-            <ul class="page-navi">
-                <li><img src="/images/icon/ico-nav-home.svg" alt="홈아이콘"></li>
-            </ul>
-        </div>
-        <!-- Select -->
+  <!--- (레이아웃) Contents 영역 -->
+  <!--<div class="layout-contents">
+      &lt;!&ndash; Page Title &ndash;&gt;
+      <div class="page-title-wrap">
+          <div class="left">
+              <h2>Dashboard</h2>
+              <img src="/images/icon/exclamation/exclamation-circle.svg"
+                   class="zoom-img"
+                   onclick="openPopup('https://foms.atlassian.net/wiki/external/MDlmNjZmZmQwN2MyNDNjMmI5NGQxOWY1YWVhNmMxNDI')" alt="도움말">
+              &lt;!&ndash;                <a href="#" title="북마크" class="bookmark toggle">&ndash;&gt;
+              &lt;!&ndash;                    내메뉴&ndash;&gt;
+              &lt;!&ndash;                </a>&ndash;&gt;
+          </div>
+          <ul class="page-navi">
+              <li><img src="/images/icon/ico-nav-home.svg" alt="홈아이콘"></li>
+          </ul>
+      </div>
+      &lt;!&ndash; Select &ndash;&gt;
 
-        <div class="tab-wrap">
-            <ul class="tab-links">
-                <li>
-                    <a href="#tab1" title="주문 캘린더" class="tab-button">주문 캘린더</a>
-                </li>
-            </ul>
-            <div class="tab-contents">
-                <!-- Section -->
-                <section class="tab-item" id="tab1" style="height: 900px; margin-bottom: 10px">
-                    <div class="row" style="display: flex;">
-                        <!-- 왼쪽 섹션: 50% 차지 -->
-                        <section
-                                style="width: 60%; box-sizing: border-box; height: 830px; margin-right: 20px; border-radius: 10px; ">
-                            <div class="title-wrap">
-                                <h3>주문 캘린더</h3>
-                                <div class="btn-wrap">
-                                </div>
-                            </div>
-                            <div class="calendar-wrap">
-                                <div id="calendar"></div>
-                            </div>
-                        </section>
-                        <!-- 오른쪽 섹션을 감싸는 div -->
-                        <div style="display: flex; flex-direction: column; width: 40%;">
-                            <!-- 위쪽 섹션 -->
-                            <section style=" box-sizing: border-box;">
-                                <div style="margin-bottom: 15px">
-                                    <h3 id="year-status"></h3>
-                                </div>
-                                <div class="tab-contents">
-                                    <div class="row">
-                                        <div class="section-card-wrap" style="gap: 5px">
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="0">
-                                                <div class="title">
-                                                    <h3>주문의뢰</h3>
-                                                </div>
-                                                <div class="requestCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
-                                                    -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
-                                                </div>
-                                            </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="1">
-                                                <div class="title">
-                                                    <h3>주문확인</h3>
-                                                </div>
-                                                <div class="checkCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
-                                                    -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
-                                                </div>
-                                            </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="2">
-                                                <div class="title">
-                                                    <h3>주문확정</h3>
-                                                </div>
-                                                <div class="estimateCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
-                                                    -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
-                                                </div>
-                                            </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="3">
-                                                <div class="title">
-                                                    <h3>제작진행</h3>
-                                                </div>
-                                                <div class="produceCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
-                                                    -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
-                                                </div>
-                                            </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="4">
-                                                <div class="title">
-                                                    <h3>출고</h3>
-                                                </div>
-                                                <div class="deliveryCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
-                                                    -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
-                                                </div>
-                                            </section>
-                                            <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="5">
-                                                <div class="title">
-                                                    <h3>주문취소</h3>
-                                                </div>
-                                                <div class="cancelCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
-                                                    -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
-                                                </div>
-                                            </section>
-                                        </div> <!--//main-card-wrap end -->
-                                    </div>
-                                </div>
-                            </section>
+      <div class="tab-wrap">
+          <ul class="tab-links">
+              <li>
+                  <a href="#tab1" title="주문 캘린더" class="tab-button">주문 캘린더</a>
+              </li>
+          </ul>
+          <div class="tab-contents">
+              &lt;!&ndash; Section &ndash;&gt;
+              <section class="tab-item" id="tab1" style="height: 900px; margin-bottom: 10px">
+                  <div class="row" style="display: flex;">
+                      &lt;!&ndash; 왼쪽 섹션: 50% 차지 &ndash;&gt;
+                      <section
+                              style="width: 60%; box-sizing: border-box; height: 830px; margin-right: 20px; border-radius: 10px; ">
+                          <div class="title-wrap">
+                              <h3>주문 캘린더</h3>
+                              <div class="btn-wrap">
+                              </div>
+                          </div>
+                          <div class="calendar-wrap">
+                              <div id="calendar"></div>
+                          </div>
+                      </section>
+                      &lt;!&ndash; 오른쪽 섹션을 감싸는 div &ndash;&gt;
+                      <div style="display: flex; flex-direction: column; width: 40%;">
+                          &lt;!&ndash; 위쪽 섹션 &ndash;&gt;
+                          <section style=" box-sizing: border-box;">
+                              <div style="margin-bottom: 15px">
+                                  <h3 id="year-status"></h3>
+                              </div>
+                              <div class="tab-contents">
+                                  <div class="row">
+                                      <div class="section-card-wrap" style="gap: 5px">
+                                          <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="0">
+                                              <div class="title">
+                                                  <h3>주문의뢰</h3>
+                                              </div>
+                                              <div class="requestCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
+                                                  -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
+                                              </div>
+                                          </section>
+                                          <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="1">
+                                              <div class="title">
+                                                  <h3>주문확인</h3>
+                                              </div>
+                                              <div class="checkCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
+                                                  -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
+                                              </div>
+                                          </section>
+                                          <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="2">
+                                              <div class="title">
+                                                  <h3>주문확정</h3>
+                                              </div>
+                                              <div class="estimateCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
+                                                  -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
+                                              </div>
+                                          </section>
+                                          <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="3">
+                                              <div class="title">
+                                                  <h3>제작진행</h3>
+                                              </div>
+                                              <div class="produceCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
+                                                  -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
+                                              </div>
+                                          </section>
+                                          <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="4">
+                                              <div class="title">
+                                                  <h3>출고</h3>
+                                              </div>
+                                              <div class="deliveryCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
+                                                  -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
+                                              </div>
+                                          </section>
+                                          <section style="flex: 0.5; margin-right: 5px; cursor: pointer; padding: 10px 10px;" class="fetchCard" data-search-type="5">
+                                              <div class="title">
+                                                  <h3>주문취소</h3>
+                                              </div>
+                                              <div class="cancelCnt" style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
+                                                  -<span class="small-unit" style=" font-size: 0.5em; opacity: 0.5;"> 건</span>
+                                              </div>
+                                          </section>
+                                      </div> &lt;!&ndash;//main-card-wrap end &ndash;&gt;
+                                  </div>
+                              </div>
+                          </section>
 
-                            <!-- 아래쪽 섹션 (넓게 설정) -->
-                            <section style="flex: 1; box-sizing: border-box; margin-top: 20px;">
-                                <div class="tab-item-sub" id="tab1_2">
-                                    <div class="section-top" style="margin-top: 10px;">
-                                        <div class="search-wrap">
-                                            <dl>
-                                                <dt>
-                                                    조회일자<span class="eq">*</span>
-                                                </dt>
-                                                <dd>
-                                                    <ul class="date-box">
-                                                        <li>
-                                                            <input type="date" id="startDate" name="startDate"
-                                                                   value="">
-                                                            <label for="startDate" class="hide">시작일</label>
-                                                        </li>
-                                                        <li>
-                                                            <input type="date" id="endDate" name="endDate" value="">
-                                                            <label for="endDate" class="hide">종료일</label>
-                                                        </li>
-                                                        <li>
-                                                            <a class="btn btn-delete" title="검색" id="btn-srch" onclick="fetchListData()">
-                                                                <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
-                                                                검색
-                                                            </a>
-                                                        </li>
-                                                    </ul>
-                                                </dd>
-                                            </dl>
-                                        </div>
-                                    </div> <!--//section-top end -->
-                                    <div class="container-fluid" style="padding-left: 0; padding-right: 0;">
-                                        <!-- 그리드 영역 -->
-                                        <div class="col-12" style="margin-bottom: 10px;">
-                                            <div id="theGrid" style="width: 100%; height: 400px;"></div>
-                                        </div>
-                                    </div>
+                          &lt;!&ndash; 아래쪽 섹션 (넓게 설정) &ndash;&gt;
+                          <section style="flex: 1; box-sizing: border-box; margin-top: 20px;">
+                              <div class="tab-item-sub" id="tab1_2">
+                                  <div class="section-top" style="margin-top: 10px;">
+                                      <div class="search-wrap">
+                                          <dl>
+                                              <dt>
+                                                  조회일자<span class="eq">*</span>
+                                              </dt>
+                                              <dd>
+                                                  <ul class="date-box">
+                                                      <li>
+                                                          <input type="date" id="startDate" name="startDate"
+                                                                 value="">
+                                                          <label for="startDate" class="hide">시작일</label>
+                                                      </li>
+                                                      <li>
+                                                          <input type="date" id="endDate" name="endDate" value="">
+                                                          <label for="endDate" class="hide">종료일</label>
+                                                      </li>
+                                                      <li>
+                                                          <a class="btn btn-delete" title="검색" id="btn-srch" onclick="fetchListData()">
+                                                              <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
+                                                              검색
+                                                          </a>
+                                                      </li>
+                                                  </ul>
+                                              </dd>
+                                          </dl>
+                                      </div>
+                                  </div> &lt;!&ndash;//section-top end &ndash;&gt;
+                                  <div class="container-fluid" style="padding-left: 0; padding-right: 0;">
+                                      &lt;!&ndash; 그리드 영역 &ndash;&gt;
+                                      <div class="col-12" style="margin-bottom: 10px;">
+                                          <div id="theGrid" style="width: 100%; height: 400px;"></div>
+                                      </div>
+                                  </div>
 
-                                </div>
-                            </section>
+                              </div>
+                          </section>
+                      </div>
+                  </div>
+              </section>
+          </div>
+      </div>
+      </section>
+  </div>-->
+  <div class="layout-contents">
+    <!-- Page Title -->
+    <div class="page-title-wrap">
+      <div class="left">
+        <h2>주문 현황</h2>
+        <!-- <a id="toggleButton" onclick="toggleSearchWrap()"><img src="/images/icon/ico-down.png" alt="알람 아이콘"></a> -->
+        <!--                <a href="#" title="북마크" class="bookmark toggle">-->
+        <!--                    내메뉴-->
+        <!--                </a>-->
+      </div>
+      <ul class="page-navi">
+        <li><img src="/images/icon/ico-nav-home.svg" alt="홈아이콘"></li>
+        <li>주문 현황</li>
+      </ul>
+    </div>
+    <!-- Select -->
+    <div class="search-wrap" id="searchWrap" style="display: none; padding-top:10px">
+      <ul>
+        <li>
+          <select title="사업장코드" id="search_spjangcd" name="search_sjangcd"
+                  onchange="init()">
+            <option value="" hidden selected disabled>선택</option>
+            <option value="ZZ">제이앤제이솔루션</option>
+            <!-- 지역 옵션을 JavaScript에서 동적으로 채움 -->
+          </select>
+        </li>
+      </ul>
+    </div>
+    <div class="tab-wrap">
+      <ul class="tab-links">
+        <li>
+          <a href="#tab1" title="주문 캘린더" class="tab-button">주문 현황</a>
+        </li>
+      </ul>
+      <div class="tab-contents">
+        <!-- Section -->
+        <section class="tab-item" id="tab1" style="height: 880px; margin-bottom: 10px;">
+          <div class="row" style="display: flex; gap: 20px; width: 100%;">
+
+            <!-- 왼쪽: 캘린더 (60%) -->
+            <section style="flex: 6; height: 800px; box-sizing: border-box; border-radius: 10px;">
+              <div class="title-wrap">
+                <h3>주문 현황</h3>
+              </div>
+              <div class="calendar-wrapper">
+                <div id="calendar"></div>
+              </div>
+            </section>
+
+            <!-- 오른쪽: 현황 카드 및 그리드 (40%) -->
+            <div style="flex: 4; display: grid; flex-direction: column;">
+
+              <!-- 상단 카드 섹션 -->
+              <section style="box-sizing: border-box;">
+                <div style="margin-bottom: 15px">
+                  <h3 id="year-status">2024년 주문 현황</h3>
+                </div>
+                <div class="tab-contents">
+                  <div class="row">
+                    <div class="section-card-wrap"
+                         style="display: flex; align-items: stretch; flex-wrap: nowrap; gap: 5px;">
+
+                      <section class="fetchCard" data-search-type="5"
+                               style="background-color: gray; color: #fff; flex: 0.5; padding: 5px 5px; cursor: pointer;">
+                        <div class="title"><h3>주문취소</h3></div>
+                        <div class="cancelCnt"
+                             style="font-size: 32px; font-weight: 700; text-align: right; margin: 9px 0;">
+                          -<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>
                         </div>
+                      </section>
+
+                      <section class="fetchCard" data-search-type="0"
+                               style="background-color: #031B4B; color: #fff; flex: 0.5; padding: 5px; cursor: pointer;">
+                        <div class="title"><h3>주문등록</h3></div>
+                        <div class="requestCnt" style="font-size: 32px; text-align: right;">
+                          -<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>
+                        </div>
+                      </section>
+
+                      <section class="fetchCard" data-search-type="1"
+                               style="background-color: #03428E; color: #fff; flex: 0.5; padding: 5px; cursor: pointer;">
+                        <div class="title"><h3>주문확인</h3></div>
+                        <div class="checkCnt" style="font-size: 32px; text-align: right;">
+                          -<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>
+                        </div>
+                      </section>
+
+                      <section class="fetchCard" data-search-type="2"
+                               style="background-color: #3069B3; color: #fff; flex: 0.5; padding: 5px; cursor: pointer;">
+                        <div class="title"><h3>주문확정</h3></div>
+                        <div class="estimateCnt" style="font-size: 32px; text-align: right;">
+                          -<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>
+                        </div>
+                      </section>
+
+                      <section class="fetchCard" data-search-type="3"
+                               style="background-color: #C7DFF4; color: #031B4B; flex: 0.5; padding: 5px; cursor: pointer;">
+                        <div class="title"><h3>제작진행</h3></div>
+                        <div class="produceCnt" style="font-size: 32px; text-align: right;">
+                          -<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>
+                        </div>
+                      </section>
+
+                      <section class="fetchCard" data-search-type="4"
+                               style="background-color: #fff; color: #000; flex: 0.5; padding: 5px; cursor: pointer;">
+                        <div class="title"><h3>출고</h3></div>
+                        <div class="deliveryCnt" style="font-size: 32px; text-align: right;">
+                          -<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>
+                        </div>
+                      </section>
+
                     </div>
-                </section>
+                  </div>
+
+                </div>
+              </section>
+
+              <!-- 하단 그리드 섹션 -->
+              <section style="flex: 1; box-sizing: border-box; margin-top: 20px;">
+                <div class="tab-item-sub" id="tab1_2">
+                  <div class="section-top">
+                    <div class="search-wrap">
+                      <dl>
+                        <dt>조회일자<span class="eq">*</span></dt>
+                        <dd>
+                          <ul class="date-box">
+                            <li><input type="date" id="startDate2" name="startDate"></li>
+                            <li><input type="date" id="endDate2" name="endDate"></li>
+                            <li>
+                              <a class="btn btn-delete" id="btn-srch" onclick="fetchListData();initDatas();">
+                                <img src="/images/icon/btn-srch.svg" alt="검색 아이콘"> 검색
+                              </a>
+                            </li>
+                          </ul>
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
+                  <div class="container-fluid" style="padding-left: 0; padding-right: 0;">
+                    <div class="col-12" style="margin-bottom: 10px;">
+                      <div id="theGrid" style="width: 100%; height: 400px;"></div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
             </div>
-        </div>
+          </div>
         </section>
-    </div> <!--//tab-contens end-->
-    </div> <!--//tab-wrap end-->
-    </div> <!--//layout-contents end -->
-    <footer style="margin-top:5px;">
-        <p>Copyrightⓒ 0000 corp. All rights reserved.</p>
-    </footer>
-    <div style="height: 10px"></div>
+      </div>
+    </div>
+    </section>
+  </div> <!--//tab-contens end-->
+  </div> <!--//tab-wrap end-->
+  </div> <!--//layout-contents end -->
+  <footer style="margin-top:5px;">
+    <p>Copyrightⓒ 0000 corp. All rights reserved.</p>
+  </footer>
+  <div style="height: 10px"></div>
 </th:block>
 
 <th:block layout:fragment="scripts">
-    <th:block th:replace="/common/columns_setting :: columns_setting"></th:block>
-    <script type="text/javascript">
-        let theGrid;
-        var viewdata;
-        let calendar; // 전역으로 calendar 변수 선언
+  <th:block th:replace="/common/columns_setting :: columns_setting"></th:block>
+  <script type="text/javascript">
+    let theGrid;
+    var viewdata;
+    let calendar; // 전역으로 calendar 변수 선언
 
-        // 오늘 날짜 설정
-        const date = new Date();
-        date.setHours(date.getHours() + 9); // UTC+9로 한국 시간 설정
-        const today = date.toISOString().split('T')[0];
-        // 현재 년도를 가져옵니다
-        const currentYear = new Date().getFullYear();
-        const currentMonth = (date.getMonth() + 1).toString().padStart(2, '0'); // 1월은 0부터 시작하므로 +1 처리
-        // 시작일 input에 올해 1월 1일을 설정합니다
-        document.getElementById('startDate').value = `${currentYear}-${currentMonth}-01`;
-        document.getElementById('endDate').value = today;
-        document.getElementById('year-status').innerText = `${currentYear}년 주문 현황`;
+    // 오늘 날짜 설정
+    const date = new Date();
+    date.setHours(date.getHours() + 9); // UTC+9로 한국 시간 설정
+    const today = date.toISOString().split('T')[0];
+    // 현재 년도를 가져옵니다
+    const currentYear = new Date().getFullYear();
+    const currentMonth = (date.getMonth() + 1).toString().padStart(2, '0'); // 1월은 0부터 시작하므로 +1 처리
+    // 시작일 input에 올해 1월 1일을 설정합니다
+    document.readyState === 'complete' ? init() : window.onload = init;
 
-        document.readyState === 'complete' ? init() : window.onload = init;
+    // 초반 페이지 진입시 그리드 바인딩 시작
+    function init() {
+      fetchListData();
+      initCalendar();
+      initDatas();
+    }
 
-        // 초반 페이지 진입시 그리드 바인딩 시작
-        function init() {
-            fetchListData();
-            initCalendar();
-            initDatas();
+    // '.fetchCard' 클래스를 가진 모든 요소에 대해 클릭 이벤트 설정
+    $('.fetchCard').click(function () {
+      // 클릭된 카드의 data-search-type 속성 값 가져오기
+      const searchTypeValue = $(this).data('search-type');
+      fetchListData(searchTypeValue);  // 해당 값을 fetchListData 함수로 전달
+    });
+
+    function fetchListData(searchTypeValue) {
+      let data2 = []; // 데이터를 담을 배열
+      let emptyRowsCount = 10;
+      $.ajax({
+        url: '/api/orderDashboard/read',
+        type: 'GET',
+        data: {
+          'search_startDate': $('#startDate').val(),
+          'search_endDate': $('#endDate').val(),
+          'search_type': searchTypeValue
+        },
+        async: false,
+        success: function (data) {
+          data2 = data.data;
+          console.log("data2", data2)
+          data2.forEach(item => {
+            // item.ordflag = getHgrb(item.ordflag);
+            // item.reqdate = getListCgrb2(item.reqdate);
+            // item.remark = getListCgrb2(item.remark);
+            // item.deldate = getListCgrb2(item.deldate);
+            // item.amount = getListCgrb2(item.amount);
+          })
         }
-        // '.fetchCard' 클래스를 가진 모든 요소에 대해 클릭 이벤트 설정
-        $('.fetchCard').click(function() {
-            // 클릭된 카드의 data-search-type 속성 값 가져오기
-            const searchTypeValue = $(this).data('search-type');
-            fetchListData(searchTypeValue);  // 해당 값을 fetchListData 함수로 전달
+      })
+      viewdata = new wijmo.collections.CollectionView(data2);
+      if (!theGrid) {
+        theGrid = new wijmo.grid.FlexGrid('#theGrid', {
+          autoGenerateColumns: false,
+          showMarquee: true,
+          isReadOnly: true,
+          selectionMode: wijmo.grid.SelectionMode.Row,
+          columns: [
+            {binding: 'ordflag', header: '진행구분', align: 'center', width: 100},
+            {binding: 'reqdate', header: '의뢰일자', align: 'center', width: 120},
+            {binding: 'remark', header: '제목', align: 'left', width: 160},
+            {binding: 'deldate', header: '납품희망일', align: 'center', width: 110},
+            {binding: 'amount', header: '금액', align: 'center', width: 200}
+          ],
+          itemsSource: viewdata // 빈 객체가 추가된 배열 사용
         });
-        function fetchListData(searchTypeValue) {
-            let data2 = []; // 데이터를 담을 배열
-            let emptyRowsCount = 10;
-            $.ajax({
-                url: '/api/orderDashboard/read',
-                type: 'GET',
-                data: {
-                    'search_startDate': $('#startDate').val(),
-                    'search_endDate': $('#endDate').val(),
-                    'search_type': searchTypeValue
-                },
-                async: false,
-                success: function (data) {
-                    data2 = data.data;
-                    console.log("data2",data2)
-                    data2.forEach(item =>{
-                        // item.ordflag = getHgrb(item.ordflag);
-                        // item.reqdate = getListCgrb2(item.reqdate);
-                        // item.remark = getListCgrb2(item.remark);
-                        // item.deldate = getListCgrb2(item.deldate);
-                        // item.amount = getListCgrb2(item.amount);
-                    })
-                }
-            })
-            viewdata = new wijmo.collections.CollectionView(data2);
-            if (!theGrid) {
-                theGrid = new wijmo.grid.FlexGrid('#theGrid', {
-                    autoGenerateColumns: false,
-                    showMarquee: true,
-                    isReadOnly: true,
-                    selectionMode: wijmo.grid.SelectionMode.Row,
-                    columns: [
-                        { binding: 'ordflag', header: '진행구분', align: 'center', width: 100 },
-                        { binding: 'reqdate', header: '의뢰일자', align: 'center', width: 120 },
-                        { binding: 'remark', header: '제목', align: 'left', width: 160 },
-                        { binding: 'deldate', header: '납품희망일', align: 'center', width: 110 },
-                        { binding: 'amount', header: '금액', align: 'center', width: 200 }
-                    ],
-                    itemsSource: viewdata // 빈 객체가 추가된 배열 사용
-                });
-                // 헤더를 중앙 정렬하는 이벤트 핸들러
-                theGrid.formatItem.addHandler(function (s, e) {
-                    if (e.panel === s.columnHeaders) {
-                        e.cell.style.textAlign = 'center';
-                    }
-                });
-                attachDoubleClickEvent(theGrid);   //더블클릭 이벤트
-                // 선택이 변경될 때, 현재 항목 업데이트
-                theGrid.rowHeaders.columns.splice(0, 1);
-                new FlexGridContextMenu(theGrid);
-                window.downloadFileName = 'Order Dashboard';
+        // 헤더를 중앙 정렬하는 이벤트 핸들러
+        theGrid.formatItem.addHandler(function (s, e) {
+          if (e.panel === s.columnHeaders) {
+            e.cell.style.textAlign = 'center';
+          }
+        });
+        attachDoubleClickEvent(theGrid);   //더블클릭 이벤트
+        // 선택이 변경될 때, 현재 항목 업데이트
+        theGrid.rowHeaders.columns.splice(0, 1);
+        new FlexGridContextMenu(theGrid);
+        window.downloadFileName = 'Order Dashboard';
+      } else {
+        // 이미 FlexGrid이 존재하는 경우, 데이터만 업데이트
+        theGrid.itemsSource = viewdata; // 빈 객체가 추가된 배열 사용
+      }
+    }
+
+    function initCalendar() {
+      var calendarEl = document.getElementById('calendar');
+      if (calendarEl) {
+        // FullCalendar 설정
+        calendar = new FullCalendar.Calendar(calendarEl, {
+          locale: 'ko',
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth'
+          },
+          initialView: 'dayGridMonth',
+          height: 714,
+          dayHeaderFormat: {weekday: 'short'},
+          views: {
+            dayGridMonth: {
+              dayCellContent: function (arg) {
+                return arg.dayNumberText.replace('일', '');
+              }
+            }
+          },
+          dateClick: function (info) {
+            console.log('Clicked on: ' + info.dateStr);
+            document.getElementById("startDate").value = info.dateStr;
+            document.getElementById("endDate").value = info.dateStr;
+            fetchListData();
+          },
+          events: [] // 기본 이벤트는 빈 배열로 설정
+        });
+
+        // 공휴일 데이터 가져오기
+        fetchHolidays().then(holidays => {
+          console.log("holidays : ", holidays)
+          holidays.forEach(holiday => {
+            calendar.addEvent({
+              title: holiday.name, // 공휴일 이름
+              start: holiday.date,  // 공휴일 날짜
+              backgroundColor: '#ec193a',
+              borderColor: '#EC193A',
+              textColor: 'white'
+            });
+          });
+          setTimeout(() => {
+            calendar.render(); // 캘린더 렌더링
+            console.log('캘린더가 렌더링되었습니다.');
+          }, 500); // 500ms 딜레이
+        }).catch(error => {
+          console.error('공휴일 데이터를 가져오는 데 실패했습니다:', error);
+        });
+
+        // 주문현황 데이터 가져오기
+        // 주문현황 데이터 가져와서 날짜별 그룹화 후 캘린더에 추가
+        fetchOrderDates().then(orderDates => {
+          //console.log("📢 원본 orderDates 데이터:", orderDates);
+
+          // 1️⃣ 날짜별 그룹화 ( { "YYYY-MM-DD": { "주문확인": 3, "출고": 2 } } 형태로 저장 )
+          let groupedEvents = {};
+
+          orderDates.forEach(order => {
+            let date = order.date;  // 주문 날짜
+            let name = order.name;  // 주문 상태 (주문등록, 주문확인 등)
+
+            // 해당 날짜가 이미 존재하는지 확인
+            if (!groupedEvents[date]) {
+              groupedEvents[date] = {};
+            }
+
+            // 해당 상태가 이미 존재하면 count 증가
+            if (groupedEvents[date][name]) {
+              groupedEvents[date][name]++;
             } else {
-                // 이미 FlexGrid이 존재하는 경우, 데이터만 업데이트
-                theGrid.itemsSource = viewdata; // 빈 객체가 추가된 배열 사용
+              groupedEvents[date][name] = 1;
             }
-        }
+          });
 
-        function initCalendar() {
-            var calendarEl = document.getElementById('calendar');
-            if (calendarEl) {
-                // FullCalendar 설정
-                calendar = new FullCalendar.Calendar(calendarEl, {
-                    locale: 'ko',
-                    headerToolbar: {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth'
-                    },
-                    initialView: 'dayGridMonth',
-                    height: 714,
-                    dayHeaderFormat: { weekday: 'short' },
-                    views: {
-                        dayGridMonth: {
-                            dayCellContent: function (arg) {
-                                return arg.dayNumberText.replace('일', '');
-                            }
-                        }
-                    },
-                    dateClick: function (info) {
-                        console.log('Clicked on: ' + info.dateStr);
-                        document.getElementById("startDate").value = info.dateStr;
-                        document.getElementById("endDate").value = info.dateStr;
-                        fetchListData();
-                    },
-                    events: [] // 기본 이벤트는 빈 배열로 설정
-                });
+          // console.log("📢 날짜별 그룹화된 데이터:", groupedEvents);
 
-                // 공휴일 데이터 가져오기
-                fetchHolidays().then(holidays => {
-                    console.log("holidays : ", holidays)
-                    holidays.forEach(holiday => {
-                        calendar.addEvent({
-                            title: holiday.name, // 공휴일 이름
-                            start: holiday.date,  // 공휴일 날짜
-                            backgroundColor: '#ec193a',
-                            borderColor: '#EC193A',
-                            textColor: 'white'
-                        });
-                    });
-                    setTimeout(() => {
-                        calendar.render(); // 캘린더 렌더링
-                        console.log('캘린더가 렌더링되었습니다.');
-                    }, 500); // 500ms 딜레이
-                }).catch(error => {
-                    console.error('공휴일 데이터를 가져오는 데 실패했습니다:', error);
-                });
+          // 2️⃣ FullCalendar 이벤트 추가 (중복 제거 후 개수 표시)
+          Object.keys(groupedEvents).forEach(date => {
+            Object.keys(groupedEvents[date]).forEach(name => {
+              let count = groupedEvents[date][name]; // 주문 개수
+              let displayTitle = count > 1 ? `${name} (${count})` : name; // 개수 표시
 
-                // 주문현황 데이터 가져오기
-                // 주문현황 데이터 가져와서 날짜별 그룹화 후 캘린더에 추가
-                fetchOrderDates().then(orderDates => {
-                    //console.log("📢 원본 orderDates 데이터:", orderDates);
+              let eventColor = getEventColor(name); // 색상 가져오기
 
-                    // 1️⃣ 날짜별 그룹화 ( { "YYYY-MM-DD": { "주문확인": 3, "출고": 2 } } 형태로 저장 )
-                    let groupedEvents = {};
-
-                    orderDates.forEach(order => {
-                        let date = order.date;  // 주문 날짜
-                        let name = order.name;  // 주문 상태 (주문등록, 주문확인 등)
-
-                        // 해당 날짜가 이미 존재하는지 확인
-                        if (!groupedEvents[date]) {
-                            groupedEvents[date] = {};
-                        }
-
-                        // 해당 상태가 이미 존재하면 count 증가
-                        if (groupedEvents[date][name]) {
-                            groupedEvents[date][name]++;
-                        } else {
-                            groupedEvents[date][name] = 1;
-                        }
-                    });
-
-                    // console.log("📢 날짜별 그룹화된 데이터:", groupedEvents);
-
-                    // 2️⃣ FullCalendar 이벤트 추가 (중복 제거 후 개수 표시)
-                    Object.keys(groupedEvents).forEach(date => {
-                        Object.keys(groupedEvents[date]).forEach(name => {
-                            let count = groupedEvents[date][name]; // 주문 개수
-                            let displayTitle = count > 1 ? `${name} (${count})` : name; // 개수 표시
-
-                            let eventColor = getEventColor(name); // 색상 가져오기
-
-                            calendar.addEvent({
-                                title: displayTitle,
-                                start: date,
-                                backgroundColor: eventColor.bg,
-                                borderColor: eventColor.border,
-                                textColor: eventColor.text
-                            });
-                        });
-                    });
-
-                    setTimeout(() => {
-                        calendar.render(); // 캘린더 렌더링
-                        // console.log("📢 캘린더가 렌더링되었습니다.");
-                    }, 500);
-                }).catch(error => {
-                    console.error("❌ 주문현황 데이터를 가져오는 데 실패했습니다:", error);
-                });
-            }
-        }
-
-        // 공휴일 데이터를 가져오는 함수
-        async function fetchHolidays() {
-            const currentYear = new Date().getFullYear();
-            const yearsToFetch = [currentYear - 1, currentYear, currentYear + 1]; // 전년도, 현재 연도, 다음 연도 배열 생성
-
-            const holidays = [];
-
-            for (const year of yearsToFetch) {
-                const yearHolidays = await fetchHolidaysForYear(year);
-                holidays.push(...yearHolidays);
-            }
-            console.log("holidays : ", holidays)
-            return holidays;
-        }
-        // 주문현황 데이터를 가져오는 함수
-        async function fetchOrderDates() {
-            let data2 = []; // 데이터를 담을 배열
-            let emptyRowsCount = 8;
-            var orderDates = [];
-            $.ajax({
-                url: '/api/orderDashboard/readCalenderGrid',
-                type: 'GET',
-                data: {},
-                async: false,
-                success: function (response) {
-                    // 응답이 올바르게 도착했고, data 속성이 배열인지 확인
-                    if (response && Array.isArray(response.data)) {
-                        data2 = response.data;
-                        // 날짜 형식 변환 및 ordflag 변환
-                        //console.log("캘린더 데이터 : ", data2);
-                    }
-                },
-                error: function () {
-                    console.error("데이터를 가져오는 중 오류가 발생했습니다.");
-                }
+              calendar.addEvent({
+                title: displayTitle,
+                start: date,
+                backgroundColor: eventColor.bg,
+                borderColor: eventColor.border,
+                textColor: eventColor.text
+              });
             });
+          });
 
-            // viewdata.items를 반복하여 각 항목의 ordflag와 reqdate 값을 가져옵니다.
-            for (var i = 0; i < data2.length; i++) {
-                var item = data2[i];
-                orderDates.push({
-                    name: item.ordflag,
-                    date: item.reqdate
-                });
+          setTimeout(() => {
+            calendar.render(); // 캘린더 렌더링
+            // console.log("📢 캘린더가 렌더링되었습니다.");
+          }, 500);
+        }).catch(error => {
+          console.error("❌ 주문현황 데이터를 가져오는 데 실패했습니다:", error);
+        });
+      }
+    }
+
+    // 공휴일 데이터를 가져오는 함수
+    async function fetchHolidays() {
+      const currentYear = new Date().getFullYear();
+      const yearsToFetch = [currentYear - 1, currentYear, currentYear + 1]; // 전년도, 현재 연도, 다음 연도 배열 생성
+
+      const holidays = [];
+
+      for (const year of yearsToFetch) {
+        const yearHolidays = await fetchHolidaysForYear(year);
+        holidays.push(...yearHolidays);
+      }
+      console.log("holidays : ", holidays)
+      return holidays;
+    }
+
+    // 주문현황 데이터를 가져오는 함수
+    async function fetchOrderDates() {
+      let data2 = []; // 데이터를 담을 배열
+      let emptyRowsCount = 8;
+      var orderDates = [];
+      $.ajax({
+        url: '/api/orderDashboard/readCalenderGrid',
+        type: 'GET',
+        data: {},
+        async: false,
+        success: function (response) {
+          // 응답이 올바르게 도착했고, data 속성이 배열인지 확인
+          if (response && Array.isArray(response.data)) {
+            data2 = response.data;
+            // 날짜 형식 변환 및 ordflag 변환
+            //console.log("캘린더 데이터 : ", data2);
+          }
+        },
+        error: function () {
+          console.error("데이터를 가져오는 중 오류가 발생했습니다.");
+        }
+      });
+
+      // viewdata.items를 반복하여 각 항목의 ordflag와 reqdate 값을 가져옵니다.
+      for (var i = 0; i < data2.length; i++) {
+        var item = data2[i];
+        orderDates.push({
+          name: item.ordflag,
+          date: item.reqdate
+        });
+      }
+      //console.log("orderDates : ", orderDates)
+      return orderDates;
+    }
+
+    // 주문 상태에 따른 색상 설정
+    function getEventColor(name) {
+      switch (name) {
+        case "주문등록":
+          return {bg: "#031B4B", border: "#031B4B", text: "white"};
+        case "주문확인":
+          return {bg: "#03428E", border: "#03428E", text: "white"};
+        case "주문확정":
+          return {bg: "#3069B3", border: "#3069B3", text: "white"};
+        case "제작진행":
+          return {bg: "#C7DFF4", border: "rgba(2,165,255,0.07)", text: "black"};
+        case "출고":
+          return {bg: "white", border: "grey", text: "black"};
+        case "주문취소":
+          return {bg: "grey", border: "grey", text: "black"};
+        default:
+          return {bg: "grey", border: "grey", text: "white"};
+      }
+    }
+
+    async function fetchHolidaysForYear(year) {
+      return new Promise((resolve, reject) => {
+        var xhr = new XMLHttpRequest();
+        var url = 'http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo';
+        var queryParams = '?' + encodeURIComponent('serviceKey') + '=' + 'R3P3syhq6qRP0cz8mbV2J5t%2B32WwaSN9sH8ZW4k59oKAU3Ze0WvcljMrN36OJqxs38%2F780hMD4QfhCiDZQNUyA%3D%3D';
+        queryParams += '&' + encodeURIComponent('solYear') + '=' + encodeURIComponent(year);
+        queryParams += '&' + encodeURIComponent('numOfRows') + '=' + encodeURIComponent('30');
+
+        xhr.open('GET', url + queryParams);
+        xhr.onreadystatechange = function () {
+          if (this.readyState == 4) {
+            if (this.status == 200) {
+              var parser = new DOMParser();
+              var xmlDoc = parser.parseFromString(this.responseText, "text/xml");
+
+              // XML에서 원하는 데이터 추출
+              var items = xmlDoc.getElementsByTagName("item");
+              let holidays = [];
+              for (var i = 0; i < items.length; i++) {
+                var locdate = items[i].getElementsByTagName("locdate")[0].textContent;
+                var dateName = items[i].getElementsByTagName("dateName")[0].textContent;
+
+                holidays.push({date: locdate, name: dateName});
+              }
+              resolve(holidays);
+            } else {
+              console.error('오류 발생. HTTP 상태 코드:', this.status);
+              reject(this.status);
             }
-            //console.log("orderDates : ", orderDates)
-            return orderDates;
-        }
+          }
+        };
 
-        // 주문 상태에 따른 색상 설정
-        function getEventColor(name) {
-            switch (name) {
-                case "주문등록":
-                    return { bg: "#031B4B", border: "#031B4B", text: "white" };
-                case "주문확인":
-                    return { bg: "#03428E", border: "#03428E", text: "white" };
-                case "주문확정":
-                    return { bg: "#3069B3", border: "#3069B3", text: "white" };
-                case "제작진행":
-                    return { bg: "#C7DFF4", border: "rgba(2,165,255,0.07)", text: "black" };
-                case "출고":
-                    return { bg: "white", border: "grey", text: "black" };
-                case "주문취소":
-                    return { bg: "grey", border: "grey", text: "black" };
-                default:
-                    return { bg: "grey", border: "grey", text: "white" };
+        xhr.send();
+      });
+    }
+
+    function initDatas() {
+      $.ajax({
+        url: '/api/orderDashboard/initDatas',
+        type: 'GET',
+        data: {},
+        async: false,
+        success: function (data) {
+          data2 = data.data;
+          data2.forEach(item => {
+            switch (item.ordflag) {
+              case "0":
+                $('.requestCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
+                break;
+              case "1":
+                $('.checkCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
+                break;
+              case "2":
+                $('.estimateCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
+                break;
+              case "3":
+                $('.produceCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
+                break;
+              case "4":
+                $('.deliveryCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
+                break;
+              case "5":
+                $('.cancelCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
+                break;
+              default:
+                console.log("주문현황 바인드 오류 : ", item.ordflag);
             }
+          })
         }
+      })
+    }
 
-        async function fetchHolidaysForYear(year) {
-            return new Promise((resolve, reject) => {
-                var xhr = new XMLHttpRequest();
-                var url = 'http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo';
-                var queryParams = '?' + encodeURIComponent('serviceKey') + '=' + 'R3P3syhq6qRP0cz8mbV2J5t%2B32WwaSN9sH8ZW4k59oKAU3Ze0WvcljMrN36OJqxs38%2F780hMD4QfhCiDZQNUyA%3D%3D';
-                queryParams += '&' + encodeURIComponent('solYear') + '=' + encodeURIComponent(year);
-                queryParams += '&' + encodeURIComponent('numOfRows') + '=' + encodeURIComponent('30');
+    // 가이드 web 팝업창 열기
+    function openPopup(url) {
+      // 새 창 열기
+      window.open(url, '_blank',
+        'width=1040,height=1000,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes');
+    }
 
-                xhr.open('GET', url + queryParams);
-                xhr.onreadystatechange = function () {
-                    if (this.readyState == 4) {
-                        if (this.status == 200) {
-                            var parser = new DOMParser();
-                            var xmlDoc = parser.parseFromString(this.responseText, "text/xml");
+    // ✅ 더블 클릭 이벤트 핸들러 수정
+    function attachDoubleClickEvent(grid) {
+      let lastClickTime = 0;
 
-                            // XML에서 원하는 데이터 추출
-                            var items = xmlDoc.getElementsByTagName("item");
-                            let holidays = [];
-                            for (var i = 0; i < items.length; i++) {
-                                var locdate = items[i].getElementsByTagName("locdate")[0].textContent;
-                                var dateName = items[i].getElementsByTagName("dateName")[0].textContent;
+      grid.hostElement.addEventListener('click', function (e) {
+        const now = new Date().getTime();
 
-                                holidays.push({ date: locdate, name: dateName });
-                            }
-                            resolve(holidays);
-                        } else {
-                            console.error('오류 발생. HTTP 상태 코드:', this.status);
-                            reject(this.status);
-                        }
-                    }
-                };
+        if (now - lastClickTime < 300) { // 300ms 이내 두 번 클릭 → 더블 클릭 처리
+          const ht = grid.hitTest(e);
 
-                xhr.send();
+          if (ht.cellType === wijmo.grid.CellType.Cell) { // 셀을 클릭한 경우만 처리
+            const rowData = grid.rows[ht.row].dataItem; // 클릭한 행 데이터
+
+            if (!rowData || !rowData.reqnum) {
+              console.warn("❌ 유효한 rowData 또는 reqnum이 없습니다.");
+              return;
+            }
+            //sessionStorage 에 저장
+            sessionStorage.setItem("tabAction", "toggle");
+            sessionStorage.setItem("sessionDate", rowData.reqdate);
+            window.parent.postMessage({
+              action: "addTab",
+              id: "order_request",
+              title: "주문등록",
+              url: '/gui/' + "order_request" + '/default',
+              active: true,
+              allowClose: true,
             });
+          }
         }
-        function initDatas(){
-            $.ajax({
-                url: '/api/orderDashboard/initDatas',
-                type: 'GET',
-                data: {},
-                async: false,
-                success: function (data) {
-                    data2 = data.data;
-                    data2.forEach(item =>{
-                        switch (item.ordflag) {
-                            case "0":
-                                $('.requestCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
-                                break;
-                            case "1":
-                                $('.checkCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
-                                break;
-                            case "2":
-                                $('.estimateCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
-                                break;
-                            case "3":
-                                $('.produceCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
-                                break;
-                            case "4":
-                                $('.deliveryCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
-                                break;
-                            case "5":
-                                $('.cancelCnt').html(item.ordflag_count + '<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
-                                break;
-                            default:
-                                console.log("주문현황 바인드 오류 : ", item.ordflag);
-                        }
-                    })
-                }
-            })
-        }
-        // 가이드 web 팝업창 열기
-        function openPopup(url) {
-            // 새 창 열기
-            window.open(url, '_blank',
-                'width=1040,height=1000,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes');
-        }
-
-        // ✅ 더블 클릭 이벤트 핸들러 수정
-        function attachDoubleClickEvent(grid) {
-            let lastClickTime = 0;
-
-            grid.hostElement.addEventListener('click', function (e) {
-                const now = new Date().getTime();
-
-                if (now - lastClickTime < 300) { // 300ms 이내 두 번 클릭 → 더블 클릭 처리
-                    const ht = grid.hitTest(e);
-
-                    if (ht.cellType === wijmo.grid.CellType.Cell) { // 셀을 클릭한 경우만 처리
-                        const rowData = grid.rows[ht.row].dataItem; // 클릭한 행 데이터
-
-                        if (!rowData || !rowData.reqnum) {
-                            console.warn("❌ 유효한 rowData 또는 reqnum이 없습니다.");
-                            return;
-                        }
-                        //sessionStorage 에 저장
-                        sessionStorage.setItem("tabAction", "toggle");
-                        sessionStorage.setItem("sessionDate", rowData.reqdate);
-                        window.parent.postMessage({
-                            action: "addTab",
-                            id: "order_request",
-                            title: "주문등록",
-                            url: '/gui/' + "order_request" + '/default',
-                            active: true,
-                            allowClose: true,
-                        });
-                    }
-                }
-                lastClickTime = now;
-            });
-        }
-    </script>
+        lastClickTime = now;
+      });
+    }
+  </script>
 </th:block>
 </html>
 

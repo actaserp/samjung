@@ -307,10 +307,8 @@
             <td>
               <div class="input-with-button">
               <input id="procd" name="procd" type="hidden">
-              <input id="project_no" name="project_no" type="hidden">
-
-                <input class="form-control2" type="text" id="PROJECT_NM" name="PROJECT_NM"
-                       placeholder="검색버튼을 클릭하여 검색하세요" readonly/>
+              <input id="project_no" name="project_no" type="text" placeholder="검색버튼을 클릭하여 검색하세요">
+                <input class="form-control2" type="hidden" id="PROJECT_NM" name="PROJECT_NM"/>
                 <a class="btn btn-delete small-btn" title="프로젝트검색" id="btnProjectSearch">
                   <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
                 </a>
@@ -318,7 +316,7 @@
             </td>
             <th style="text-align: center">
               <label for="ichdate">납기 일자</label>
-            </th>
+            </th>`
             <td>
               <input type="date" id="ichdate" name="ichdate">
             </td>
@@ -388,9 +386,6 @@
               <input type="text" id="cltjik" name="cltjik"  placeholder="발주처 담당 직위">
                   <input type="text" id="cltpernm" name="cltpernm" placeholder="발주처 담당자">
                   <input type="hidden" id="cbocltcd" name="cbocltcd" >
-                  <a class="btn btn-delete small-btn" title="검색" id="btnCltpernmSearch">
-                    <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
-                  </a>
                 </div>
             </td>
           </tr>
@@ -762,6 +757,41 @@
           });
         });//구매 품의서 프린트
 
+        $('#btnbaljuPrinted').click(function (e) {
+          const grid = wijmo.Control.getControl('#theGrid'); // FlexGrid 인스턴스
+          let csrfToken = $("[name=_csrf]").val();
+          const selectedItem = grid?.selectedItems?.[0];
+
+          if (!selectedItem || !selectedItem.BALJUNUM) {
+            Alert.alert('', '출력할 행을 선택하세요.');
+            return;
+          }
+
+          const baljunum = selectedItem.BALJUNUM;
+
+          $.ajax({
+            url: '/api/balju/balju_order/print/balJuPurchase',
+            type: 'POST', // POST 방식
+            data: {
+              BALJUNUM: baljunum
+            },
+            headers: {
+              'X-CSRF-TOKEN': csrfToken
+            },
+            success: function (response) {
+              if (response.success && response.downloadUrl) {
+                window.open(response.downloadUrl, '_blank'); // ✅ 엑셀 열기 or 저장
+              } else {
+                Alert.alert('', '출력 중 오류가 발생했습니다.');
+              }
+            },
+            error: function () {
+              Alert.alert('', '서버와의 통신 중 오류가 발생했습니다.');
+            }
+          });
+
+        });//외주발주서 프린트
+
       }//init
 
       showBaljuForm(data) {
@@ -834,95 +864,12 @@
             $content.find('#cltcd').val(items.cltcd);
             $content.find('#CompanyName').val(items.cltnm);
             $content.find('#cltemail').val(items.taxmail);
+            $content.find('#cltpernm').val(items.agnernm);
+            $content.find('#cltjik').val(items.agnerdivinm);
+            $content.find('#clttelno').val(items.agntel);
 
           }
           poppage.show(searchcallback);
-        });
-
-        //발주처담당자
-        $content.find('#btnCltpernmSearch').click(function () {
-          let poppage = new PopStaff();
-          let $poppage = $(poppage);
-          let searchcallback = function (items) {
-            console.log('발주담당자 팝업', items);
-            $content.find('#cbocltcd').val(items.perid);
-            $content.find('#cltpernm').val(items.pernm);
-            $content.find('#cltjikcd').val(items.rspcd);
-            $content.find('#cltjik').val(items.RSPNM);
-            $content.find('#clttelno').val(items.handphone);
-
-          }
-          poppage.show(searchcallback);
-        });
-
-        $content.find('#cltpernm').on('input', function () {
-          const val = $(this).val().trim();
-
-          if (val === '') {
-            $content.find('#cbocltcd').val('');
-            $content.find('#cltpernm').val('');
-            $content.find('#cltjikcd').val('');
-            $content.find('#cltjik').val('');
-            $content.find('#clttelno').val('');
-          }
-        });
-
-        $content.find('#cltpernm').on('keydown', function (e) {
-          if (e.key === 'Enter' || e.keyCode === 13) {
-            e.preventDefault();
-
-            const keyword = $(this).val().trim();
-            if (!keyword) {
-              Alert.alert('','이름을 입력하세요.');
-              return;
-            }
-
-            AjaxUtil.getAsyncData('/api/popup/search_staff', {
-              keyword: keyword,
-              spjangcd: sessionStorage.getItem('spjangcd')
-            }, function (result) {
-              if (!result.success) {
-                alert('검색 중 오류가 발생했습니다.');
-                return;
-              }
-
-              const items = result.data;
-
-              if (items.length === 0) {
-                alert('검색 결과가 없습니다.');
-              } else if (items.length === 1) {
-                const selectedItems = items[0];  // ✅ 수정
-                $content.find('#cbocltcd').val(selectedItems.perid);
-                $content.find('#cltpernm').val(selectedItems.pernm);
-                $content.find('#cltjikcd').val(selectedItems.rspcd);
-                $content.find('#cltjik').val(selectedItems.RSPNM);
-                $content.find('#clttelno').val(selectedItems.handphone);
-
-                setTimeout(() => {
-                  $content.find('#cltemail').focus();
-                }, 50);
-
-              } else {
-                //다건일 경우: 검색어를 preset으로 넘김
-                const poppage = new PopStaff();
-                const searchcallback = function (selectedItems) {
-                  if (selectedItems && selectedItems.perid) {
-                    $content.find('#cbocltcd').val(selectedItems.perid);
-                    $content.find('#cltpernm').val(selectedItems.pernm);
-                    $content.find('#cltjikcd').val(selectedItems.rspcd);
-                    $content.find('#cltjik').val(selectedItems.RSPNM);
-                    $content.find('#clttelno').val(selectedItems.handphone);
-
-                    setTimeout(() => {
-                      $content.find('#cltemail').focus();
-                    }, 50);
-
-                  }
-                };
-                poppage.show(searchcallback, keyword); // ✅ 여기!
-              }
-            });
-          }
         });
 
         //현장 pm
@@ -1041,8 +988,18 @@
           let searchcallback = function (items) {
             console.log('프로젝트목록 팝업', items);
             $content.find('#procd').val(items.BOMID);
-            $content.find('#project_no').val(items.project_no);
+            $content.find('#project_no').val(items.projcet_no);
             $content.find('#PROJECT_NM').val(items.projcet_nm);
+
+            // bom 리스트가지고와서 동적행에
+            AjaxUtil.getAsyncData('/api/balju/balju_order/bomList', { projcet_no: items.projcet_no }, function (result) {
+              if (result.success && result.data.length > 0) {
+                const bomList = result.data;
+                $content.find('.item-table tbody tr:not(.item-template-row)').each(function () {
+
+                });
+              }
+            });
           }
           poppage.show(searchcallback);
         });

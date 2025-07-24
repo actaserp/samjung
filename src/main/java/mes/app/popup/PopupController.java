@@ -314,18 +314,21 @@ public class PopupController {
 		AjaxResult result = new AjaxResult();
 
 		String sql = """
-       select
-				 cltcd , -- 업체코드
-				 cltnm , -- 업체명
-				 prenm, -- 재표자 명
-				 saupnum , -- 사업자 번허
-				 cltadres , -- 주소
-				 bizitemnm , -- 업종
-				 biztypenm , -- 업태
-				 telnum ,
-				 agneremail,
-				 taxmail
-				 from TB_XCLIENT where relyn ='O' -- 영문 대문자(O, X)
+		 select
+				cltcd , -- 업체코드
+				cltnm , -- 업체명
+				prenm, -- 재표자 명
+				saupnum , -- 사업자 번허
+				cltadres , -- 주소
+				bizitemnm , -- 업종
+				biztypenm , -- 업태
+				telnum ,
+				taxmail,
+				agnernm, 	--업체 담당자
+				agntel, 	-- 업체 담당자 전화번호
+				agneremail,	--담당자 이메일
+				agnerdivinm	--담당자부서
+				from TB_XCLIENT where relyn ='O' -- 영문 대문자(O, X)
     """;
 
 		if (cltcd != null && !cltcd.isEmpty()) {

@@ -105,8 +105,8 @@
             <div class="tab-wrap">
                 <ul class="tab-links">
                     <li><a href="#tabs_basic_tab" id="tabs_basic">기본정보</a></li>
-                    <li><a href="#tabs_manage_tab" id="tabs_manage">관리정보</a></li>
-                    <li><a href="#tabs_price_tab" id="tabs_unitcost">품목단가</a></li>
+                    <!--<li><a href="#tabs_manage_tab" id="tabs_manage">관리정보</a></li>
+                    <li><a href="#tabs_price_tab" id="tabs_unitcost">품목단가</a></li>-->
                     <div class="button-wrap button-list">
                         <ul>
                             <li>
@@ -705,7 +705,7 @@
                         {binding: 'ceo_name', header: '대표자', width: 150, align: 'left',},
                         {binding: 'telnum', header: '연락처', width: 150, align: 'left',},
                         {binding: 'email', header: '이메일', width: 150, align: 'left',},
-                        {binding: 'zipcd', header: '우편번호', width: 150, align: 'left',},
+                        {binding: 'zipcd', header: '우편번호', width: 120, align: 'center',},
                         {binding: 'cltadres', header: '주소', width: 300, align: 'left',},
                         {binding: 'relyn', header: '거래중지여부', width: 150, align: 'center',},
                         {binding: 'agnernm', header: '자사담당자', width: 150, align: 'left',},
@@ -738,13 +738,22 @@
                         let col = s.columns[e.col];
                         let item = s.rows[e.row].dataItem;
 
-                        if (col.binding === "business_number" && item.business_number) {
-                            e.cell.textContent = formatBusinessNumber(item.business_number);
+                        if (col.binding === "saupnum" && item.saupnum) {
+                            e.cell.textContent = formatBusinessNumber(item.saupnum);
+                        }
+                        if (col.binding === "telnum" && item.telnum) {
+                            e.cell.textContent = formatTelNumber(item.telnum);
+                        }
+                        if (col.binding === "agntel" && item.agntel) {
+                            e.cell.textContent = formatTelNumber(item.agntel);
+                        }
+                        if (col.binding === "taxtelnum" && item.taxtelnum) {
+                            e.cell.textContent = formatTelNumber(item.taxtelnum);
                         }
 
-                        if (col.binding === "comp_code2" && item.comp_code2) {
+                        if (col.binding === "prenum" && item.prenum) {
                             // 법인번호 형식 변환 (앞 6자리-뒤 7자리)
-                            let cc2 = item.comp_code2.replace(/(\d{6})(\d{7})/, "$1-$2");
+                            let cc2 = item.prenum.replace(/(\d{6})(\d{7})/, "$1-$2");
                             e.cell.textContent = cc2;
                         }
 
@@ -1726,6 +1735,19 @@
                 return value;
             }
         }
+        function formatTelNumber(val) {
+            if (!val) return '';
+            let numbers = val.replace(/[^0-9]/g, '');
+            if (numbers.length > 11) numbers = numbers.slice(0, 11);
+
+            if (numbers.length < 4) return numbers;
+            if (numbers.length < 7) return numbers.slice(0, 3) + '-' + numbers.slice(3);
+            if (numbers.length === 10) return numbers.slice(0, 3) + '-' + numbers.slice(3, 6) + '-' + numbers.slice(6);
+            if (numbers.length === 11) return numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7);
+
+            return numbers; // fallback
+        }
+
 
     </script>
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>

@@ -116,7 +116,7 @@ public class TB_XCLIENT {
     private String relyn; // 거래중지구분
 
     @Column(name = "hptelnum")
-    private String hptelnum; // 핸드폰번호
+    private String hptelnum; // 핸드폰번호(담당자)
 
     @Column(name = "nation")
     private String nation; // 국가번호

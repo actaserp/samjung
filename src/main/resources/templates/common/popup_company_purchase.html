@@ -171,13 +171,34 @@
                         isReadOnly: true,
                         keyActionEnter: wijmo.grid.KeyAction.None,
                         columns: [
-                            {binding: 'cltcd', header: '거래처코드', width: 120, align: 'center'},
-                            {binding: 'cltnm', header: '업체명', width: '*', align: 'left'},
-                            {binding: 'saupnum', header: '사업자번호', width: 150, align: 'left'},
-                            {binding: 'telnum', header: '연락처', width: 200, align: 'left'}
+                            {binding: 'cltcd', header: '거래처코드', width: 120,visible: false},
+                            {binding: 'cltnm', header: '업체명', width: 140, align: 'left'},
+                            {binding: 'saupnum', header: '사업자번호', width: 130, align: 'left'},
+                            {binding: 'telnum', header: '연락처', width: 130, align: 'left'},
+                            {binding: 'agnerdivinm', header: '담당자부서', width: 100, align: 'left'},
+                            {binding: 'agnernm', header: '업체담당자', width: 120, align: 'left'},
+                            {binding: 'agntel', header: '담당자 전화번호', width: 130, align: 'left'},
+
                         ],
                         itemsSource: this.viewData,
                     });
+
+                    this.grid.formatItem.addHandler((s, e) => {
+                        if (e.panel.cellType === wijmo.grid.CellType.Cell) {
+                            let col = s.columns[e.col];
+                            let item = s.rows[e.row].dataItem;
+                            if (col.binding === "saupnum" && item.saupnum) {
+                                e.cell.textContent = formatBizNumber(item.saupnum);
+                            }
+                            if (col.binding === "telnum" && item.telnum) {
+                                e.cell.textContent = formatTelNumber(item.telnum);
+                            }
+                            if (col.binding === "agntel" && item.agntel) {
+                                e.cell.textContent = formatTelNumber(item.agntel);
+                            }
+                        }
+                    });
+
                     this.grid.rowHeaders.columns.splice(0, 1);
                     new FlexGridContextMenu(this.grid);
                     this.grid.downloadFileName = '거래처 내역';
@@ -284,7 +305,29 @@
                 }
             }
 
+
         }
+        function formatTelNumber(val) {
+            if (!val) return '';
+            let numbers = val.replace(/[^0-9]/g, '');
+            if (numbers.length > 11) numbers = numbers.slice(0, 11);
+
+            if (numbers.length < 4) return numbers;
+            if (numbers.length < 7) return numbers.slice(0, 3) + '-' + numbers.slice(3);
+            if (numbers.length === 10) return numbers.slice(0, 3) + '-' + numbers.slice(3, 6) + '-' + numbers.slice(6);
+            if (numbers.length === 11) return numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7);
+
+            return numbers; // fallback
+        }
+        function formatBizNumber(val) {
+            if (!val) return '';
+            let numbers = val.replace(/[^0-9]/g, '');
+            if (numbers.length > 10) numbers = numbers.slice(0, 10);
+            if (numbers.length < 4) return numbers;
+            if (numbers.length < 6) return numbers.slice(0, 3) + '-' + numbers.slice(3);
+            return numbers.slice(0, 3) + '-' + numbers.slice(3, 5) + '-' + numbers.slice(5);
+        }
+
 
         $(document).on('keydown', '#cltcd', function (e) {
             if (e.key === 'Enter' || e.keyCode === 13) {

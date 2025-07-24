@@ -128,6 +128,7 @@ WITH main_data AS (
         p.PROJECT_NM ,
         STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-') as ichdate,
         h.PERNM as pernm,
+        h.BALJUDATE ,
         jp.rspcd as pernm_rspcdcd,
         pz.rspnm as pernm_rspcd,
         jp.perid as pernmcd,
@@ -174,6 +175,7 @@ WITH main_data AS (
     Map<String, Object> first = rows.get(0);
 
     header.put("mode", "edit");
+    header.put("BALJUDATE", first.get("BALJUDATE"));
     header.put("BALJUNUM", first.get("BALJUNUM"));
     header.put("project_no", first.get("projcet_no"));
     header.put("PROJECT_NM", first.get("PROJECT_NM"));
@@ -241,5 +243,73 @@ WITH main_data AS (
     return val != null ? val.toString() : null;
   }
 
+  public Map<String, Object> getxclent(String spjangcd) {
+
+    MapSqlParameterSource dicParam = new MapSqlParameterSource();
+    dicParam.addValue("spjangcd", spjangcd);
+
+    String sql = """
+        select
+        x.saupnum ,
+        x.spjangnm ,
+        x.prenm ,
+        x.adresa ,
+        x.fax,
+        x.tel1,
+        x.emailadres 
+        from tb_xa012 x
+        where spjangcd =:spjangcd;
+        """;
+    return sqlRunner.getRow(sql, dicParam);
+  }
+
+
+  public List<Map<String, Object>> getBomList(String projcetNo) {
+  MapSqlParameterSource dicParam = new MapSqlParameterSource();
+  dicParam.addValue("projcetNo", projcetNo);
+  String sql = """
+      WITH BOM_TREE AS (
+        -- 루트 품목 (상위가 없는 최상위 품목)
+        SELECT
+            1 AS LEVEL,
+            C.PART_NO,
+            P.PART_NM,
+            B.CHILD_NO,
+            C.PART_NM AS CHILD_NM,
+            B.QTY,
+            B.SEQ,
+            B.PROJECT_NO,
+            C.DRAWING_NO,
+            C.UNIT\s
+        FROM TB_CA663 B
+        JOIN TB_CA662 P ON B.PARENT_NO = P.PART_NO
+        JOIN TB_CA662 C ON B.CHILD_NO = C.PART_NO
+        WHERE B.PARENT_NO NOT IN (SELECT CHILD_NO FROM TB_CA663 WHERE PROJECT_NO = :projcet_no)
+          AND B.PROJECT_NO = :projcet_no
+        UNION ALL
+        -- 재귀적으로 하위 품목 탐색
+        SELECT
+            T.LEVEL + 1,
+            C.PART_NO,
+            C.PART_NM,
+            B.CHILD_NO,
+            CC.PART_NM AS CHILD_NM,
+            B.QTY,
+            B.SEQ,
+            B.PROJECT_NO,
+            C.DRAWING_NO,
+            C.UNIT
+        FROM TB_CA663 B
+        JOIN BOM_TREE T ON B.PARENT_NO = T.CHILD_NO
+        JOIN TB_CA662 C ON B.PARENT_NO = C.PART_NO
+        JOIN TB_CA662 CC ON B.CHILD_NO = CC.PART_NO
+        WHERE B.PROJECT_NO = :projcet_no
+    )
+    SELECT *
+    FROM BOM_TREE
+    ORDER BY LEVEL, PART_NO, SEQ
+      """;
+    return (List<Map<String, Object>>) sqlRunner.getRow(sql, dicParam);
+  }
 
 }

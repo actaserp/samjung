@@ -128,6 +128,8 @@ public class RequestService {
         // 현장명 필터
         if (searchActnm != null && !searchActnm.isEmpty()) {
             sql.append(" AND hd.ACTNM LIKE :searchActnm");
+        }else{
+            return null;
         }
         // 진행구분 필터
         if (searchChulflag != null && !searchChulflag.isEmpty()) {
@@ -527,18 +529,64 @@ public class RequestService {
                 WHERE
                     1=1
                 AND dt.CHULFLAG = '1'
+                AND dt.CHULDATE = :searchDate
                 """);
         // cltcd 필터(자기 발주처건만 확인할 수 있도록)
         if (cltcd != null && !cltcd.isEmpty()) {
             sql.append(" AND hd.CUSTCD = :CUSTCD");
         }
-        // 날짜 필터
-        if (searchDate != null && !searchDate.isEmpty()) {
-            sql.append(" AND dt.CHULDATE = :searchDate");
-        }
-        // 현장명 필터
-        if (searchActnm != null && !searchActnm.isEmpty()) {
-            sql.append(" AND hd.ACTNM LIKE :searchActnm");
+        // 정렬 조건 추가
+        sql.append(" ORDER BY hd.BALJUDATE ASC");
+
+        dicParam.addValue("spjangcd", spjangcd);
+        List<Map<String, Object>> items = this.sqlRunner.getRows(sql.toString(), dicParam);
+        return items;
+    }
+    // pdf 파일 미리보기 데이터(거래명세서)
+    public List<Map<String, Object>> getVacFileList2(String searchDate,
+                                                    String searchActnm,
+                                                    String cltcd,
+                                                    String spjangcd
+    ) {
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+        dicParam.addValue("searchDate", searchDate);
+        dicParam.addValue("CUSTCD",  cltcd);
+        dicParam.addValue("searchActnm",  "%" + searchActnm + "%");
+
+        StringBuilder sql = new StringBuilder("""
+                SELECT
+                    hd.*,
+                    dt.*,
+                    au.last_name,
+                    xc.cltnm,
+                    xc.saupnum,
+                    xc.prenm,
+                    xc.telnum,
+                    xc.cltadres,
+                    xc.biztypenm,
+                    xc.bizitemnm,
+                    xc.agnernm,
+                    xc.agntel,
+                    au.phone
+                FROM
+                    TB_CA660 hd
+                JOIN
+                    TB_CA661 dt
+                    ON hd.BALJUNUM = dt.BALJUNUM
+                JOIN
+                    auth_user au
+                    ON au.username = dt.CHULPERNM
+                JOIN
+                    X_CLIENT xc
+                    ON au.username = xc.saupnum
+                WHERE
+                    1=1
+                AND dt.CHULFLAG = '1'
+                AND dt.CHULDATE = :searchDate
+                """);
+        // cltcd 필터(자기 발주처건만 확인할 수 있도록)
+        if (cltcd != null && !cltcd.isEmpty()) {
+            sql.append(" AND hd.CUSTCD = :CUSTCD");
         }
         // 정렬 조건 추가
         sql.append(" ORDER BY hd.BALJUDATE ASC");

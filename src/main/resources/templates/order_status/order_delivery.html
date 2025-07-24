@@ -77,7 +77,7 @@
             <dt>&nbsp;</dt>
             <dd>
               <li>
-                <a class="btn btn-delete" title="검색" id="searchButton1" onclick="fetchListData()">
+                <a class="btn btn-delete" title="검색" id="searchButton1" onclick="onclickSearchButton1()">
                   <!--                                        class 쓰이는 곳 찾고 없으면 클래스명 수정하기-->
                   <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
                   검색
@@ -97,7 +97,8 @@
               </li>
             </dd>
           </dl>
-          <dl>
+          <dl style="margin-left: auto;">
+            <dt>&nbsp;</dt>
             <dd>
               <li>
                 <button id="deliveryBtn" onclick="deliveryDoc()">출하 및 인수확인서</button>
@@ -105,6 +106,7 @@
             </dd>
           </dl>
           <dl>
+            <dt>&nbsp;</dt>
             <dd>
               <li>
                 <button id="provBtn" onclick="provDoc()">거래명세서</button>
@@ -220,9 +222,10 @@
     $(document).ready(function () {
       // 출고 진행구분 select option 바인드
       AjaxUtil.fillSelectOptions($('#searchChulflag'), 'system_code', 'all', false, 'delivery_type');
+      fetchListData();
     });
-    // 주문출고 그리드
-    function fetchListData(saupnum) {
+    // 검색버튼 클릭 메서드
+    function onclickSearchButton1(){
       // 필수 요소 안내 alert
       let requiredFields = [
         {id: '#searchActnm', label: '현장명을 작성해주세요'},
@@ -238,6 +241,11 @@
           return;
         }
       }
+      fetchListData();
+    }
+    // 주문출고 그리드
+    function fetchListData(saupnum) {
+
       let data2 = [];
       const transformedData = []; // 변환된 데이터를 저장할 배열
       $.ajax({
@@ -253,11 +261,15 @@
         async: false,
         success: function (data) {
           data2 = data.data;
-          data2.forEach(item => {
-            if (item.CHULFLAG !== undefined && item.CHULFLAG !== null) {
-              item.CHULFLAG = Number(item.CHULFLAG);
-            }
-          });
+          if(data2 !== null){
+            data2.forEach(item => {
+              if (item.CHULFLAG !== undefined && item.CHULFLAG !== null) {
+                item.CHULFLAG = Number(item.CHULFLAG);
+              }
+            });
+          }else{
+            data2 = [];
+          }
         }
       })
       // bd_details를 파싱하여 배열로 변환
@@ -373,7 +385,6 @@
 
 
       if(excelType === 'delivery') {
-
         // ✅ 이전 PDF 제거
         container.querySelectorAll("canvas").forEach(canvas => canvas.remove());
 
@@ -404,7 +415,35 @@
             container.innerHTML = "<p style='color:red;'>휴가서 양식을 불러올 수 없습니다.</p>";
           });
       }else if(excelType === 'prov'){
+        // ✅ 이전 PDF 제거
+        container.querySelectorAll("canvas").forEach(canvas => canvas.remove());
 
+        // ✅ 스피너 표시 (PDF 전에)
+        spinner.style.display = "flex";
+        const url = `/api/request/request/readVacFile2`
+                + `?search_Date=${encodeURIComponent(searchDate)}`
+                + `&search_actnm=${encodeURIComponent(searchActnm)}`;
+        //&spjangcd=${encodeURIComponent(spjangcd)}
+        spinner.style.display = "flex"; // 스피너 보이기
+
+        fetch(url)
+                .then(res => {
+                  // PDF 아닌 경우 바로 catch
+                  if (res.ok && res.headers.get("content-type").includes("pdf")) {
+                    return res.blob();
+                  } else {
+                    throw new Error("PDF 생성 실패!");
+                  }
+                })
+                .then(blob => {
+                  console.log("PDF Blob size:", blob.size);
+                  const blobURL = URL.createObjectURL(blob);
+                  renderPdf(blobURL);
+                })
+                .catch(() => {
+                  spinner.style.display = "none";
+                  container.innerHTML = "<p style='color:red;'>휴가서 양식을 불러올 수 없습니다.</p>";
+                });
       }
     }
     function renderPdf(url) {

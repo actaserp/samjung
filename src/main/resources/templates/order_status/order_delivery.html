@@ -360,7 +360,6 @@
     function modifyData() {
       // 필수 요소 안내 alert
       let requiredFields = [
-        {id: '#searchActnm', label: '현장명을 작성해주세요'},
         {id: '#popupDate', label: '시작일을 선택해주세요'},
       ];
       for (let i = 0; i < requiredFields.length; i++) {
@@ -412,7 +411,14 @@
           })
           .catch(() => {
             spinner.style.display = "none";
-            container.innerHTML = "<p style='color:red;'>휴가서 양식을 불러올 수 없습니다.</p>";
+            // 기존 canvas, 에러 메시지(p) 모두 삭제
+            container.querySelectorAll("canvas, .pdf-error-msg").forEach(el => el.remove());
+            // 에러 메시지 추가
+            let errorElem = document.createElement("p");
+            errorElem.className = "pdf-error-msg";
+            errorElem.style.color = "red";
+            errorElem.textContent = '휴가서 양식을 불러올 수 없습니다.';
+            container.appendChild(errorElem);
           });
       }else if(excelType === 'prov'){
         // ✅ 이전 PDF 제거
@@ -442,15 +448,23 @@
                 })
                 .catch(() => {
                   spinner.style.display = "none";
-                  container.innerHTML = "<p style='color:red;'>휴가서 양식을 불러올 수 없습니다.</p>";
+                  // 기존 canvas, 에러 메시지(p) 모두 삭제
+                  container.querySelectorAll("canvas, .pdf-error-msg").forEach(el => el.remove());
+                  // 에러 메시지 추가
+                  let errorElem = document.createElement("p");
+                  errorElem.className = "pdf-error-msg";
+                  errorElem.style.color = "red";
+                  errorElem.textContent = '휴가서 양식을 불러올 수 없습니다.';
+                  container.appendChild(errorElem);
                 });
       }
     }
     function renderPdf(url) {
       const container = document.getElementById("pdfContainer");
       const spinner = document.getElementById("loadingSpinner");
-      // PDF 내용(canvas)만 지우고 스피너는 유지
-      Array.from(container.querySelectorAll("canvas")).forEach(canvas => canvas.remove());
+      // 기존 canvas, 에러 메시지(p) 모두 삭제
+      container.querySelectorAll("canvas, .pdf-error-msg").forEach(el => el.remove());
+
       spinner.style.display = "flex";
 
       pdfjsLib.getDocument({ url }).promise.then(pdf => {
@@ -503,6 +517,9 @@
     }
     // 엑셀파일 미리보기 팝업 닫기 메서드
     function NewClose() {
+      const container = document.getElementById("pdfContainer");
+      // 기존 canvas, 에러 메시지(p) 모두 삭제
+      container.querySelectorAll("canvas, .pdf-error-msg").forEach(el => el.remove());
       // 팝업 닫기
       let popup = document.getElementById('popup1');
       let wrapper = document.getElementById('wrapper1');

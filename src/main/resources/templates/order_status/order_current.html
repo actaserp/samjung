@@ -249,7 +249,7 @@
             let data2 = [];
             const transformedData = []; // 변환된 데이터를 저장할 배열
             $.ajax({
-                url: '/api/request/request/order_read',
+                url: '/api/request/subRequest/order_read',
                 type: 'GET',
                 data: {
                     'saupnum': saupnum,
@@ -263,8 +263,8 @@
                     data2 = data.data;
                     if(data2 !== null){
                         data2.forEach(item => {
-                            if (item.CHULFLAG !== undefined && item.CHULFLAG !== null) {
-                                item.CHULFLAG = Number(item.CHULFLAG);
+                            if (item.FACFLAG !== undefined && item.FACFLAG !== null) {
+                                item.FACFLAG = Number(item.FACFLAG);
                             }
                         });
                     }else{
@@ -278,7 +278,7 @@
             const seenReqnum = new Set(); // reqnum을 기준으로 중복을 확인
             if (data2.length < 12){
                 while (data2.length < 12) {
-                    data2.push({'CHULFLAG' : null});
+                    data2.push({'FACFLAG' : null});
                 }
             }
             viewdata1 = new wijmo.collections.CollectionView(data2); // 변환된 데이터를 CollectionView로 변환
@@ -290,8 +290,8 @@
                     isReadOnly: false,
                     selectionMode: wijmo.grid.SelectionMode.Row,
                     columns: [
-                        {binding: 'CHULFLAG', header: '자재출고', width: '*', align: 'center', dataType: wijmo.DataType.Boolean},
-                        {binding: 'CHULDATE', header: '출하일자', width: '*', align: 'center'},
+                        {binding: 'FACFLAG', header: '자재출고', width: '*', align: 'center', dataType: wijmo.DataType.Boolean},
+                        {binding: 'FACDATE', header: '출하일자', width: '*', align: 'center'},
                         {binding: 'ACTNM', header: '현장명', width: '*', align: 'center'},
                         {binding: 'PNAME', header: '품명', width: '*', align: 'center'},
                         {binding: 'PSIZE', header: '규격', width: '*', align: 'center'},
@@ -307,12 +307,12 @@
                     if (e.panel === s.columnHeaders) {
                         e.cell.style.textAlign = 'center';
                     }
-                    // CHULFLAG 컬럼의 셀에서 값이 null일 경우 체크박스 숨김
+                    // FACFLAG 컬럼의 셀에서 값이 null일 경우 체크박스 숨김
                     if (e.panel === s.cells) {
                         var col = s.columns[e.col];
-                        if (col.binding === 'CHULFLAG') {
+                        if (col.binding === 'FACFLAG') {
                             var item = s.rows[e.row].dataItem;
-                            if (item && item.CHULFLAG === null) {
+                            if (item && item.FACFLAG === null) {
                                 e.cell.innerHTML = ''; // 셀을 비움 (체크박스 삭제)
                             }
                         }
@@ -320,9 +320,9 @@
                 });
                 // 편집 허용 제어 (이벤트 핸들러 추가)
                 theGrid.beginningEdit.addHandler(function(s, e) {
-                    // 컬럼 이름이 'CHULFLAG'가 아니면 편집 막기
+                    // 컬럼 이름이 'FACFLAG'가 아니면 편집 막기
                     var col = s.columns[e.col];
-                    if (col.binding !== 'CHULFLAG') {
+                    if (col.binding !== 'FACFLAG') {
                         e.cancel = true; // 편집 취소!
                     }
                 });
@@ -390,7 +390,7 @@
 
                 // ✅ 스피너 표시 (PDF 전에)
                 spinner.style.display = "flex";
-                const url = `/api/request/request/readVacFile`
+                const url = `/api/request/subRequest/readVacFile`
                     + `?search_Date=${encodeURIComponent(searchDate)}`
                     + `&search_actnm=${encodeURIComponent(searchActnm)}`;
                 //&spjangcd=${encodeURIComponent(spjangcd)}
@@ -420,7 +420,7 @@
 
                 // ✅ 스피너 표시 (PDF 전에)
                 spinner.style.display = "flex";
-                const url = `/api/request/request/readVacFile2`
+                const url = `/api/request/subRequest/readVacFile2`
                     + `?search_Date=${encodeURIComponent(searchDate)}`
                     + `&search_actnm=${encodeURIComponent(searchActnm)}`;
                 //&spjangcd=${encodeURIComponent(spjangcd)}
@@ -482,11 +482,11 @@
         function deliverySave(){
             const items = theGrid.itemsSource.items;
             const sendData = items
-                .filter(item => item.CHULFLAG !== null && item.BALJUNUM && item.BALJUSEQ) // null 제거, reqnum등 PK 포함
+                .filter(item => item.FACFLAG !== null && item.BALJUNUM && item.BALJUSEQ) // null 제거, reqnum등 PK 포함
                 .map(item => ({
                     BALJUNUM: item.BALJUNUM,
                     BALJUSEQ: item.BALJUSEQ,
-                    CHULFLAG: item.CHULFLAG
+                    FACFLAG: item.FACFLAG
                 }));
             let data = {
                 'sendData': JSON.stringify(sendData),
@@ -499,7 +499,7 @@
                     fetchListData();
                 }
             };
-            AjaxUtil.postAsyncData('/api/request/request/saveDelivery', data, fnSuccess);
+            AjaxUtil.postAsyncData('/api/request/subRequest/saveDelivery', data, fnSuccess);
         }
         // 엑셀파일 미리보기 팝업 닫기 메서드
         function NewClose() {

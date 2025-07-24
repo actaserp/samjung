@@ -1195,14 +1195,13 @@
                 Alert.alert('', '사업자 번호는 최소 5자리 이상이어야 합니다.');
                 return false;
             }
-
-            // 비밀번호 설정
             // 비밀번호 설정
             const userid = $('#userid').val().trim(); // 사용자 아이디 가져오기
             let password;
 
             // 숫자로만 되어있는지 확인하는 정규표현식
             const isNumeric = /^\d+$/;
+            let isNumericFlag = "N";
 
             if (userid === "admin") {
                 password = userid;
@@ -1211,6 +1210,7 @@
                 password = "0000";
             } else {
                 password = saupnumValue.slice(-5); // 그 외의 경우 사업자 번호의 뒤 5자리를 비밀번호로 설정
+                isNumericFlag = "Y";
             }
             // // 비밀번호 확인 필드도 자동으로 설정
             // let password2 = password;
@@ -1220,6 +1220,7 @@
             data.saupnum = saupnumValue;
             data.password = password; // 폼 데이터에 비밀번호 추가
             data.AuthenticationCode = authCode;
+            data.isNumeric = isNumericFlag;
 
             console.log("요청 data : ", data);
 

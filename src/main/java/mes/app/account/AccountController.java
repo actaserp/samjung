@@ -286,7 +286,8 @@ public class AccountController {
 			@RequestParam(value = "postno") String postno,
 			@RequestParam(value = "address1") String address1,
 			@RequestParam(value = "address2") String address2,
-			@RequestParam(value = "spjType") String spjangcd
+			@RequestParam(value = "spjType") String spjangcd,
+			@RequestParam(value = "isNumeric") String isNumericFlag
 	) {
 		AjaxResult result = new AjaxResult();
 		MapSqlParameterSource Param = new MapSqlParameterSource();
@@ -310,7 +311,7 @@ public class AccountController {
 						.build();
 
 				userService.save(user); // User 저장
-
+				int userGroupId = "Y".equals(isNumericFlag) ? 35 : 1;
 				jdbcTemplate.execute("SET IDENTITY_INSERT user_profile ON");
 				// UserProfile 저장 (JDBC 사용)
 				String sql = "INSERT INTO user_profile (_created, lang_code, Name, UserGroup_id, User_id) VALUES (?,?, ?, ?, ?)";
@@ -318,7 +319,7 @@ public class AccountController {
 						new Timestamp(System.currentTimeMillis()), // 현재 시간
 						"ko-KR", // lang_code (예: 한국어)
 						prenm, // Name (사용자 이름)
-						35 ,// UserGroup_id (일반거래처)
+						userGroupId ,// UserGroup_id (일반거래처)
 						user.getId() // User_id
 				);
 				jdbcTemplate.execute("SET IDENTITY_INSERT user_profile OFF");
@@ -346,8 +347,7 @@ public class AccountController {
 				String fullAddress = address1 + (address2 != null && !address2.isEmpty() ? " " + address2 : "");
 
 				// TB_XCLIENT 저장
-				String maxCltcd = tbXClientRepository.findMaxCltcd(); // 최대 cltcd 조회
-				String newCltcd = generateNewCltcd(maxCltcd); // 새로운 cltcd 생성
+				String newCltcd = generateNewCltcd();
 
 				TB_XCLIENT tbXClient = TB_XCLIENT.builder()
 						.saupnum(id) // 사업자번호
@@ -368,9 +368,9 @@ public class AccountController {
 						//.cltdv(String.valueOf(1))                   // cltdv = 1 (거래처구분)
 						.prtcltnm(cltnm) 							   // prtcltnm = "인쇄 거래처명 - 거래처명"
 						.foreyn(String.valueOf(0))                  // foreyn = 0
-						.relyn(String.valueOf(0))                   // relyn = 0
+						.relyn("O")                   									// relyn = O (영문 )
 						//.bonddv(String.valueOf(0))                  // bonddv = 0
-						/*.nation("KR")               // nation = "KR"*/
+						.nation("KR")               									// nation = "KR"
 						.clttype(String.valueOf(2))                 // clttype = 2 (거래구분)
 						//.cltynm(String.valueOf(0))                  // cltynm = 0 (약명)
 						.build();
@@ -395,7 +395,19 @@ public class AccountController {
 
 
 	// 새로운 cltcd 생성 메서드
-	private String generateNewCltcd(String maxCltcd) {
+	private String generateNewCltcd() {
+		String maxCltcd = tbXClientRepository.findMaxCltcd(); // DB에서 최대값 조회
+
+		int newNumber = 1; // 기본값
+
+		if (maxCltcd != null && !maxCltcd.isBlank()) {
+			newNumber = Integer.parseInt(maxCltcd) + 1;
+		}
+
+		return String.format("%05d", newNumber);
+	}
+
+	/*private String generateNewCltcd(String maxCltcd) {
 		int newNumber = 1; // 기본값
 		// 최대 cltcd 값이 null이 아니고 "SW"로 시작하는 경우
 		if (maxCltcd != null && maxCltcd.startsWith("SW")) {
@@ -404,7 +416,7 @@ public class AccountController {
 		}
 		// 새로운 cltcd 생성: "SW" 접두사와 5자리 숫자로 포맷
 		return String.format("%05d", newNumber);
-	}
+	}*/
 	
 	@PostMapping("/account/updateUserInfo")
 	@Transactional

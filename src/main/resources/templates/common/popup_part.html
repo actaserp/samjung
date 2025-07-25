@@ -86,7 +86,8 @@
         let url = '/api/popup/search_part';
         let data = {
           'part_no': _this.$part.val(),
-          'PART_NM' : _this.$PART_NM.val()
+          'PART_NM' : _this.$PART_NM.val(),
+          'eco_no' : _this.ecoNo
         };
 
         let result = AjaxUtil.getSyncData(url, data);
@@ -130,11 +131,11 @@
         this.close();
       }
 
-      show(callback, presetKeyword = '') {
+      show(callback, ecoNo = '',presetKeyword = '') {
         let _this = this;
 
         this.callback = callback;
-
+        this.ecoNo = ecoNo;
         let content = tmpl('popup_partSearchTemplate', {});
         let $content = $(content);
         this.modalContainer.open({width: 800, height: 500, $content});
@@ -166,10 +167,11 @@
               allowSorting: false,
               align: 'center'
             },
+              {binding: 'eco_no', header: 'eco_no', width: 120, align: 'left',visible: false},
               {binding: 'PART_NO', header: '품목번호', width: 120, align: 'left'},
               {binding: 'PART_NM', header: '품목명', width: '*', align: 'center'},
+              {binding: 'PART_SIZE', header: '규격', width: 100, align: 'left'},
               {binding: 'unit', header: '단위', width: 50 , align: 'left'},
-              {binding: 'PART_SIZE', header: 'size', width: 100, align: 'left'},
               {binding: 'spec', header: 'spec', width: 100, align: 'left'},
             ],
             itemsSource: this.viewData,

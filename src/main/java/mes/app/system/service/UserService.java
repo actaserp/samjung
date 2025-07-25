@@ -35,6 +35,67 @@ public class UserService {
     @Autowired
     TB_XClientRepository tbXClientRepository;
 
+    // 사용자 리스트
+    public List<Map<String, Object>> getUserList(boolean superUser, String spjangcd, String userGroup, String name, String username) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("superUser", superUser);
+        params.addValue("spjangcd", spjangcd);
+        params.addValue("userGroup", userGroup);
+        params.addValue("name", name);
+        params.addValue("username", username);
+        String sql = """
+            SELECT
+            au.id,
+            au.last_name,
+            txc.cltnm,
+            au.username AS userid,
+            ug.id AS group_id,
+            au.email,
+            au.tel,
+            au.agencycd,
+            ug.Name AS group_name,
+            au.last_login,
+            up.lang_code,
+            au.is_active,
+            au.Phone,
+            txc.biztypenm,
+            txc.bizitemnm,
+            txc.prenm,
+            FORMAT(au.date_joined, 'yyyy-MM-dd') AS date_joined,
+            au.spjangcd ,
+            xa.spjangnm AS spjType
+            FROM
+                auth_user au
+            LEFT JOIN
+                user_profile up ON up.User_id = au.id
+            LEFT JOIN
+                user_group ug ON ug.id = up.UserGroup_id
+            LEFT JOIN TB_XCLIENT txc
+                ON au.username = txc.saupnum
+            left join tb_xa012 xa on xa.spjangcd = au.spjangcd
+            WHERE
+                1 = 1  AND au.spjangcd = :spjangcd
+            """;
+
+        if (userGroup != null && !userGroup.isEmpty()) {
+            sql += " AND up.UserGroup_id = :userGroup ";
+            params.addValue("userGroup",  userGroup );
+        }
+
+        if (username != null && !username.isEmpty()) {
+            sql += " AND au.username LIKE :username ";
+            params.addValue("username", "%" + username + "%");
+        }
+
+        if (name != null && !name.isEmpty()) {
+            sql += " AND au.last_name LIKE :name ";
+            params.addValue("name", "%" + name + "%");
+        }
+
+        return sqlRunner.getRows(sql.toString(), params);
+    }
+
+
     /*public List<Map<String, Object>> getUserList(boolean superUser, String cltnm, String prenm, String biztypenm, String bizitemnm, String email, String spjangcd) {
     }*/
     /*필요시
@@ -42,7 +103,7 @@ public class UserService {
     * au.is_superuser = 0
     * 추가 하기 */
     // 사용자 리스트
-    public List<Map<String, Object>> getUserList(boolean superUser, String cltnm, String prenm, String biztypenm, String bizitemnm, String email, String spjangcd) {
+    /*public List<Map<String, Object>> getUserList(boolean superUser, String cltnm, String prenm, String biztypenm, String bizitemnm, String email, String spjangcd) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("superUser", superUser);
 
@@ -104,14 +165,11 @@ public class UserService {
             params.addValue("email", email);
         }
 
-        // SQL 디버깅 로그
         //log.info("Executing SQL:\n{}\nWith Parameters: {}", sql, params.getValues());
-        // SQL 디버깅 로그
         //log.info("Executing SQL: {} with params: {}", sql, params.getValues());
-
         // SQL 실행 후 결과 반환
         return sqlRunner.getRows(sql.toString(), params);
-    }
+    }*/
 
 
     // 사용자 상세정보 조회
@@ -450,6 +508,7 @@ public class UserService {
         }
         return addressParts;
     }
+
 
 
 }

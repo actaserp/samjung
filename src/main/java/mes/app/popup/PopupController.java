@@ -516,11 +516,14 @@ public class PopupController {
 	@RequestMapping("/search_part")
 	public AjaxResult getSearch_part(
 			@RequestParam(value = "PART_NM", required = false) String PART_NM,
-			@RequestParam(value = "PART_NO", required = false) String PART_NO) {
+			@RequestParam(value = "PART_NO", required = false) String PART_NO,
+			@RequestParam(value = "eco_no", required = false) String eco_no){
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue("PART_NM", PART_NM);
 		paramMap.addValue("PART_NO", PART_NO);
+		paramMap.addValue("eco_no", eco_no);
+		log.info("PART_NM:{},PART_NO:{},eco_no:{}", PART_NM, PART_NO, eco_no);
 		AjaxResult result = new AjaxResult();
 
 		String sql = """
@@ -540,6 +543,10 @@ public class PopupController {
 				where 1=1
     """;
 
+		if (eco_no != null && !eco_no.isEmpty()) {
+			sql += " and eco_no like :eco_no ";
+			paramMap.addValue("eco_no", "%" + eco_no + "%");
+		}
 		if (PART_NM != null && !PART_NM.isEmpty()) {
 			sql += " and PART_NM like :PART_NM ";
 			paramMap.addValue("PART_NM", "%" + PART_NM + "%");

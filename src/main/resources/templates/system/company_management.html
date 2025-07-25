@@ -8,7 +8,7 @@
     <!-- Page Title -->
     <div class="page-title-wrap">
       <div class="left">
-        <h2>사용자 관리</h2><a id="toggleButton" onclick="toggleSearchWrap()"><img
+        <h2>업체 관리</h2><a id="toggleButton" onclick="toggleSearchWrap()"><img
           src="/images/icon/ico-down.png"
           alt="알람 아이콘"></a>
         <!--                <a title="북마크" class="bookmark toggle">-->
@@ -17,8 +17,8 @@
       </div>
       <ul class="page-navi">
         <li><img src="/images/icon/ico-nav-home.svg" alt="홈아이콘"></li>
-        <li>시스템 설정</li>
-        <li>사용자 관리</li>
+        <li>시스템설정</li>
+        <li>사용자관리</li>
       </ul>
     </div>
     <!-- Select -->
@@ -45,8 +45,7 @@
               <h3>사용자 등록
                 <img src="/images/icon/exclamation/exclamation-circle.svg"
                      class="zoom-img" style="margin-left: 5px"
-                     onclick="openPopup('https://foms.atlassian.net/wiki/external/ZjZjNTc4NWQ3ZTUwNDVkYmIwNzk1YWU3NmZhMWMxYTQ')"
-                     alt="도움말">
+                     onclick="openPopup('https://foms.atlassian.net/wiki/external/ZjZjNTc4NWQ3ZTUwNDVkYmIwNzk1YWU3NmZhMWMxYTQ')" alt="도움말">
               </h3>
             </div>
             <div class="button-wrap">
@@ -90,12 +89,12 @@
                 </td>
                 <th>
                   <label for="">
-                    성명
+                    대표자
                   </label>
                 </th>
                 <td>
                   <div class="input-clear">
-                    <input type="text" id="prenm" name="prenm" placeholder="성명"
+                    <input type="text" id="prenm" name="prenm" placeholder="대표자"
                            style="width: 400px !important;">
                   </div>
                 </td>
@@ -103,23 +102,23 @@
               <tr>
                 <th>
                   <label for="">
-                    부서
+                    업태
                   </label>
                 </th>
                 <td>
                   <div class="input-clear">
-                    <input type="text" id="biztypenm" name="biztypenm" placeholder="부서"
+                    <input type="text" id="biztypenm" name="biztypenm" placeholder="업태"
                            style="width: 400px !important;">
                   </div>
                 </td>
                 <th>
                   <label for="">
-                    직급
+                    종목
                   </label>
                 </th>
                 <td>
                   <div class="input-clear">
-                    <input type="text" id="bizitemnm" name="bizitemnm" placeholder="직급"
+                    <input type="text" id="bizitemnm" name="bizitemnm" placeholder="종목"
                            style="width: 400px !important;">
                   </div>
                 </td>
@@ -151,13 +150,13 @@
               <tr>
                 <th>
                   <label for="id">
-                    아이디
+                    사업자 번호 (아이디)
                   </label>
                 </th>
                 <td>
                   <div class="input-clear">
                     <input type="text" id="userid" name="userid" class="wp100" maxlength="50"
-                           placeholder="아이디" style="width: 400px !important;" readonly>
+                           placeholder="사업자 번호" style="width: 400px !important;" readonly>
                     <input type="hidden" id="id" name="id"/>
                     <div style="text-align:left; ">
                       <span id="userid-check-message" style="color: red; display: none; ">중복된 코드입니다.</span>
@@ -241,7 +240,11 @@
                   사용자그룹
                 </dt>
                 <dd>
-                  <select class="mg-r5" id="cboUserGroup" name="cboUserGroup" style="width: 135px;">
+                  <select class="mg-r5" id="cboUserGroup" name="cboUserGroup" style="width: 100%">
+                    <option value="">선택하세요</option>
+                    <option value="1">시스템관리자</option>
+                    <option value="14">주문 담당자</option>
+                    <option value="35">일반거래처</option>
                   </select>
                 </dd>
               </dl>
@@ -273,7 +276,7 @@
                   <div class="srch-box">
                     <div class="input-clear"></div>
                     <a style="margin-left: 10px" class="btn btn-delete" title="검색" id="searchgrid"
-                       onclick="fetchListData()" onkeyup="fetchListData()">
+                       onclick="searchData()" onkeyup="searchData()">
                       <!--                                        class 쓰이는 곳 찾고 없으면 클래스명 수정하기-->
                       <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
                       검색
@@ -319,13 +322,12 @@
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <script>
     var popupWindow;
-
     // 전역 변수로 선언 (스크립트 최상단에 위치)
 
     function sample4_execDaumPostcode() {
       popupWindow = window.open('', 'postcodePopup', 'width=530,height=530');
       new daum.Postcode({
-        oncomplete: function (data) {
+        oncomplete: function(data) {
           // 검색 결과 선택 시 실행할 코드
           var roadAddr = data.roadAddress;
           var extraRoadAddr = '';
@@ -371,7 +373,6 @@
 
     document.readyState === 'complete' ? init() : window.onload = init;
     let isBindSpjangcdCalled = false;
-
     <!-- 초반 페이지 진입시 그리드 바인딩 끝-->
     function init() {
       fetchListData();
@@ -413,28 +414,20 @@
         }
       });
     }
-
     document.getElementById('search_spjangcd').addEventListener('change', function () {
       const spjangcd = this.value;
       fetchListData(spjangcd);
     });
 
-    function fetchListData() {
+    function fetchListData(spjangcd) {
       let data2 = [];
-      const userGroup = document.getElementById('cboUserGroup').value;
-      const name = document.getElementById('keyword').value.trim();
-      const username = document.getElementById('username').value.trim();
 
       // 서버로부터 데이터를 비동기적으로 가져옴
       $.ajax({
         url: '/api/system/user/read',
         type: 'GET',
         async: false,
-        data: {
-          userGroup,
-          name,       //이름
-          username, //사업자 번호
-        },
+        data: { spjangcd },
         success: function (response) {
           console.log("API Response:", response); // 응답 데이터를 출력
           if (response && Array.isArray(response.data)) {
@@ -450,6 +443,7 @@
       const minimumRows = 5;
       data2.forEach((item, index) => {
         item.rownum = index + 1; // 순번 추가
+        item.spjType = spjTypeText(item.spjType); // 기본값 설정 후 매핑
       });
 
 
@@ -469,7 +463,7 @@
             Phone: '',
             email: '',
             date_joined: '',
-            spjType: '',
+            spjType:'',
           });
         }
       }
@@ -488,20 +482,15 @@
           showMarquee: true,
           allowSorting: 'MultiColumn',
           selectionMode: wijmo.grid.SelectionMode.Row,
-          formatItem: (sender, e) => {
-            if (e.panel.cellType === wijmo.grid.CellType.ColumnHeader) {
-              e.cell.style.textAlign = 'center';
-            }
-          },
           columns: [
             {binding: 'id', header: 'id', width: '*', align: 'center', visible: false, isReadOnly: false},
             {binding: 'userid', header: '사용자ID', width: '*', align: 'center', isReadOnly: true},
-            {binding: 'prenm', header: '성명', width: '*', align: 'center', isReadOnly: true},
+            {binding: 'prenm', header: '대표자', width: '*', align: 'center', isReadOnly: true},
             {binding: 'cltnm', header: '업체명', width: '*', align: 'center', isReadOnly: true},
             {binding: 'group_name', header: '사용자그룹', width: '*', align: 'center', isReadOnly: true},
             {binding: 'group_id', header: '사용자그룹', width: '*', align: 'center', visible: false},
-            {binding: 'biztypenm', header: '부서', width: '*', align: 'center', isReadOnly: true},
-            {binding: 'bizitemnm', header: '직급', width: '*', align: 'center', isReadOnly: true},
+            {binding: 'biztypenm', header: '업태', width: '*', align: 'center', isReadOnly: true},
+            {binding: 'bizitemnm', header: '종목', width: '*', align: 'center', isReadOnly: true},
             {binding: 'tel', header: '전화번호', width: '*', align: 'center', visible: false},
             {binding: 'Phone', header: '핸드폰', width: '*', align: 'center', visible: true},
             {binding: 'email', header: '이메일', width: '*', align: 'center', visible: false},
@@ -511,23 +500,6 @@
           ],
           itemsSource: viewdata,
         });
-
-        this.theGrid.formatItem.addHandler((s, e) => {
-          if (e.panel.cellType === wijmo.grid.CellType.Cell) {
-            let col = s.columns[e.col];
-            let item = s.rows[e.row].dataItem;
-
-            if (col.binding === "tel" && item.tel) {
-              e.cell.textContent = formatTelNumber(item.tel);
-            }
-            if (col.binding === "Phone" && item.Phone) {
-              e.cell.textContent = formatTelNumber(item.Phone);
-            }
-
-          }
-
-        });
-
         theGrid.rowHeaders.columns.splice(0, 1);
         new FlexGridContextMenu(theGrid);
       } else {
@@ -552,24 +524,32 @@
       });
     }//fetchListData
 
-    function formatTelNumber(val) {
-      if (!val) return '';
-      let numbers = val.replace(/[^0-9]/g, '');
-      if (numbers.length > 11) numbers = numbers.slice(0, 11);
+    function spjTypeText(spjType) {
+      const mapping = {
+        "PP": "삼정엘리베이터(일산)",
+        "ZZ": "삼정엘리베이터"
+      };
 
-      if (numbers.length < 4) return numbers;
-      if (numbers.length < 7) return numbers.slice(0, 3) + '-' + numbers.slice(3);
-      if (numbers.length === 10) return numbers.slice(0, 3) + '-' + numbers.slice(3, 6) + '-' + numbers.slice(6);
-      if (numbers.length === 11) return numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7);
-
-      return numbers; // fallback
+      return mapping[spjType]; // 기본값: "상태 없음"
     }
+
+    //날짜 포맷
+    function formatDateString(dateString) {
+      if (!dateString || typeof dateString !== 'string' || dateString.length < 8) {
+        return ""; // 유효하지 않은 날짜는 빈 문자열 반환
+      }
+      const year = dateString.substring(0, 4);
+      const month = dateString.substring(4, 6);
+      const day = dateString.substring(6, 8);
+      return `${year}${month}${day}`;
+    }
+
 
     <!-- 초반 페이지 진입시 그리드 바인딩 끝-->
     function showUserInfo(rowData) {
       // 필드 중 하나라도 비어있는지 확인하여 추가 데이터를 가져올지 결정
       const hasMissingFields = !rowData || !rowData.cltnm || !rowData.prenm || !rowData.biztypenm ||
-        !rowData.bizitemnm || !rowData.userid || !rowData.email || !rowData.spjType;
+        !rowData.bizitemnm ||!rowData.userid || !rowData.email || !rowData.spjType;
 
       if (hasMissingFields) {
         // 데이터가 불완전하거나 비어 있을 때
@@ -579,7 +559,7 @@
           $.ajax({
             url: '/api/system/user/detail',
             type: 'GET',
-            data: {id: rowData.id},
+            data: { id: rowData.id },
             success: function (response) {
               if (response && response.data) {
                 populateFields(response.data); // 서버에서 가져온 데이터로 폼 채우기
@@ -623,6 +603,7 @@
       //사업체명
       const spjTypeMapping = {
         "삼정엘리베이터": "ZZ",
+        "삼정엘리베이터(일산)": "PP"
       };
 
       const spjTypeElement = document.getElementById('spjType');
@@ -640,7 +621,7 @@
 
     // fullAddress를 address1과 address2로 분리하는 함수
     function splitAddress(fullAddress) {
-      const addressParts = {address1: '', address2: ''};
+      const addressParts = { address1: '', address2: '' };
       if (fullAddress && fullAddress.trim() !== '') {
         const lastSpaceIndex = fullAddress.lastIndexOf(" ");
         if (lastSpaceIndex > 0) {
@@ -653,10 +634,113 @@
       return addressParts;
     }
 
+    //검색
+    function searchData() {
+      // 검색 조건 수집
+      const userGroup = document.getElementById('cboUserGroup').value;
+      const name = document.getElementById('keyword').value.trim();
+      const username = document.getElementById('username').value.trim();
+
+      // 검색 조건을 객체로 정리
+      const searchParams = {
+        userGroup: userGroup,
+        name: name,
+        username: username
+      };
+
+      // 서버로 AJAX 요청 전송
+      $.ajax({
+        url: `/api/system/user/search`,
+        type: 'GET',
+        data: searchParams, // 검색 조건 전달
+        success: function (response) {
+          let data = response && response.data ? response.data : [];
+
+          // 최소 행 수 유지 - 검색 결과가 없을 경우 빈 행 추가
+          const minimumRows = 3;
+          if (data.length < minimumRows) {
+            const additionalRows = minimumRows - data.length;
+            for (let i = 0; i < additionalRows; i++) {
+              data.push({
+                id: '',
+                userid: '',
+                prenm: '',
+                cltnm: '',
+                group_name: '',
+                group_id: '',
+                biztypenm: '',
+                bizitemnm: '',
+                tel: '',
+                Phone: '',
+                email: '',
+                spjType: '',
+                date_joined: ''
+              });
+            }
+          }
+
+
+          updateGrid(data); // 데이터를 업데이트하는 함수 호출
+        },
+        error: function () {
+          console.error("검색 중 오류가 발생했습니다.");
+          alert("검색에 실패했습니다. 다시 시도해주세요.");
+        }
+      });
+    }
+
+    // 검색 결과를 그리드에 업데이트하는 함수
+    function updateGrid(data) {
+      // 데이터를 수집하여 CollectionView로 업데이트
+      if (viewdata) {
+        viewdata.sourceCollection = data; // 데이터 갱신
+        viewdata.refresh(); // CollectionView 새로고침
+      } else {
+        viewdata = new wijmo.collections.CollectionView(data);
+        theGrid.itemsSource = viewdata; // 데이터 그리드에 반영
+      }
+      theGrid.refresh();
+    }
+
+    function grid_binding(data) {
+      var inspecDto = data;
+      var inspecData = [];
+      var cnt = 1;
+      for (let i = 0; i < inspecDto.length; i++) {
+        let item = inspecDto[i];
+        inspecData.push({
+          id: item["id"],
+          userid: item["userid"],            // 사용자ID
+          prenm: item["prenm"],              // 대표자
+          cltnm: item["cltnm"],              // 업체명
+          group_name: item["group_name"],    // 사용자그룹
+          group_id: item["group_id"],        // 사용자그룹 (보이지 않음)
+          authType: item["UserGroup_id"],
+          biztypenm: item["biztypenm"],      // 업태
+          bizitemnm: item["bizitemnm"],      // 종목
+          tel: item["tel"],                  // 전화번호 (보이지 않음)
+          Phone: item["Phone"],              // 핸드폰
+          email: item["email"],              // 이메일 (보이지 않음)
+          date_joined: item["date_joined"],   // 생성일
+          spjType: item['spjangcd']          //사업체명
+        });
+        cnt++
+      }
+      theGrid.columns.clear();
+      theGrid.autoGenerateColumns = false;
+
+      viewdata.sourceCollection = inspecData;
+
+      for (var i = 0; i < columns.length; i++) {
+        var col = new wijmo.grid.Column(columns[i]);
+        theGrid.columns.push(col);
+      }
+    }
+
     function clearForm() {
       ['id', 'userid', 'prenm', 'cltnm', 'authType', 'email',
         'Phone', 'tel', 'divinm2', 'agencycd', 'firstSelect', 'placeAddress',
-        'biztypenm', 'bizitemnm', 'postno', 'address1', 'address2', 'username', 'spjType'].forEach(id => {
+        'biztypenm', 'bizitemnm', 'postno', 'address1','address2', 'username', 'spjType'].forEach(id => {
         const element = document.getElementById(id);
         if (element) { // 요소가 존재하는 경우에만 실행
           element.value = '';
@@ -671,7 +755,7 @@
 
       const selectAuthType = document.getElementById('authType');
       if (selectAuthType) {
-        selectAuthType.value = '1'; //시스템관리자
+        selectAuthType.value = '35'; //일반거래처
       }
 
       const selectSpjType = document.getElementById('spjType');
@@ -684,24 +768,68 @@
       $('.new-fl-ac').remove();
     }
 
+    /*function initializeSelect2({
+                                   url,               // API 엔드포인트 URL
+                                   params = {},       // 요청 매개변수 (기본값은 빈 객체)
+                                   elementId,         // 셀렉트 요소의 ID
+                                   defaultOption = "선택하세요",  // 기본 옵션 텍스트
+                                   valueField = "code",    // 데이터의 값 필드 이름
+                                   textField = "value"     // 데이터의 표시 필드 이름
+                               }) {
+        $.get(url, params, function(data){
+            console.log('확인: ', data);
+            let selectElement = $(`#${elementId}`);
+            selectElement.empty();
+            selectElement.append(`<option value="">${defaultOption}</option>`);
+            // 동적으로 옵션 추가
+            data.forEach(function(item) {
+                selectElement.append(`<option value="${item[valueField]}">${item[textField]}</option>`);
+            });
+        });
+    }*/
+
+
     $(document).ready(function (e) {
 
-      AjaxUtil.fillSelectOption(
-        $('#authType, #cboUserGroup'),
-        'user_group',
-        'choose',
-        '1', // 선택된 값
-        null, null, null,
-        row => ['1'].includes(String(row.value))
-      );
-      AjaxUtil.fillSelectOption(
-        $('#spjType'),
-        'tb_xa012',
-        'choose',
-        'ZZ', // 선택된 값
-        null, null, null,
-        row => ['ZZ'].includes(String(row.value))
-      );
+      //검색 사용자 그룹
+      initializeSelect({
+        url: '/user-auth/type',
+        params: {},
+        elementId: 'cboUserGroup',
+        valueField: "id",
+        textField: "name"
+      })
+
+      initializeSelect({
+        url: '/user-auth/type',
+        params: {},
+        elementId: 'authType',
+        valueField: "id",
+        textField: "name"
+      })
+
+      initializeSelect({
+        url: '/user-codes/parent',
+        params: {parentId: 154},
+        elementId: 'agencycd',
+        valueField: "id"
+      })
+      initializeSelect2({
+        url: '/user-auth/type',
+        params: {},
+        elementId: 'authType',
+        valueField: "id",
+        textField: "name"
+      })
+
+      initializeSelect2({
+        url: '/user-codes/parent',
+        params: {parentId: 154},
+        elementId: 'agencycd',
+        valueField: "id"
+      })
+
+
 
       $('#userid').on('input', function () {
         let userid = $(this).val();
@@ -753,14 +881,21 @@
         formData.append("postno", $('#postno').val() || '');
         formData.append("address1", $('#address1').val() || '');
         formData.append("address2", $('#address2').val() || '');
-        formData.append("spjType", $('#spjType').val() || '');
 
         // 체크박스 값 추가
         const isActiveCheckbox = document.getElementById("is_active");
         formData.append("is_active", isActiveCheckbox ? isActiveCheckbox.checked : false);
 
         // 비밀번호 설정만 처리
-        let password = "0000";
+        let authType = $('#authType').val();
+        let saupnumValue = $('#saupnum').val(); // 사업자번호
+        let password;
+
+        if (authType === "35") {
+          password = saupnumValue.slice(-5); // 사업자번호 뒤 5자리 비밀번호
+        } else {
+          password = "12345"; // 기본 비밀번호
+        }
 
         formData.append("password", password); // 비밀번호만 추가
 
@@ -771,10 +906,9 @@
           data: formData,
           processData: false,
           contentType: false,
-          headers: {'X-CSRF-TOKEN': csrfToken},
+          headers: { 'X-CSRF-TOKEN': csrfToken },
           success: function (response) {
             console.log("저장 성공:", response);
-              Alert.alert('','초기 비밀번호는 0000 입니다.')
             fetchListData(); // 목록 갱신
             clearForm(); // 폼 초기화
           },
@@ -789,7 +923,7 @@
     // 삭제 버튼 클릭 이벤트
     $('#btnDelete').click(function () {
       let selectedItems = theGrid.selectedItems;
-      let auth = selectedItems[0].is_superuser ? 'true' : 'false';
+      let auth = selectedItems[0].is_superuser? 'true' : 'false';
 
       // 슈퍼유저 계정 여부 확인
       if (auth === true) {

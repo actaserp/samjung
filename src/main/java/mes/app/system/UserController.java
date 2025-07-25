@@ -65,22 +65,19 @@ public class UserController {
 	JdbcTemplate jdbcTemplate;
 
 	@GetMapping("/read")
-	public AjaxResult getUserList(@RequestParam(value = "cltnm", required = false) String cltnm, // 업체명
-								  @RequestParam(value = "prenm", required = false) String prenm, // 대표자
-								  @RequestParam(value = "biztypenm", required = false) String biztypenm, // 업태
-								  @RequestParam(value = "bizitemnm", required = false) String bizitemnm, // 종목
-								  @RequestParam(value = "email", required = false) String email,
-								  @RequestParam(value = "spjangcd", required = false) String spjangcd,
-								  Authentication auth){
+	public AjaxResult getUserList(@RequestParam(value = "userGroup", required = false) String userGroup,
+																@RequestParam(value = "name", required = false) String name,
+																@RequestParam(value = "username", required = false) String username,
+																Authentication auth){
 		AjaxResult result = new AjaxResult();
 		User user = (User)auth.getPrincipal();
 		boolean superUser = user.getSuperUser();
-
+		String spjangcd = user.getSpjangcd();
 		if (!superUser) {
 			superUser = user.getUserProfile().getUserGroup().getCode().equals("dev");
 		}
 
-		List<Map<String, Object>> items = this.userService.getUserList(superUser, cltnm, prenm, biztypenm, bizitemnm, email, spjangcd);
+		List<Map<String, Object>> items = this.userService.getUserList(superUser, spjangcd,userGroup, name, username);
 
 		result.data = items;
 
@@ -166,6 +163,7 @@ public class UserController {
 			@RequestParam(value = "address2") String address2,
 			@RequestParam(value = "password") String password,
 			@RequestParam(value = "UserGroup_id", required = false) Integer UserGroup_id,
+			@RequestParam(value = "spjType", required = false) String spjangcd,
 			Authentication auth
 	) {
 		AjaxResult result = new AjaxResult();
@@ -186,15 +184,15 @@ public class UserController {
 						.username(userid)
 						.password(Pbkdf2Sha256.encode(password))
 						.email(email)
-						.first_name(prenm)
-						.last_name("")
+						.first_name(cltnm)
+						.last_name(prenm)
 						.tel(tel)
 						.active(true)
 						.is_staff(false)
 						.date_joined(new Timestamp(System.currentTimeMillis()))
 						.superUser(false)
 						.phone(phone)
-						.spjangcd("ZZ")
+						.spjangcd(spjangcd)
 						.build();
 			} else {
 				// 기존 사용자 업데이트
@@ -241,24 +239,18 @@ public class UserController {
 
 			System.out.println("User Profile 저장 또는 업데이트 완료");
 
-
-
 			// 거래처 처리 로직
-			String custcd = "SWSPANEL";
-			List<String> spjangcds = Arrays.asList("ZZ", "YY");
+			Optional<TB_XA012> xa012Opt = tbXA012Repository.findById_Spjangcd(spjangcd);
 
-			List<TB_XA012> tbX_A012List = tbXA012Repository.findByCustcdAndSpjangcds(custcd, spjangcds);
-			if (tbX_A012List.isEmpty()) {
+			if (xa012Opt.isEmpty()) {
 				result.success = false;
-				result.message = "custcd 및 spjangcd에 해당하는 데이터를 찾을 수 없습니다.";
+				result.message = "해당 spjangcd에 해당하는 사업장 정보가 없습니다.";
 				return result;
 			}
 
-			// 거래처 데이터 확인 및 저장
-			String maxCltcd = tbXClientRepository.findMaxCltcd();
-			String newCltcd = generateNewCltcd(maxCltcd);
+			String custcd = xa012Opt.get().getId().getCustcd();
 			String fullAddress = address1 + (address2 != null && !address2.isEmpty() ? " " + address2 : "");
-
+			String newCltcd = generateNewCltcd();
 			Optional<TB_XCLIENT> existingClientOpt = tbXClientRepository.findBySaupnum(userid);
 			TB_XCLIENT tbXClient;
 
@@ -291,7 +283,7 @@ public class UserController {
 						//.cltdv("1")
 						.prtcltnm(cltnm)
 						.foreyn("0")
-						.relyn("0")		//거래중지컬럼 0은 해제 상태
+						.relyn("O")    		// relyn = O (영문 )
 						//.bonddv("0")
 						.nation("KR")
 						.clttype("2")
@@ -314,16 +306,18 @@ public class UserController {
 	}
 
 	// 새로운 cltcd 생성 메서드
-	private String generateNewCltcd(String maxCltcd) {
+	private String generateNewCltcd() {
+		String maxCltcd = tbXClientRepository.findMaxCltcd(); // DB에서 최대값 조회
+
 		int newNumber = 1; // 기본값
-		// 최대 cltcd 값이 null이 아니고 "SW"로 시작하는 경우
-		if (maxCltcd != null && maxCltcd.startsWith("SW")) {
-			String numberPart = maxCltcd.substring(2); // "SW"를 제외한 부분
-			newNumber = Integer.parseInt(numberPart) + 1; // 숫자 증가
+
+		if (maxCltcd != null && !maxCltcd.isBlank()) {
+			newNumber = Integer.parseInt(maxCltcd) + 1;
 		}
-		// 새로운 cltcd 생성: "SW" 접두사와 5자리 숫자로 포맷
-		return String.format("SW%05d", newNumber);
+
+		return String.format("%05d", newNumber);
 	}
+
 	@GetMapping("/check")
 	public ResponseEntity<Map<String, Boolean>> checkUserExists(@RequestParam(value = "id") Integer id) {
 		boolean exists = userRepository.findById(id).isPresent();

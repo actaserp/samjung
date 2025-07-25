@@ -201,6 +201,9 @@
     let SelectItem;
     let csrfToken = $("[name=_csrf]").val();
 
+    let currentPdfBlob = null;
+    let currentExcelType = null; // "delivery" or "prov"
+
     // document.readyState === 'complete' ? init() : window.onload = init;
 
     // 오늘 날짜 설정
@@ -379,6 +382,8 @@
 
       let searchDate = document.getElementById('popupDate').value;
       let excelType = document.getElementById('searchExcelType').value;
+      currentExcelType = excelType;
+
       let searchActnm = document.getElementById('searchActnm').value;
       // let spjangcd = document.getElementById('search_spjangcd').value;
 
@@ -405,7 +410,7 @@
             }
           })
           .then(blob => {
-            console.log("PDF Blob size:", blob.size);
+            currentPdfBlob = blob;
             const blobURL = URL.createObjectURL(blob);
             renderPdf(blobURL);
           })
@@ -442,7 +447,7 @@
                   }
                 })
                 .then(blob => {
-                  console.log("PDF Blob size:", blob.size);
+                  currentPdfBlob = blob;
                   const blobURL = URL.createObjectURL(blob);
                   renderPdf(blobURL);
                 })
@@ -530,7 +535,27 @@
     }
     // 엑셀파일 다운로드 메서드
     function downloadFile() {
+      // 파일명이 타입에 따라 다름
+      let fileName = '문서.pdf';
+      if (currentExcelType === 'delivery') fileName = '인수확인서.pdf';
+      if (currentExcelType === 'prov') fileName = '거래명세서.pdf';
 
+      if (currentPdfBlob) {
+        // Blob이 있으면 즉시 다운로드
+        const url = window.URL.createObjectURL(currentPdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+      } else {
+        // 혹시라도 Blob이 없다면 서버로부터 새로 요청 (옵션)
+        Alert.alert('', '다운로드할 PDF가 없습니다. 먼저 미리보기를 조회하세요.');
+      }
     }
   </script>
 </th:block>

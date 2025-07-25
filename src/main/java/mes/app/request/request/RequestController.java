@@ -45,6 +45,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -401,6 +402,12 @@ public class RequestController {
                         long price = line.get("PUAMT") == null ? 0 : Long.parseLong(line.get("PUAMT").toString());
                         long supply = line.get("PAMT") == null ? 0 : Long.parseLong(line.get("PAMT").toString());
                         long tax = supply / 10;
+                        // 합계 계산
+                        totalQty += qty;
+                        totalPrice += price;
+                        totalSupply += supply;
+                        totalTax += tax;
+
                         setCell(sheet, row, 0, String.valueOf(i + 1));                  // A: 순번
                         setCell(sheet, row, 1, (String) line.get("PNAME"));             // B: 품명
                         setCell(sheet, row, 3, (String) line.get("PSIZE"));             // D: 규격
@@ -520,7 +527,102 @@ public class RequestController {
             return String.format("%,d", val);
         } catch(Exception e) { return value.toString(); }
     }
-
+//    @PostMapping("/downloader")
+//    public void downloadFile(
+//            @RequestParam(value = "search_Date", required = false) String searchDate,
+//            @RequestParam(value = "search_actnm", required = false) String searchActnm,
+////                            @RequestParam(value = "spjangcd", required = false) String spjangcd,
+//            HttpServletResponse response,
+//            Authentication auth
+//    ) throws IOException, InterruptedException {
+//        User user = (User) auth.getPrincipal();
+//        String username = user.getUsername();
+//        String spjangcd = "ZZ";
+//
+//        Map<String, Object> userInfo = requestService.getUserInfo(username);
+//        String cltcd = userInfo != null ? (String) userInfo.get("cltcd") : null;
+//
+//        // 주문출고 리스트 조회
+//        String search_Date = (searchDate).replaceAll("-", "");
+//
+//        List<Map<String, Object>> vacData = requestService.getVacFileList(searchDate, searchActnm, cltcd, spjangcd);
+//
+//
+//        DateTimeFormatter ymdFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+//        DateTimeFormatter displayFormatter = DateTimeFormatter.ofPattern("yyyy 년 MM 월 dd 일");
+//
+//        LocalDate frDate = LocalDate.parse(frdateStr, ymdFormatter);
+//        LocalDate toDate = LocalDate.parse(todateStr, ymdFormatter);
+//        LocalDate reqDate = LocalDate.parse(reqdateStr, ymdFormatter);
+//
+//        String repodateFormat = String.format("%s  ~  %s  ( %s ) 일간",
+//                frDate.format(displayFormatter),
+//                toDate.format(displayFormatter),
+//                daynum);
+//
+//        String uuid = UUID.randomUUID().toString();
+//        Path tempXlsx = Files.createTempFile(uuid, ".xlsx");
+//        Path tempPdf = Path.of(tempXlsx.toString().replace(".xlsx", ".pdf"));
+//
+//        try (FileInputStream fis = new FileInputStream("C:/Temp/mes21/문서/VacDemoFile.xlsx");
+//             Workbook workbook = new XSSFWorkbook(fis);
+//             FileOutputStream fos = new FileOutputStream(tempXlsx.toFile())) {
+//
+//            Sheet sheet = workbook.getSheetAt(0);
+//            setCell(sheet, 2, 2, (String) vacData.get("worknm"));
+//            setCell(sheet, 9, 2, (String) vacData.get("repopernm"));
+//            setCell(sheet, 7, 2, (String) vacData.get("jiknm"));
+//            setCell(sheet, 5, 2, (String) vacData.get("departnm"));
+//            setCell(sheet, 16, 0, (String) vacData.get("remark"));
+//            setCell(sheet, 11, 2, repodateFormat);
+//            setCell(sheet, 24, 3, (String) vacData.get("worknm"));
+//            setCell(sheet, 27, 0, reqDate.format(displayFormatter));
+//            setCell(sheet, 30, 10, (String) vacData.get("repopernm"));
+//
+//            workbook.write(fos);
+//        }
+//
+//        ProcessBuilder pb = new ProcessBuilder(
+//                "C:/Program Files/LibreOffice/program/soffice.exe",
+//                "--headless",
+//                "--convert-to", "pdf",
+//                "--outdir", tempPdf.getParent().toString(),
+//                tempXlsx.toAbsolutePath().toString()
+//        );
+//        pb.inheritIO();
+//        Process process = pb.start();
+//        process.waitFor();
+//
+//        int retries = 0;
+//        while ((!Files.exists(tempPdf) || Files.size(tempPdf) == 0) && retries++ < 100) {
+//            Thread.sleep(100); // 최대 10초 대기
+//        }
+//        if (!Files.exists(tempPdf) || Files.size(tempPdf) == 0) {
+//            throw new FileNotFoundException("PDF 변환 실패: " + tempPdf.toString());
+//        }
+//
+//        try (FileInputStream fis = new FileInputStream(tempPdf.toFile())) {
+//            response.setContentType("application/pdf");
+//            response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''휴가신청서.pdf");
+//            response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+//            response.setHeader("Pragma", "no-cache");
+//            response.setHeader("Expires", "0");
+//
+//            IOUtils.copy(fis, response.getOutputStream());
+//            response.flushBuffer();
+//        }
+//        // ⬇ 여기서 executor 실행
+//        ScheduledExecutorService cleaner = Executors.newSingleThreadScheduledExecutor();
+//        cleaner.schedule(() -> {
+//            try {
+//                Files.deleteIfExists(tempXlsx);
+//                Files.deleteIfExists(tempPdf);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }, 5, TimeUnit.MINUTES);
+//        cleaner.shutdown();
+//    }
 
 }
 

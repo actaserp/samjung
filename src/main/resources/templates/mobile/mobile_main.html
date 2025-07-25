@@ -211,9 +211,7 @@
             <dd>
               <div style="display: flex; gap: 10px">
                 <div style="width: 100%">
-                  <select id="selectWorkcd">
-                    <option value="">전체</option>
-                  </select>
+                  <input type="text" id="searchText">
                 </div>
               </div>
             </dd>
@@ -269,9 +267,9 @@
     return dateStr.slice(2, 10); // "2024.05.27" → "24.05.27"
   }
   function searchMainData() {
-    let url = '/api/commute_current/read';
+    let url = '/api/request/hyun/order_read';
     let data = {
-      'workcd': document.getElementById('selectWorkcd').value,
+      'searchText': document.getElementById('searchText').value,
       'searchFromDate': document.getElementById('searchFromDate').value,
       'searchToDate': document.getElementById('searchToDate').value
     };
@@ -293,6 +291,8 @@
                 <th>규격</th>
                 <th>수량</th>
                 <th>도번</th>
+                <th>발주처확인</th>
+                <th>공장확인</th>
               </tr>
                 `;
 

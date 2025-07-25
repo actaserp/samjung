@@ -1,4 +1,4 @@
-package mes.app.request.subRequest.service;
+package mes.app.request.hyun.service;
 
 import lombok.extern.slf4j.Slf4j;
 import mes.domain.entity.actasEntity.TB_DA006W;
@@ -20,7 +20,7 @@ import java.util.Map;
 
 @Slf4j
 @Service
-public class SubRequestService {
+public class HyunService {
 
     @Autowired
     SqlRunner sqlRunner;
@@ -94,11 +94,11 @@ public class SubRequestService {
                                                   String searchActnm) {
 
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
-        String facFlag = searchChulflag.equals("shipment") ? "1" : "0" ;
+        String chulFlag = searchChulflag.equals("shipment") ? "1" : "0" ;
         dicParam.addValue("searchStartDate", searchStartDate);
         dicParam.addValue("searchEndDate", searchEndDate);
         dicParam.addValue("searchRemark", "%" + searchRemark + "%");
-        dicParam.addValue("facFlag",  facFlag);
+        dicParam.addValue("chulFlag",  chulFlag);
         dicParam.addValue("CLTCD",  cltcd);
         dicParam.addValue("searchActnm",  "%" + searchActnm + "%");
 
@@ -113,7 +113,7 @@ public class SubRequestService {
                     ON hd.BALJUNUM = dt.BALJUNUM
                 WHERE
                     1=1
-                    AND dt.CHULFLAG = '1'
+                    AND hd.CLTCD = :CLTCD
                 """);
 
         // 날짜 필터
@@ -132,7 +132,7 @@ public class SubRequestService {
         }
         // 진행구분 필터
         if (searchChulflag != null && !searchChulflag.isEmpty()) {
-            sql.append(" AND dt.FACFLAG = :facFlag");
+            sql.append(" AND dt.CHULFLAG = :chulFlag");
         }
         // 정렬 조건 추가
         sql.append(" ORDER BY hd.BALJUDATE ASC");
@@ -503,6 +503,7 @@ public class SubRequestService {
     ) {
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("searchDate", searchDate);
+        dicParam.addValue("CLTCD",  cltcd);
         dicParam.addValue("searchActnm",  "%" + searchActnm + "%");
 
         StringBuilder sql = new StringBuilder("""
@@ -520,15 +521,19 @@ public class SubRequestService {
                     ON hd.BALJUNUM = dt.BALJUNUM
                 JOIN
                     auth_user au
-                    ON au.username = dt.FACPERNM
+                    ON au.username = dt.CHULPERNM
                 JOIN
                     TB_XCLIENT xc
                     ON au.username = xc.saupnum
                 WHERE
                     1=1
-                AND dt.FACFLAG = '1'
-                AND dt.FACDATE = :searchDate
+                AND dt.CHULFLAG = '1'
+                AND dt.CHULDATE = :searchDate
                 """);
+        // cltcd 필터(자기 발주처건만 확인할 수 있도록)
+        if (cltcd != null && !cltcd.isEmpty()) {
+            sql.append(" AND hd.CLTCD = :CLTCD");
+        }
         // 정렬 조건 추가
         sql.append(" ORDER BY hd.BALJUDATE ASC");
 
@@ -544,6 +549,7 @@ public class SubRequestService {
     ) {
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("searchDate", searchDate);
+        dicParam.addValue("CLTCD",  cltcd);
         dicParam.addValue("searchActnm",  "%" + searchActnm + "%");
 
         StringBuilder sql = new StringBuilder("""
@@ -560,10 +566,8 @@ public class SubRequestService {
                     xc.bizitemnm,
                     xc.agnernm,
                     xc.agntel,
-                    au.phone,
-                    aus.last_name as sub_last_name,
-                    xcs.cltnm as sub_cltnm,
-                    aus.phone as sub_phone
+                    au.phone
+                    
                 FROM
                     TB_CA660 hd
                 JOIN
@@ -575,16 +579,12 @@ public class SubRequestService {
                 JOIN
                     TB_XCLIENT xc
                     ON au.username = xc.saupnum
-                JOIN
-                    auth_user aus
-                    ON aus.username = dt.FACPERNM
-                JOIN
-                    TB_XCLIENT xcs
-                    ON aus.username = xcs.saupnum
+               
                 WHERE
                     1=1
-                AND dt.FACFLAG = '1'
-                AND dt.FACDATE = :searchDate
+                AND dt.CHULFLAG = '1'
+                AND dt.CHULDATE = :searchDate
+                AND hd.CLTCD = :CLTCD
                 """);
         // cltcd 필터(자기 발주처건만 확인할 수 있도록)
 //        if (cltcd != null && !cltcd.isEmpty()) {
@@ -627,7 +627,7 @@ public class SubRequestService {
                     ON hd.BALJUNUM = dt.BALJUNUM
                 WHERE
                     1=1
-                    AND dt.CHULFLAG = '1'
+                    AND hd.CHULFLAG = '1'
                 """);
 
         // 날짜 필터
@@ -656,16 +656,16 @@ public class SubRequestService {
         return items;
     }
     // 주문출고(공장) flag값 update
-    public void updateFacInfo2(String username, String today, String FACFLAG, Integer BALJUNUM, Integer BALJUSEQ) {
+    public void updateChulInfo2(String username, String today, String CHULFLAG, Integer BALJUNUM, Integer BALJUSEQ) {
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("username", username);
         dicParam.addValue("today", today);
-        dicParam.addValue("FACFLAG", FACFLAG);
+        dicParam.addValue("CHULFLAG", CHULFLAG);
         dicParam.addValue("BALJUNUM", BALJUNUM);
         dicParam.addValue("BALJUSEQ", BALJUSEQ);
         String sql = """
                 update TB_CA661
-                set "FACFLAG" = :FACFLAG
+                set "FACFLAG" = :CHULFLAG
                 , "FACDATE" = :today
                 , "FACPERNM" = :username
                 where BALJUNUM = :BALJUNUM

@@ -82,12 +82,12 @@ public class SubRequestController {
 //        items.add(headitem);
         if(items != null){
             for (Map<String, Object> item : items) {
-                // 날짜 형식 변환 (reqdate)
-                if (item.containsKey("CHULDATE")) {
-                    String setupdt = (String) item.get("CHULDATE");
+                // 날짜 형식 변환 (FACDATE)
+                if (item.containsKey("FACDATE")) {
+                    String setupdt = (String) item.get("FACDATE");
                     if (setupdt != null && setupdt.length() == 8) {
                         String formattedDate = setupdt.substring(0, 4) + "-" + setupdt.substring(4, 6) + "-" + setupdt.substring(6, 8);
-                        item.put("CHULDATE", formattedDate);
+                        item.put("FACDATE", formattedDate);
                     }
                 }
             }
@@ -134,7 +134,7 @@ public class SubRequestController {
                 if (!Objects.equals(oldFlag, chulFlag)) {
                     if ("1".equals(chulFlag)) { // 출고처리
                         // 0 → 1
-                        requestService.updateChulInfo2(username, today, chulFlag, baljuNum, baljuSeq);
+                        requestService.updateFacInfo2(username, today, chulFlag, baljuNum, baljuSeq);
                     } else { // 출고 해제
                         // 1 → 0
                         requestService.clearChulInfo2("0", baljuNum, baljuSeq);
@@ -211,8 +211,8 @@ public class SubRequestController {
                 // HEAD 정보
                 setCell(sheet, 4, 2, (String) head.get("PROCD"));           // C5
                 setCell(sheet, 5, 2, (String) head.get("ACTNM"));           // C6
-                String chulDateStr = head.get("CHULDATE") == null ? "" : head.get("CHULDATE").toString();
-                setCell(sheet, 4, 13, formatToKorean((String) head.get("CHULDATE"))); // N5
+                String chulDateStr = head.get("FACDATE") == null ? "" : head.get("FACDATE").toString();
+                setCell(sheet, 4, 13, formatToKorean((String) head.get("FACDATE"))); // N5
 
                 String remarkAll =
                         (head.get("REMARK01") != null ? head.get("REMARK01") + "\n" : "") +
@@ -223,9 +223,9 @@ public class SubRequestController {
                 setCell(sheet, 34, 15, (String) head.get("last_name"));              // P35
                 setCell(sheet, 34, 6, (String) head.get("cltnm"));               // G35
                 setCell(sheet, 34, 12, (String) head.get("phone"));                 // M35
-                setCell(sheet, 34, 3, formatToDash((String) head.get("CHULDATE")));   // D35 yyyy-mm-dd
-                setCell(sheet, 36, 3, formatToDash((String) head.get("CHULDATE")));   // D37
-                setCell(sheet, 38, 3, formatToDash((String) head.get("CHULDATE")));   // D39
+                setCell(sheet, 34, 3, formatToDash((String) head.get("FACDATE")));   // D35 yyyy-mm-dd
+                setCell(sheet, 36, 3, formatToDash((String) head.get("FACDATE")));   // D37
+                setCell(sheet, 38, 3, formatToDash((String) head.get("FACDATE")));   // D39
 
 
                 // BODY 정보 (표 9행~29행, 최대 21개 row)
@@ -238,7 +238,7 @@ public class SubRequestController {
                         setCell(sheet, row, 5, (String) line.get("PSIZE"));        // 규격, F9~F32
                         setCell(sheet, row, 9, (String) line.get("PUNIT"));        // 단위, J9~J32
                         setCell(sheet, row, 11, line.get("PQTY").toString());        // 수량, L9~L32
-                        setCell(sheet, row, 13, (String) line.get("CHULFLAG"));    // 출하여부, N9~N32
+                        setCell(sheet, row, 13, (String) line.get("FACFLAG"));    // 출하여부, N9~N32
                         setCell(sheet, row, 14, (String) line.get("REMARK"));      // 비고, O9~O32
                     } else {
                         // 빈 row 초기화 (공백)

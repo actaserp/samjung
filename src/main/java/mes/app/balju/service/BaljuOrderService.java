@@ -56,15 +56,15 @@ WITH main_data AS (
             SUM(d.PAMT)    AS pamt,
             -- 출고 상태
             CASE
-              WHEN COUNT(*) = SUM(CASE WHEN d.CHULFLAG = '1' THEN 1 ELSE 0 END) THEN '확인'
-              WHEN SUM(CASE WHEN d.CHULFLAG = '1' THEN 1 ELSE 0 END) = 0 THEN '미확인'
-              ELSE '부분 확인'
+              WHEN COUNT(*) = SUM(CASE WHEN d.CHULFLAG = '1' THEN 1 ELSE 0 END) THEN '출고'
+              WHEN SUM(CASE WHEN d.CHULFLAG = '1' THEN 1 ELSE 0 END) = 0 THEN '미출고'
+              ELSE '부분 출고'
             END AS chulflag,
             -- 공장 상태
             CASE
-              WHEN COUNT(*) = SUM(CASE WHEN d.FACFLAG = '1' THEN 1 ELSE 0 END) THEN '확인'
-              WHEN SUM(CASE WHEN d.FACFLAG = '1' THEN 1 ELSE 0 END) = 0 THEN '미확인'
-              ELSE '부분 확인'
+              WHEN COUNT(*) = SUM(CASE WHEN d.FACFLAG = '1' THEN 1 ELSE 0 END) THEN '출고'
+              WHEN SUM(CASE WHEN d.FACFLAG = '1' THEN 1 ELSE 0 END) = 0 THEN '미출고'
+              ELSE '부분 출고'
             END AS facflag,
             -- 현장 상태
             CASE
@@ -124,7 +124,7 @@ WITH main_data AS (
     String sql = """
         select
         h.BALJUNUM,
-        h.PROCD as projcet_no,
+        h.PROCD as project_no,
         p.PROJECT_NM ,
         STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-') as ichdate,
         h.PERNM as pernm,
@@ -177,7 +177,7 @@ WITH main_data AS (
     header.put("mode", "edit");
     header.put("BALJUDATE", first.get("BALJUDATE"));
     header.put("BALJUNUM", first.get("BALJUNUM"));
-    header.put("project_no", first.get("projcet_no"));
+    header.put("project_no", first.get("project_no"));
     header.put("PROJECT_NM", first.get("PROJECT_NM"));
     header.put("ichdate", first.get("ichdate"));
     header.put("pernm", first.get("pernm"));
@@ -264,52 +264,39 @@ WITH main_data AS (
   }
 
 
-  public List<Map<String, Object>> getBomList(String projcetNo) {
+  public List<Map<String, Object>> getBomList(String project_no, String eco_no) {
   MapSqlParameterSource dicParam = new MapSqlParameterSource();
-  dicParam.addValue("projcetNo", projcetNo);
+  dicParam.addValue("projectNo", project_no);
+  dicParam.addValue("ecoNo", eco_no);
   String sql = """
-      WITH BOM_TREE AS (
-        -- 루트 품목 (상위가 없는 최상위 품목)
-        SELECT
-            1 AS LEVEL,
-            C.PART_NO,
-            P.PART_NM,
-            B.CHILD_NO,
-            C.PART_NM AS CHILD_NM,
-            B.QTY,
-            B.SEQ,
-            B.PROJECT_NO,
-            C.DRAWING_NO,
-            C.UNIT\s
-        FROM TB_CA663 B
-        JOIN TB_CA662 P ON B.PARENT_NO = P.PART_NO
-        JOIN TB_CA662 C ON B.CHILD_NO = C.PART_NO
-        WHERE B.PARENT_NO NOT IN (SELECT CHILD_NO FROM TB_CA663 WHERE PROJECT_NO = :projcet_no)
-          AND B.PROJECT_NO = :projcet_no
-        UNION ALL
-        -- 재귀적으로 하위 품목 탐색
-        SELECT
-            T.LEVEL + 1,
-            C.PART_NO,
-            C.PART_NM,
-            B.CHILD_NO,
-            CC.PART_NM AS CHILD_NM,
-            B.QTY,
-            B.SEQ,
-            B.PROJECT_NO,
-            C.DRAWING_NO,
-            C.UNIT
-        FROM TB_CA663 B
-        JOIN BOM_TREE T ON B.PARENT_NO = T.CHILD_NO
-        JOIN TB_CA662 C ON B.PARENT_NO = C.PART_NO
-        JOIN TB_CA662 CC ON B.CHILD_NO = CC.PART_NO
-        WHERE B.PROJECT_NO = :projcet_no
-    )
-    SELECT *
-    FROM BOM_TREE
-    ORDER BY LEVEL, PART_NO, SEQ
+     SELECT 
+      b.ECO_NO,
+      b.PROJECT_NO,
+      b.HOGI_NO, 
+      b.PARENT_NO, 
+      b.CHILD_NO,
+      b.SEQ, b.QTY, b.CMT,
+      b.BPDATE AS BOM_BPDATE,
+      b.BPPERNM AS BOM_BPPERNM,
+      p1.PART_NM AS PARENT_PART_NM, --모품목
+      p1.PLM_VERSION AS PARENT_VERSION,
+      p2.PART_NO, p2.PART_NM, p2.PLM_VERSION,
+      p2.BLOCK_NO, p2.G_NO, 
+      p2.DRAWING_NO,
+      p2.GUBUN,
+      p2.UNIT, 
+      p2.PART_SIZE, 
+      p2.SPEC,
+      p2.BPDATE AS PART_BPDATE,
+      p2.BPPERNM AS PART_BPPERNM
+     FROM TB_CA663 b
+     LEFT JOIN TB_CA662 p1 ON b.ECO_NO = p1.ECO_NO AND b.PARENT_NO = p1.PART_NO
+     LEFT JOIN TB_CA662 p2 ON b.ECO_NO = p2.ECO_NO AND b.CHILD_NO = p2.PART_NO
+     WHERE b.ECO_NO = :ecoNo AND b.PROJECT_NO = :projectNo;
       """;
-    return (List<Map<String, Object>>) sqlRunner.getRow(sql, dicParam);
+//    log.info("bom list 데이터 SQL: {}", sql);
+//    log.info("SQL Parameters: {}", dicParam.getValues());
+    return sqlRunner.getRows(sql, dicParam);
   }
 
 }

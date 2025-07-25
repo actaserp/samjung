@@ -74,7 +74,7 @@
         this.viewData = new wijmo.collections.CollectionView();
         this.selectedItem = null;
         this.callback = null;
-        this.modalContainer = new PopupDraggable('직원 선택');
+        this.modalContainer = new PopupDraggable('품목 선택');
         this.$btnpartSearch = null;
         this.$btnCompSelect = null;
         this.$PART_NM = null;
@@ -91,6 +91,9 @@
 
         let result = AjaxUtil.getSyncData(url, data);
         if (result) {
+          result.data.forEach(item => {
+            item.check = false;
+          });
           _this.viewData.sourceCollection = result.data;
           // 첫 번째 행으로 포커스 이동
           setTimeout(() => {
@@ -116,12 +119,12 @@
         this.selectedItem = null;
       }
 
-      selectData(item) {
+      selectData(items) {
         this._skipAutoFocus = false;
 
         if (typeof this.callback === 'function') {
-          this._skipAutoFocus = true; // 콜백 안에서 포커스 줄 예정
-          this.callback(item);
+          this._skipAutoFocus = true;
+          this.callback(items); // ✅ 배열로 전달
         }
 
         this.close();
@@ -152,9 +155,17 @@
             selectionMode: wijmo.grid.SelectionMode.Row,
             autoGenerateColumns: false,
             showMarquee: true,
-            isReadOnly: true,
+            isReadOnly: false,
             keyActionEnter: wijmo.grid.KeyAction.None,
-            columns: [
+              columns: [
+            {
+              binding: 'check',
+              header: '',
+              width: 70,
+              dataType: 'Boolean', // 중요: Boolean으로 지정
+              allowSorting: false,
+              align: 'center'
+            },
               {binding: 'PART_NO', header: '품목번호', width: 120, align: 'left'},
               {binding: 'PART_NM', header: '품목명', width: '*', align: 'center'},
               {binding: 'unit', header: '단위', width: 50 , align: 'left'},
@@ -174,21 +185,24 @@
 
 
           this.$btnpartSearch.click(function (e) {
+
             _this.searchDataBind();
           });
 
           $('#btnpartSearch').click();
 
-
           this.$btnCompSelect.click(function (e) {
-            // 그리드에서 현재 선택된 item을 찾아서 호출한다.
-            let items = _this.grid.selectedItems;
-            if (items.length === 0) {
-              return false;
-            }
-            _this.selectData(items[0]);
-          });
+            // ✅ check === true인 항목만 필터링
+            let selectedItems = _this.viewData.items.filter(item => item.check);
 
+            if (selectedItems.length === 0) {
+              Alert.alert('', '선택된 품목이 없습니다.');
+              return;
+            }
+
+            // ✅ 여러 개 전달
+            _this.selectData(selectedItems);
+          });
 
           //닫기버튼을 아래 ID로 사용한다면 호출하는 화면에서 이벤트 처리 필요없음
           $content.find('#btn-search-close').on('click', function () {

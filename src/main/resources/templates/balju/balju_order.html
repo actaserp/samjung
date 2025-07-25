@@ -277,6 +277,9 @@
     min-width: 0;
     box-sizing: border-box;
   }
+    .item-table tbody tr.from-bom {
+    background-color: #fff9c4; /* 연한 노랑 */
+  }
 </style>
     <div class="content_wrap popup" id="div_excel_upload">
     <div class="table-wrap">
@@ -307,6 +310,7 @@
             <td>
               <div class="input-with-button">
               <input id="procd" name="procd" type="hidden">
+              <input id="eco_no" name="eco_no" type="hidden">
               <input id="project_no" name="project_no" type="text" placeholder="검색버튼을 클릭하여 검색하세요">
                 <input class="form-control2" type="hidden" id="PROJECT_NM" name="PROJECT_NM"/>
                 <a class="btn btn-delete small-btn" title="프로젝트검색" id="btnProjectSearch">
@@ -422,6 +426,7 @@
               <col style="width: 18%">
               <col style="width: 16%">
               <col style="width: 6%">
+              <col style="width: 6%">
               <col style="width: 12%">
               <col style="width: 12%">
               <col style="width: 12%">
@@ -433,6 +438,7 @@
                 <th>품목코드</th>
                 <th>품명</th>
                 <th>규격</th>
+                <th>단위</th>
                 <th>수량</th>
                 <th>단가</th>
                 <th>금액</th>
@@ -449,7 +455,7 @@
               <td>
                 <input type="text" name="pcode" placeholder="품목코드" readonly />
                 <input type="hidden" name="bpid" />
-                <input type="hidden" name="punit" />
+                <input type="hidden" name="isbom" />
                 <input type="hidden" name="BALJUSEQ" />
                 <input type="hidden" name="chulflag" />
                 <input type="hidden" name="facflag" />
@@ -464,6 +470,7 @@
                 </div>
               </td>
               <td><input type="text" name="psize" placeholder="규격" /></td>
+              <td><input type="text" name="punit" placeholder="단위" /></td>
               <td><input type="text" name="pqty" placeholder="수량" /></td>
               <td><input type="text" name="puamt" min="0" placeholder="단가"/></td>
               <td><input type="text" name="pamt" placeholder="금액"/></td>
@@ -497,7 +504,7 @@
   <th:block th:replace="/common/popup_part :: popup_part"></th:block>
   <script type="text/javascript">
     const ProductInputHandler = {
-      bind: function ({rowSelector, $content, tryShowBaljuPrice}) {
+      bind: function ({rowSelector, $content}) {
         const $row = $(rowSelector);
 
         // 숫자 포맷 적용 대상 필드들
@@ -520,16 +527,12 @@
         });
 
         // 계산 이벤트 바인딩
-        $row.find('input[name^="pqty_"], input[name^="BaljuUnitPrice_"]').off('keyup change').on('keyup change', function () {
-          calculateAmount({ row: $row, $content });
-          updateBaljuTotalPrice($content);
+        $row.find('input[name^="pqty_"], input[name^="puamt_"]').off('input change keyup').on('input change keyup', function () {
+          calculateAmount({ row: $row });
         });
 
-        $row.find('input[name^="totalAmount_"]').off('input').on('input', function () {
-          const $this = $(this);
-          const $edited = $row.find('input[name^="totalEdited_"]');
-          $edited.val('Y'); // ✅ 수동입력 표시
-          updateBaljuTotalPrice($content);
+        $row.find('input[name^="pamt_"]').off('input').on('input', function () {
+          $row.data('totalEdited', true); // 자동계산 안 되도록 표시
         });
 
         // 제품 검색 기능 (기존 그대로 유지)
@@ -633,7 +636,7 @@
             {binding: 'pamt', header: '금액', width: 100, align: 'right'},
             {binding: 'pmapseq', header: '도번', width: 100, align: 'right'},
             {binding: 'chulflag', header: '발주처출고여부', width: 120, align: 'center'},
-            {binding: 'facflag', header: '공장확인여부', width: 120, align: 'center'},
+            {binding: 'facflag', header: '공장출고여부', width: 120, align: 'center'},
             {binding: 'hyunflag', header: '현장확인여부', width: 120, align: 'center'},
             {binding: 'remark', header: '비고', width: 150, align: 'center'},
           ],
@@ -705,9 +708,11 @@
           if (items.length > 0) {
             //console.log('🔍 삭제 대상 데이터:', items);
             let id = items[0].BALJUNUM;
-            const isDraft = ["chulflag", "facflag", "hyunflag"].every(flag => items[0][flag] === "미확인");
+            const { chulflag, facflag, hyunflag } = items[0];
+            const isDraft = chulflag === "미출고" && facflag === "미출고" && hyunflag === "미확인";
+
             if (!isDraft) {
-              Alert.alert('', '미확인 시에만 삭제 할 수 있습니다.');
+              Alert.alert('', '미출고 , 미확인 시에만 삭제 할 수 있습니다.');
               return;
             }
             Alert.confirm('', '삭제하시겠습니까?',
@@ -809,7 +814,7 @@
         }
 
         //모달 크기
-        modalContainer.open({width: 1150, height: 630, $content});
+        modalContainer.open({width: 1300, height: 630, $content});
         $('#popSrchDt1').ax5DatePicker({direction: 'top'});
         $('#popSrchDt2').ax5DatePicker({direction: 'top'});
 
@@ -983,21 +988,81 @@
         });
 
         $content.find('#btnProjectSearch').click(function () {
-          let poppage = new PopProjcetList();
+          let poppage = new PopProjectList();
           let $poppage = $(poppage);
           let searchcallback = function (items) {
             console.log('프로젝트목록 팝업', items);
             $content.find('#procd').val(items.BOMID);
-            $content.find('#project_no').val(items.projcet_no);
-            $content.find('#PROJECT_NM').val(items.projcet_nm);
+            $content.find('#eco_no').val(items.eco_no);
+            $content.find('#project_no').val(items.project_no);
+            $content.find('#PROJECT_NM').val(items.project_nm);
 
             // bom 리스트가지고와서 동적행에
-            AjaxUtil.getAsyncData('/api/balju/balju_order/bomList', { projcet_no: items.projcet_no }, function (result) {
+            AjaxUtil.getAsyncData('/api/balju/balju_order/bomList', { eco_no: items.eco_no , project_no: items.project_no }, function (result) {
               if (result.success && result.data.length > 0) {
                 const bomList = result.data;
-                $content.find('.item-table tbody tr:not(.item-template-row)').each(function () {
+                const $tbody = $content.find('.item-table tbody');
+                const $template = $tbody.find('.item-template-row');
+                let itemIndex = 0;
 
+                const $rows = $tbody.find('tr:not(.item-template-row)');
+
+                // 기존 입력 행 모두 초기화
+                $rows.find('input').val('');
+
+                // 품목 데이터 순회하여 행 채우기 or 새로 생성
+                bomList.forEach((item, i) => {
+                  let $targetRow;
+
+                  if (i < $rows.length) {
+                    // 기존 행 재사용
+                    $targetRow = $rows.eq(i);
+                  } else {
+                    // 새 행 생성
+                    $targetRow = $template.clone().removeClass('item-template-row').show();
+
+                    // name 고유화
+                    $targetRow.find('input').each(function () {
+                      const baseName = $(this).attr('name');
+                      if (baseName) {
+                        $(this).attr('name', `${baseName}_${itemIndex}`);
+                      }
+                    });
+
+                    $tbody.append($targetRow);
+                    ProductInputHandler.bind({ rowSelector: $targetRow, $content: $content });
+
+                    // 이벤트 바인딩
+                    ProductInputHandler.bind({
+                      rowSelector: $targetRow,
+                      $content: $content,
+                    });
+
+                    itemIndex++;
+                  }
+
+                  fillRowWithItem($targetRow, item);
                 });
+
+                // 남은 기존 행이 있다면 비우기 or 삭제 (선택)
+                if ($rows.length > bomList.length) {
+                  $rows.slice(bomList.length).remove(); // 또는 .hide()
+                }
+
+                function fillRowWithItem($targetRow, item) {
+                  $targetRow.find('input[name^="txtPname"]').val(item.PART_NM);
+                  $targetRow.find('input[name^="bpid_"]').val(item.bpid);
+                  $targetRow.find('input[name^="pcode_"]').val(item.PART_NO);
+                  $targetRow.find('input[name^="psize_"]').val(item.PART_SIZE);
+                  $targetRow.find('input[name^="punit_"]').val(item.UNIT);
+                  $targetRow.find('input[name^="pqty_"]').val(item.QTY);
+                  $targetRow.find('input[name^="pmapseq_"]').val(item.DRAWING_NO);
+                  $targetRow.find('input[name="isbom_"]').val('Y');
+
+                  $targetRow.addClass('from-bom');
+                }
+              } else {
+                Alert.alert('', 'BOM 품목이 없습니다.');
               }
             });
           }
@@ -1266,7 +1331,7 @@
               $newRow.find('a.btn').hide();
             }
 
-            ProductInputHandler.bind({ rowSelector: $newRow, $content: $content, tryShowBaljuPrice });
+            ProductInputHandler.bind({ rowSelector: $newRow, $content: $content });
             $tbody.append($newRow);
             itemIndex++;
           }
@@ -1315,26 +1380,144 @@
         });
 
         $content.on('click', 'a[title="품목 검색"]', function () {
-          const $row = $(this).closest('tr');
+          const $clickedRow = $(this).closest('tr');
+          const $tbody = $content.find('.item-table tbody');
+          const $template = $tbody.find('.item-template-row').first();
+          const $rows = $tbody.find('tr:not(.item-template-row)');
 
-          const $PnameInput = $row.find('input[name^="txtPname_"]');
-          const $PnameId = $row.find('input[name^="bpid_"]');
-          const $PnameCode = $row.find('input[name^="pcode_"]');
-          const $Psize = $row.find('input[name^="psize_"]');
-          const $Punit = $row.find('input[name^="punit_"]');
-          const $DRAWING_NO = $row.find('input[name^="pmapseq_"]');
+          const partPopup = new PopPart();
+          partPopup.show(function (selectedItems) {
+            if (!Array.isArray(selectedItems) || selectedItems.length === 0) return;
 
-          const pop = new PopPart();
+            console.log('선택된 품목 목록:', selectedItems);
 
-          pop.show(function (item) {
-            $PnameInput.val(item.PART_NM);
-            $PnameId.val(item.bpid);
-            $PnameCode.val(item.PART_NO);
-            $Psize.val(item.PART_SIZE);
-            $Punit.val(item.unit);
-            $DRAWING_NO.val(item.DRAWING_NO);
+            let itemIndex = $rows.length;
+
+            // 현재 존재하는 모든 PART_NO 수집
+            const existingPartNos = $rows.map(function () {
+              return $(this).find('input[name^="pcode"]').val();
+            }).get();
+            console.log('현재 테이블에 있는 품목코드 목록:', existingPartNos);
+            // 빈 행 필터링
+            const $emptyRows = $rows.filter(function () {
+              return $(this).find('input[type="text"], input[type="number"]').filter(function () {
+                return $(this).val().trim() !== '';
+              }).length === 0;
+            });
+            let usedClickedRow = false;
+            for (let i = 0; i < selectedItems.length; i++) {
+              const item = selectedItems[i];
+              let $targetRow;
+
+              if (!usedClickedRow) {
+                // ✅ 클릭한 행에 무조건 바인딩
+                $targetRow = $clickedRow;
+                usedClickedRow = true;
+              } else if (i < $emptyRows.length) {
+              $targetRow = $emptyRows.eq(i);
+          } else {
+                // 새 행 생성
+                const $newRow = $template.clone().removeClass('item-template-row').show();
+
+                $newRow.find('input').each(function () {
+                  const baseName = $(this).attr('name');
+                  if (baseName) {
+                    $(this).attr('name', `${baseName}_${itemIndex}`);
+                  }
+                });
+
+                $tbody.append($newRow);
+
+                ProductInputHandler.bind({
+                  rowSelector: $newRow,
+                  $content: $content,
+                });
+
+                $targetRow = $newRow;
+                itemIndex++;
+              }
+
+              fillRowWithItem($targetRow, item);
+            }
+
+            // ✅ 선택된 품목을 행에 채우는 함수
+            function fillRowWithItem($targetRow, item) {
+              $targetRow.find('input[name^="txtPname"]').val(item.PART_NM);
+              $targetRow.find('input[name^="bpid"]').val(item.bpid);
+              $targetRow.find('input[name^="pcode"]').val(item.PART_NO);
+              $targetRow.find('input[name^="psize"]').val(item.PART_SIZE);
+              $targetRow.find('input[name^="punit"]').val(item.unit);
+              $targetRow.find('input[name^="pmapseq"]').val(item.DRAWING_NO);
+
+              // 중복 품목이면 비고란에 메시지 표시
+              if (existingPartNos.includes(item.PART_NO)) {
+                $targetRow.find('input[name^="remark"]').val('이중 발주된 제품');
+              }
+            }
           });
         });
+
+
+        /* $content.on('click', 'a[title="품목 검색"]', function () {
+          const $clickedRow = $(this).closest('tr');
+          const $tbody = $content.find('.item-table tbody');
+          const $template = $content.find('.item-template-row').first(); // 고정 템플릿 참조
+          const $rows = $tbody.find('tr:not(.item-template-row)'); // 현재 실제 렌더된 행
+
+          const partPopup = new PopPart();
+          partPopup.show(function (selectedItems) {
+            if (!Array.isArray(selectedItems) || selectedItems.length === 0) return;
+
+            console.log('선택된 품목 목록:', selectedItems);
+
+            for (let i = 0; i < selectedItems.length; i++) {
+              const item = selectedItems[i];
+              let $targetRow;
+
+              if (i === 0) {
+                // 첫 번째 선택은 클릭한 기존 행
+                $targetRow = $clickedRow;
+              } else if (i < $rows.length) {
+                // 기존의 나머지 행 활용
+                $targetRow = $rows.eq(i);
+              } else {
+                // 부족하면 새 행 생성
+                const $newRow = $template.clone().removeClass('item-template-row').show();
+
+                // name 속성 고유화
+                $newRow.find('input').each(function () {
+                  const baseName = $(this).attr('name');
+                  if (baseName) {
+                    $(this).attr('name', `${baseName}_${itemIndex}`);
+                  }
+                });
+
+                $tbody.append($newRow);
+
+                ProductInputHandler.bind({
+                  rowSelector: $newRow,
+                  $content: $content,
+                  tryShowBaljuPrice,
+                });
+
+                $targetRow = $newRow;
+                itemIndex++;
+              }
+
+              fillRowWithItem($targetRow, item);
+            }
+          });
+
+          // ✅ 선택된 품목을 행에 채우는 함수
+          function fillRowWithItem($targetRow, item) {
+            $targetRow.find('input[name^="txtPname"]').val(item.PART_NM);
+            $targetRow.find('input[name^="bpid"]').val(item.bpid);
+            $targetRow.find('input[name^="pcode"]').val(item.PART_NO);
+            $targetRow.find('input[name^="psize"]').val(item.PART_SIZE);
+            $targetRow.find('input[name^="punit"]').val(item.unit);
+            $targetRow.find('input[name^="pmapseq"]').val(item.DRAWING_NO);
+          }
+        });*/
 
         // 포커스 자동 이동: Enter + 방향키(←→↑↓)
         $content.on('keydown', 'input', function (e) {
@@ -1438,6 +1621,8 @@
               $targetRow.find('input[type="text"], input[type="number"]').val('');
               $targetRow.find('input[type="hidden"]').val('');
               $targetRow.find('input[name^="totalAmount_"]').val('0'); // totalAmount 초기화
+              $targetRow.removeClass('from-bom');
+
             }
           } else {
             $targetRow.remove();
@@ -1448,7 +1633,6 @@
             calculateAmount({ row: $(this), $content });
           });
 
-          updateBaljuTotalPrice($content);
         });
 
         if (data.mode === 'new') {
@@ -1498,6 +1682,11 @@
         AjaxUtil.getAsyncData(url, data, fnsuccess);
       }
     }
+    function isRowEmpty($row) {
+      return $row.find('input[type="text"], input[type="number"]').filter(function () {
+        return $(this).val().trim() !== '';
+      }).length === 0;
+    }
 
     //행 삭제 함수
     function removeItemRow(el) {
@@ -1531,31 +1720,25 @@
       $(targetSelector).val(formatted);// 값 넣기
     }
 
-    function calculateAmount({ row: $row, $content }) {
-      const $qty = parseFloat($row.find('input[name^="pqty_"]').val().replace(/,/g, '') || '0');
-      const $puamt = parseFloat($row.find('input[name^="puamt_"]').val().replace(/,/g, '') || '0');
-      const $total = $row.find('input[name^="pamt_"]');
+    function calculateAmount({ row: $row }) {
+      const $qtyField = $row.find('input[name^="pqty_"]');
+      const $unitPriceField = $row.find('input[name^="puamt_"]');
+      const $totalField = $row.find('input[name^="pamt_"]');
 
+      const qty = parseFloat($qtyField.val().replace(/,/g, '') || '0');
+      const unitPrice = parseFloat($unitPriceField.val().replace(/,/g, '') || '0');
+      const totalPrice = qty * unitPrice;
 
-      // 값 반영 및 포맷
+      // ✅ 단가 필드 다시 포맷 (쉼표 넣기)
+      formatNumberInput(unitPrice.toString(), $unitPriceField);
+
+      // ✅ 수량 필드도 포맷
+      formatNumberInput(qty.toString(), $qtyField);
+
+      // ✅ 자동 계산된 금액만 포맷해서 반영
       if ($row.data('totalEdited') !== true) {
-        $total.val(totalPrice);
-        formatNumberInput(totalPrice.toString(), $total);
+        formatNumberInput(totalPrice.toString(), $totalField);
       }
-
-    }
-
-    function updateBaljuTotalPrice($content) {
-      let total = 0;
-
-      $content.find('input[name^="totalAmount_"]').each(function () {
-        const val = $(this).val().replace(/,/g, '');
-        if (val && !isNaN(val)) {
-          total += parseFloat(val);
-        }
-      });
-
-      $content.find('#BaljuTotalPrice').val(total.toLocaleString());
     }
 
     let page = null;

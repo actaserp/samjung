@@ -252,16 +252,24 @@ public class BaljuOrderController {
   }
 
   @GetMapping("/bomList")
-  public AjaxResult getBomList(@RequestParam(value = "projcet_no")String projcet_no){
+  public AjaxResult getBomList(@RequestParam(value = "project_no") String project_no,
+                               @RequestParam(value = "eco_no") String eco_no) {
+    log.info("bomlist 들어옴 :project_no:{},eco_no:{} ", project_no, eco_no);
+
     AjaxResult result = new AjaxResult();
-    List<Map<String, Object>> bomList = baljuOrderService.getBomList(projcet_no);
+    List<Map<String, Object>> bomList = baljuOrderService.getBomList(project_no, eco_no);
 
-      result.success = false;
+    if (bomList != null && !bomList.isEmpty()) {
+      result.success = true;
       result.data = bomList;
+    } else {
+      result.success = false;
       result.message = "BOM 정보가 없습니다.";
-      return result;
+    }
 
+    return result;
   }
+
 
   // 외주발주서
   @PostMapping("/print/balJuPurchase")

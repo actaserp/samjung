@@ -36,7 +36,7 @@
                         <dt>&nbsp;</dt>
                         <dd>
                             <li>
-                                <a class="btn btn-delete" title="검색" id="btnProjcetSearch">
+                                <a class="btn btn-delete" title="검색" id="btnPopProjectSearch">
                                     <!--                                        class 쓰이는 곳 찾고 없으면 클래스명 수정하기-->
                                     <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
                                     검색
@@ -64,28 +64,28 @@
 
   <script type="text/javascript">
 
-    class PopProjcetList{
+    class PopProjectList{
       static currentInstance = null;
 
       constructor() {
-        if (PopProjcetList.currentInstance) {
-          PopProjcetList.currentInstance.close(); // 이전 인스턴스 닫기
+        if (PopProjectList.currentInstance) {
+          PopProjectList.currentInstance.close(); // 이전 인스턴스 닫기
         }
-        PopProjcetList.currentInstance = this;
+        PopProjectList.currentInstance = this;
 
         this.grid = null;
         this.viewData = new wijmo.collections.CollectionView();
         this.selectedItem = null;
         this.callback = null;
         this.modalContainer = new PopupDraggable('프로젝트 선택');
-        this.$btnProjcetSearch = null;
+        this.$btnPopProjectSearch = null;
         this.$btnCompSelect = null;
         this.previousFocus = null;
       }
 
       searchDataBind() {
         let _this = this;
-        let url = '/api/popup/projcet_list';
+        let url = '/api/popup/project_list';
         let data = {
           'PROJECT_NO': _this.$projcetno.val(),
           'PROJECT_NM': _this.$projcrtname.val(),
@@ -157,8 +157,9 @@
             isReadOnly: true,
             keyActionEnter: wijmo.grid.KeyAction.None,
             columns: [
-              {binding: 'projcet_no', header: '수주번호', width: 120, align: 'center'},
-              {binding: 'projcet_nm', header: '수주명', width: '*', align: 'left'},
+              {binding: 'eco_no', header: 'ECO 번호', width: 120, align: 'center'},
+              {binding: 'project_no', header: '수주번호', width: 120, align: 'center'},
+              {binding: 'project_nm', header: '수주명', width: '*', align: 'left'},
             ],
             itemsSource: this.viewData,
           });
@@ -166,17 +167,17 @@
           new FlexGridContextMenu(this.grid);
           this.grid.downloadFileName = '프로젝트 목록';
 
-          this.$btnProjcetSearch = $content.find('#btnProjcetSearch');
+          this.$btnPopProjectSearch = $content.find('#btnPopProjectSearch');
           this.$projcetno = $content.find('#PROJECT_NO');
           this.$projcrtname = $content.find('#PROJECT_NM');
           this.$btnCompSelect = $content.find('#btnCompSelect');
 
 
-          this.$btnProjcetSearch.click(function (e) {
+          this.$btnPopProjectSearch.click(function (e) {
             _this.searchDataBind();
           });
 
-          $('#btnProjcetSearch').click();
+          $('#btnPopProjectSearch').click();
 
 
           this.$btnCompSelect.click(function (e) {
@@ -261,8 +262,8 @@
         $(document).off('keydown.popupesc', this._escHandler);
 
         // 싱글턴 정리
-        if (PopProjcetList.currentInstance === this) {
-          PopProjcetList.currentInstance = null;
+        if (PopPart.currentInstance === this) {
+          PopPart.currentInstance = null;
         }
       }
 
@@ -271,21 +272,21 @@
     $(document).on('keydown', '#compCode', function (e) {
       if (e.key === 'Enter' || e.keyCode === 13) {
         e.preventDefault();
-        $('#btnProjcetSearch').trigger('click');
+        $('#btnPopProjectSearch').trigger('click');
       }
     });
 
     $(document).on('keydown', '#compName', function (e) {
       if (e.key === 'Enter' || e.keyCode === 13) {
         e.preventDefault();
-        $('#btnProjcetSearch').trigger('click');
+        $('#btnPopProjectSearch').trigger('click');
       }
     });
 
     $(document).on('keydown', '#business_number', function (e) {
       if (e.key === 'Enter' || e.keyCode === 13) {
         e.preventDefault();
-        $('#btnProjcetSearch').trigger('click');
+        $('#btnPopProjectSearch').trigger('click');
       }
     });
 

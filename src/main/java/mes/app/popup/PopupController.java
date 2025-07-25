@@ -382,17 +382,17 @@ public class PopupController {
 			""";
 
 		if (compCode != null && !compCode.isEmpty()) {
-			sql += " AND \"Code\" ILIKE :compCode ";
+			sql += " AND \"Code\" LIKE :compCode ";
 			paramMap.addValue("compCode", "%" + compCode + "%");
 		}
 
 		if (compName != null && !compName.isEmpty()) {
-			sql += " AND \"Name\" ILIKE :compName ";
+			sql += " AND \"Name\" LIKE :compName ";
 			paramMap.addValue("compName", "%" + compName + "%");
 		}
 
 		if (business_number != null && !business_number.isEmpty()) {
-			sql += " AND \"BusinessNumber\" ILIKE :business_number ";
+			sql += " AND \"BusinessNumber\" LIKE :business_number ";
 			paramMap.addValue("business_number", "%" + business_number + "%");
 		}
 
@@ -403,34 +403,34 @@ public class PopupController {
 		return result;
 	}
 
-	@RequestMapping("/projcet_list")
+	@RequestMapping("/project_list")
 	public AjaxResult getProjcet_list(
-			@RequestParam(value = "PROJECT_NO", required = false) String projcet_no,
-			@RequestParam(value = "PROJECT_NM", required = false) String projcet_nm){
+			@RequestParam(value = "PROJECT_NO", required = false) String project_no,
+			@RequestParam(value = "PROJECT_NM", required = false) String project_nm){
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue("PROJECT_NO", projcet_no);
-		paramMap.addValue("PROJECT_NM", projcet_nm);
+		paramMap.addValue("PROJECT_NO", project_no);
+		paramMap.addValue("PROJECT_NM", project_nm);
 		AjaxResult result = new AjaxResult();
 
 		String sql = """
 				select
 					 BOMID ,
 					 ECO_NO as eco_no,
-					 PROJECT_NO as projcet_no,
-					 PROJECT_NM as projcet_nm,
+					 PROJECT_NO as project_no,
+					 PROJECT_NM as project_nm,
 					 BPDATE ,
 					 BPPERNM 
 					 from TB_CA664
 			""";
 
-		if (projcet_no != null && !projcet_no.isEmpty()) {
-			sql += " AND PROJECT_NO ILIKE :projcet_no ";
-			paramMap.addValue("projcet_no", "%" + projcet_no + "%");
+		if (project_no != null && !project_no.isEmpty()) {
+			sql += " AND PROJECT_NO LIKE :project_no ";
+			paramMap.addValue("project_no", "%" + project_no + "%");
 		}
-		if (projcet_nm != null && !projcet_nm.isEmpty()) {
-				sql += " AND PROJECT_NM ILIKE :projcet_nm ";
-				paramMap.addValue("projcet_nm", "%" + projcet_nm + "%");
+		if (project_nm != null && !project_nm.isEmpty()) {
+				sql += " AND PROJECT_NM LIKE :project_nm ";
+				paramMap.addValue("project_nm", "%" + project_nm + "%");
 		}
 
 		result.data = this.sqlRunner.getRows(sql, paramMap);

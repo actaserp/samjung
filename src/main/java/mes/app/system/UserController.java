@@ -88,7 +88,7 @@ public class UserController {
 	@GetMapping("/detail")
 	public AjaxResult getUserDetail(@RequestParam(value = "id", required = false) String id) {
 		AjaxResult result = new AjaxResult();
-		log.info("id: {}", id);
+		//log.info("id: {}", id);
 
 		try {
 			if (id != null && !id.isEmpty()) {

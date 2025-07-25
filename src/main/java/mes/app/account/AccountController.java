@@ -378,7 +378,8 @@ public class AccountController {
 				tbXClientService.save(tbXClient); // TB_XCLIENT 저장
 
 				result.success = true;
-				result.message = "등록이 완료되었습니다.";
+				result.message = "등록이 완료되었습니다." +
+						"\n초기 비밀번호는 사업자번호 뒤 5자리 입니다.";
 				flag = false;
 			} else {
 				result.success = false;

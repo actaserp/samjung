@@ -257,9 +257,9 @@
               <dl>
                 <dt>
                   <label>
-                    사업자번호</label></dt>
+                    아이디</label></dt>
                 <dd>
-                  <div class="input-clear"><input type="text" id="username" name="username" placeholder="사업자번호"
+                  <div class="input-clear"><input type="text" id="username" name="username" placeholder="아이디"
                                                   class="wp100" maxlength="50" autocomplete="off">
                   </div>
                 </dd>
@@ -506,6 +506,7 @@
             {binding: 'Phone', header: '핸드폰', width: '*', align: 'center', visible: true},
             {binding: 'email', header: '이메일', width: '*', align: 'center', visible: false},
             {binding: 'is_active', header: '활성화', width: '*', align: 'center', isReadOnly: false,},
+            {binding: 'spjangcd', header: '사업체명', width: '*', align: 'center',visible: false},
             {binding: 'spjType', header: '사업체명', width: '*', align: 'center', isReadOnly: true},
             {binding: 'date_joined', header: '생성일', width: '*', align: 'center', isReadOnly: true},
           ],
@@ -616,18 +617,10 @@
 
       // authType(사용자 그룹) 설정
       document.getElementById('authType').value = data.group_id;
+      document.getElementById('spjType').value = data.spjangcd;
 
       // 체크박스 설정
       document.getElementById("is_active").checked = data.is_active || false;
-
-      //사업체명
-      const spjTypeMapping = {
-        "삼정엘리베이터": "ZZ",
-      };
-
-      const spjTypeElement = document.getElementById('spjType');
-      const spjangcd = spjTypeMapping[data.spjType] || ''; // 매핑 후 코드 값 반환
-      spjTypeElement.value = spjangcd;
 
       // 주소 관련 필드 설정
       const addressParts = splitAddress(data.cltadres || '');
@@ -803,14 +796,11 @@
         return;
       }
 
-      let delList = SelectItemPush(selectedItems, 'id');
-      let deltbXClientList = SelectItemPush(selectedItems, 'login_id');
-
       Alert.confirm('', '삭제하시겠습니까?', function () {
         // 데이터 객체를 URL 인코딩 형식으로 구성
         let data = {
-          'id': delList[0],         // delList 배열의 첫 번째 항목만 전송
-          'username': deltbXClientList[0], // deltbXClientList 배열의 첫 번째 항목만 전송
+          'id': selectedItems[0].id,
+          'username': selectedItems[0].userid, // login_id가 아니라면 이쪽
           '_csrf': csrfToken,
           'auth': auth
         };

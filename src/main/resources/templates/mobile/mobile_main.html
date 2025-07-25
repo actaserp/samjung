@@ -211,7 +211,7 @@
             <dd>
               <div style="display: flex; gap: 10px">
                 <div style="width: 100%">
-                  <input type="text" id="searchText">
+                  <input type="text" id="searchActnm">
                 </div>
               </div>
             </dd>
@@ -257,7 +257,6 @@
   const date = String(today.getDate()).padStart(2, '0');
 
   $(document).ready(function () {
-    AjaxUtil.fillSelectOptions($('#selectWorkcd'), 'workcd', 'all', false, 'work_division', '');
     document.getElementById('searchFromDate').value = `${year}-${month}-01`;
     document.getElementById('searchToDate').value = `${year}-${month}-${date}`;
   });
@@ -269,9 +268,9 @@
   function searchMainData() {
     let url = '/api/request/hyun/order_read';
     let data = {
-      'searchText': document.getElementById('searchText').value,
-      'searchFromDate': document.getElementById('searchFromDate').value,
-      'searchToDate': document.getElementById('searchToDate').value
+      'searchText': document.getElementById('searchActnm').value,
+      'search_startDate': document.getElementById('searchFromDate').value,
+      'search_endDate': document.getElementById('searchToDate').value
     };
     let fnsuccess = function (result) {
       console.log('result : ', result);
@@ -300,11 +299,13 @@
           tableHtml += `
                     <tr>
                         <td>${formatDateToYYMMDD(item.workym) || ''}</td>
-                        <td>${item.worknm || ''}</td>
-                        <td>${item.starttime || '--:--'}</td>
-                        <td>${item.endtime || '--:--'}</td>
-                        <td>${item.worktime || '-'}</td>
-                        <td>${item.status_text || ''}</td>
+                        <td>${item.ACTNM || ''}</td>
+                        <td>${item.PNAME || ''}</td>
+                        <td>${item.PSIZE || ''}</td>
+                        <td>${item.PQTY || '-'}</td>
+                        <td>${item.PMAPSEQ || ''}</td>
+                        <td>${item.CHULFLAG || ''}</td>
+                        <td>${item.FACFLAG || ''}</td>
                     </tr>
                 `;
         });
@@ -329,6 +330,20 @@
   }
   // 검색버튼 클릭
   function handleSearch() {
+    let requiredFields = [
+      {id: '#searchActnm', label: '현장명을 작성해주세요'},
+    ];
+    for (let i = 0; i < requiredFields.length; i++) {
+      let field = requiredFields[i];
+      let $element = $(field.id);
+      let value = $element.val();
+
+      // 요소가 존재하지 않거나, 값이 빈 문자열(선택되지 않은 경우)인 경우 경고
+      if ($element.length === 0 || value === null || value.trim() === '') {
+        Alert.alert('', field.label);
+        return;
+      }
+    }
     searchMainData();
     const buttons = document.querySelectorAll('.btn-aco');
     buttons.forEach(button => {

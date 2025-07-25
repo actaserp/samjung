@@ -3,6 +3,7 @@ package mes.app.request.hyun;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import mes.app.request.hyun.service.HyunService;
 import mes.app.request.subRequest.service.SubRequestService;
 import mes.config.Settings;
 import mes.domain.entity.User;
@@ -25,7 +26,7 @@ import java.util.Objects;
 @RequestMapping("/api/request/hyun")
 public class HyunController {
     @Autowired
-    private SubRequestService requestService;
+    private HyunService requestService;
 
 
     @Autowired
@@ -39,16 +40,11 @@ public class HyunController {
 
     @Autowired
     Settings settings;
-    // 주문출고(공장) 그리드 read
+    // 주문출고(현장) 그리드 read
     @GetMapping("/order_read")
     public AjaxResult getOrderList2(@RequestParam(value = "search_startDate", required = false) String searchStartDate,
                                     @RequestParam(value = "search_endDate", required = false) String searchEndDate,
-                                    @RequestParam(value = "search_remark", required = false) String searchRemark,
-                                    @RequestParam(value = "search_chulflag", required = false) String searchChulflag,
-                                    @RequestParam(value = "saupnumHidden", required = false) String saupnumHidden,
-                                    @RequestParam(value = "saupnum", required = false) String Saupnum,
-                                    @RequestParam(value = "search_actnm", required = false) String searchActnm,
-                                    @RequestParam(value = "spjangcd", required = false) String spjangcd,
+                                    @RequestParam(value = "searchText", required = false) String searchActnm,
                                     Authentication auth) {
         User user = (User) auth.getPrincipal();
         String username = user.getUsername();
@@ -56,28 +52,20 @@ public class HyunController {
         String cltcd;
         Map<String, Object> userInfo = requestService.getUserInfo(username);
 
-        // 관리자 진입시 사업자 번호 없이 업체명(searchActnm)만으로 조회
-        if(userInfo == null) {
-            saupnum = null;
-            cltcd = null;
-        } else{
-            saupnum = (String) userInfo.get("saupnum");
-            cltcd = (String) userInfo.get("cltcd");
-        }
         String search_startDate = (searchStartDate).replaceAll("-","");
         String search_endDate = (searchEndDate).replaceAll("-","");
-        List<Map<String, Object>> items = this.requestService.getOrderList2(spjangcd,
-                search_startDate, search_endDate, searchRemark, searchChulflag, saupnum, cltcd, searchActnm);
+        List<Map<String, Object>> items = this.requestService.getOrderList2(
+                search_startDate, search_endDate, searchActnm);
 //        Map<String, Object> headitem = this.requestService.getHeadList(tbDa006WPk);
 //        items.add(headitem);
         if(items != null){
             for (Map<String, Object> item : items) {
                 // 날짜 형식 변환 (FACDATE)
-                if (item.containsKey("FACDATE")) {
-                    String setupdt = (String) item.get("FACDATE");
+                if (item.containsKey("HYUNDATE")) {
+                    String setupdt = (String) item.get("HYUNDATE");
                     if (setupdt != null && setupdt.length() == 8) {
                         String formattedDate = setupdt.substring(0, 4) + "-" + setupdt.substring(4, 6) + "-" + setupdt.substring(6, 8);
-                        item.put("FACDATE", formattedDate);
+                        item.put("HYUNDATE", formattedDate);
                     }
                 }
             }
@@ -88,7 +76,7 @@ public class HyunController {
 
         return result;
     }
-    // 주문출고(공장) flag값 update
+    // 주문출고(현장) flag값 update
     @PostMapping("/saveDelivery")
     public AjaxResult saveDelivery(@RequestParam Map<String, Object> param,
                                    Authentication auth) {

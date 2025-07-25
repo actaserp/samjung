@@ -84,21 +84,21 @@ public class HyunService {
     }
     //주문출고 불러오기
     public List<Map<String, Object>> getOrderList(
-                                                  String spjangcd,
-                                                  String searchStartDate,
-                                                  String searchEndDate,
-                                                  String searchRemark,
-                                                  String searchChulflag,
-                                                  String saupnum,
-                                                  String cltcd,
-                                                  String searchActnm) {
+            String spjangcd,
+            String searchStartDate,
+            String searchEndDate,
+            String searchRemark,
+            String searchChulflag,
+            String saupnum,
+            String cltcd,
+            String searchActnm) {
 
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
-        String chulFlag = searchChulflag.equals("shipment") ? "1" : "0" ;
+        String facFlag = searchChulflag.equals("shipment") ? "1" : "0" ;
         dicParam.addValue("searchStartDate", searchStartDate);
         dicParam.addValue("searchEndDate", searchEndDate);
         dicParam.addValue("searchRemark", "%" + searchRemark + "%");
-        dicParam.addValue("chulFlag",  chulFlag);
+        dicParam.addValue("facFlag",  facFlag);
         dicParam.addValue("CLTCD",  cltcd);
         dicParam.addValue("searchActnm",  "%" + searchActnm + "%");
 
@@ -113,7 +113,7 @@ public class HyunService {
                     ON hd.BALJUNUM = dt.BALJUNUM
                 WHERE
                     1=1
-                    AND hd.CLTCD = :CLTCD
+                    AND dt.CHULFLAG = '1'
                 """);
 
         // 날짜 필터
@@ -132,7 +132,7 @@ public class HyunService {
         }
         // 진행구분 필터
         if (searchChulflag != null && !searchChulflag.isEmpty()) {
-            sql.append(" AND dt.CHULFLAG = :chulFlag");
+            sql.append(" AND dt.FACFLAG = :facFlag");
         }
         // 정렬 조건 추가
         sql.append(" ORDER BY hd.BALJUDATE ASC");
@@ -503,7 +503,6 @@ public class HyunService {
     ) {
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("searchDate", searchDate);
-        dicParam.addValue("CLTCD",  cltcd);
         dicParam.addValue("searchActnm",  "%" + searchActnm + "%");
 
         StringBuilder sql = new StringBuilder("""
@@ -521,19 +520,15 @@ public class HyunService {
                     ON hd.BALJUNUM = dt.BALJUNUM
                 JOIN
                     auth_user au
-                    ON au.username = dt.CHULPERNM
+                    ON au.username = dt.FACPERNM
                 JOIN
                     TB_XCLIENT xc
                     ON au.username = xc.saupnum
                 WHERE
                     1=1
-                AND dt.CHULFLAG = '1'
-                AND dt.CHULDATE = :searchDate
+                AND dt.FACFLAG = '1'
+                AND dt.FACDATE = :searchDate
                 """);
-        // cltcd 필터(자기 발주처건만 확인할 수 있도록)
-        if (cltcd != null && !cltcd.isEmpty()) {
-            sql.append(" AND hd.CLTCD = :CLTCD");
-        }
         // 정렬 조건 추가
         sql.append(" ORDER BY hd.BALJUDATE ASC");
 
@@ -549,7 +544,6 @@ public class HyunService {
     ) {
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("searchDate", searchDate);
-        dicParam.addValue("CLTCD",  cltcd);
         dicParam.addValue("searchActnm",  "%" + searchActnm + "%");
 
         StringBuilder sql = new StringBuilder("""
@@ -566,8 +560,10 @@ public class HyunService {
                     xc.bizitemnm,
                     xc.agnernm,
                     xc.agntel,
-                    au.phone
-                    
+                    au.phone,
+                    aus.last_name as sub_last_name,
+                    xcs.cltnm as sub_cltnm,
+                    aus.phone as sub_phone
                 FROM
                     TB_CA660 hd
                 JOIN
@@ -579,12 +575,16 @@ public class HyunService {
                 JOIN
                     TB_XCLIENT xc
                     ON au.username = xc.saupnum
-               
+                JOIN
+                    auth_user aus
+                    ON aus.username = dt.FACPERNM
+                JOIN
+                    TB_XCLIENT xcs
+                    ON aus.username = xcs.saupnum
                 WHERE
                     1=1
-                AND dt.CHULFLAG = '1'
-                AND dt.CHULDATE = :searchDate
-                AND hd.CLTCD = :CLTCD
+                AND dt.FACFLAG = '1'
+                AND dt.FACDATE = :searchDate
                 """);
         // cltcd 필터(자기 발주처건만 확인할 수 있도록)
 //        if (cltcd != null && !cltcd.isEmpty()) {
@@ -597,23 +597,15 @@ public class HyunService {
         List<Map<String, Object>> items = this.sqlRunner.getRows(sql.toString(), dicParam);
         return items;
     }
-    //주문출고(공장) 불러오기
+    //주문출고(현장) 불러오기
     public List<Map<String, Object>> getOrderList2(
-            String spjangcd,
             String searchStartDate,
             String searchEndDate,
-            String searchRemark,
-            String searchChulflag,
-            String saupnum,
-            String cltcd,
             String searchActnm) {
 
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("searchStartDate", searchStartDate);
         dicParam.addValue("searchEndDate", searchEndDate);
-        dicParam.addValue("searchRemark", "%" + searchRemark + "%");
-        dicParam.addValue("searchOrdflag",  searchChulflag);
-        dicParam.addValue("CLTCD",  cltcd);
         dicParam.addValue("searchActnm",  "%" + searchActnm + "%");
 
         StringBuilder sql = new StringBuilder("""
@@ -627,7 +619,7 @@ public class HyunService {
                     ON hd.BALJUNUM = dt.BALJUNUM
                 WHERE
                     1=1
-                    AND hd.CHULFLAG = '1'
+                    AND dt.CHULFLAG = '1'
                 """);
 
         // 날짜 필터
@@ -644,28 +636,23 @@ public class HyunService {
         }else{
             return null;
         }
-        // 진행구분 필터
-        if (searchChulflag != null && !searchChulflag.isEmpty()) {
-            sql.append(" AND hd.ordflag = :searchOrdflag");
-        }
         // 정렬 조건 추가
         sql.append(" ORDER BY hd.BALJUDATE ASC");
 
-        dicParam.addValue("spjangcd", spjangcd);
         List<Map<String, Object>> items = this.sqlRunner.getRows(sql.toString(), dicParam);
         return items;
     }
-    // 주문출고(공장) flag값 update
-    public void updateChulInfo2(String username, String today, String CHULFLAG, Integer BALJUNUM, Integer BALJUSEQ) {
+    // 주문출고(현장) flag값 update
+    public void updateFacInfo2(String username, String today, String FACFLAG, Integer BALJUNUM, Integer BALJUSEQ) {
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("username", username);
         dicParam.addValue("today", today);
-        dicParam.addValue("CHULFLAG", CHULFLAG);
+        dicParam.addValue("FACFLAG", FACFLAG);
         dicParam.addValue("BALJUNUM", BALJUNUM);
         dicParam.addValue("BALJUSEQ", BALJUSEQ);
         String sql = """
                 update TB_CA661
-                set "FACFLAG" = :CHULFLAG
+                set "FACFLAG" = :FACFLAG
                 , "FACDATE" = :today
                 , "FACPERNM" = :username
                 where BALJUNUM = :BALJUNUM
@@ -674,7 +661,7 @@ public class HyunService {
 
         int result = this.sqlRunner.execute(sql, dicParam);
     }
-    // 주문출고(공장) 해제 메서드
+    // 주문출고(현장) 해제 메서드
     public void clearChulInfo2(String chulFlag, Integer baljuNum, Integer baljuSeq) {
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("CHULFLAG", chulFlag);

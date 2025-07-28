@@ -32,19 +32,6 @@
                         </dd>
                     </dl>
                     <dl>
-                        <dt>&nbsp;</dt>
-                        <dd>
-                            <ul>
-                                <li>
-                                    <a class="btn btn-delete" title="검색" id="btnSearch">
-                                        <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
-                                        검색
-                                    </a>
-                                </li>
-                            </ul>
-                        </dd>
-                    </dl>
-                    <dl>
                         <dt>
                             <label>완료 포함</label>
                         </dt>
@@ -52,7 +39,7 @@
                             <input class="form-control2" type="checkbox" id="input_flag" name="input_flag" value="N" >
                         </dd>
                     </dl>
-                    <dl>
+                    <dl id="dateSection" style="display: none;">
                         <dt>
                             등록일
                         </dt>
@@ -69,36 +56,49 @@
                             </ul>
                         </dd>
                     </dl>
+                    <dl>
+                        <dt>&nbsp;</dt>
+                        <dd>
+                            <ul>
+                                <li>
+                                    <a class="btn btn-delete" title="검색" id="btnSearch">
+                                        <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
+                                        검색
+                                    </a>
+                                </li>
+                            </ul>
+                        </dd>
+                    </dl>
                 </div>
-                <div class="button-wrap" style="border-top:none; text-align: right; !important;">
-                    <ul>
-                        <li>
-                            <a class="btn btn-excell" title="신규등록" id="Newbtn">
-                                <img src="/images/icon/ico-plus.svg" alt="등록 아이콘">
-                                등록
-                            </a>
-                        </li>
-                        <li>
-                            <a class="btn btn-edit" id="btnSave" title="저장">
-                                <img src="/images/icon/ico-save.svg" alt="저장 아이콘">
-                                저장
-                            </a>
-                        </li>
-                        <li>
-                            <a class="btn btn-delete" title="삭제" id="btnDelete">
-                                <img src="/images/icon/ico-delete.svg" alt="엑셀 아이콘">
-                                삭제
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+<!--                <div class="button-wrap" style="border-top:none; text-align: right; !important;">-->
+<!--                    <ul>-->
+<!--                        <li>-->
+<!--                            <a class="btn btn-excell" title="신규등록" id="Newbtn">-->
+<!--                                <img src="/images/icon/ico-plus.svg" alt="등록 아이콘">-->
+<!--                                등록-->
+<!--                            </a>-->
+<!--                        </li>-->
+<!--                        <li>-->
+<!--                            <a class="btn btn-edit" id="btnSave" title="저장">-->
+<!--                                <img src="/images/icon/ico-save.svg" alt="저장 아이콘">-->
+<!--                                저장-->
+<!--                            </a>-->
+<!--                        </li>-->
+<!--                        <li>-->
+<!--                            <a class="btn btn-delete" title="삭제" id="btnDelete">-->
+<!--                                <img src="/images/icon/ico-delete.svg" alt="엑셀 아이콘">-->
+<!--                                삭제-->
+<!--                            </a>-->
+<!--                        </li>-->
+<!--                    </ul>-->
+<!--                </div>-->
             </div>
             <div class="container-fluid">
                 <div class="row">
                     <div class="wp50">
                         <div class="container-fluid col">
                             <p id="selectedItem"></p>
-                            <div id="theGrid" style="height:550px"></div>
+                            <div id="theGrid" style="height:760px"></div>
                         </div>
                     </div>
                     <div class="col 50">
@@ -111,6 +111,13 @@
                                         <caption>비용항목 등록</caption>
                                         <tbody>
                                         <tr>
+                                            <th><label for="econo">ECO 번호</label></th>
+                                            <td colspan="3">
+                                                <input type="text" id="econo" name="econo" class="wp100"
+                                                       placeholder="ECO 번호" readonly/>
+                                            </td>
+                                        </tr>
+                                        <tr>
                                             <th><label for="projno">프로젝트번호</label></th>
                                             <td colspan="3">
                                                 <input type="text" id="projno" name="projno" class="wp100"
@@ -121,21 +128,21 @@
                                             <th><label for="projnm">프로젝트명</label></th>
                                             <td colspan="3">
                                                 <input type="text" id="projnm" name="projnm" class="wp100"
-                                                       placeholder="프로젝트명"/>
+                                                       placeholder="프로젝트명" readonly/>
                                             </td>
                                         </tr>
                                         <tr>
                                             <th><label for="bpdate">등록일자</label></th>
                                             <td>
                                                 <input type="Date" id="bpdate" name="bpdate" class="wp100"
-                                                       placeholder="등록일"/>
+                                                       placeholder="등록일" readonly/>
                                             </td>
                                         </tr>
                                         <tr>
-                                            <th><label for="dppernm">등록자</label></th>
+                                            <th><label for="bppernm">등록자</label></th>
                                             <td colspan="3">
-                                                <input type="text" id="dppernm" name="dppernm" class="wp100"
-                                                       placeholder="등록자"/>
+                                                <input type="text" id="bppernm" name="bppernm" class="wp100"
+                                                       placeholder="등록자" readonly/>
                                             </td>
                                         </tr>
                                         </tbody>
@@ -155,6 +162,7 @@
     <script type="text/javascript">
         class ProjectListPage {
             constructor() {
+                this.url = '/api/plm/plm';
                 this.grid = null;
                 this.viewData = new wijmo.collections.CollectionView();
                 this.init();
@@ -165,7 +173,7 @@
                 this.grid = new wijmo.grid.FlexGrid('#theGrid', {
                     autoGenerateColumns: false,
                     selectionMode: wijmo.grid.SelectionMode.Row,
-                    headersVisibility: wijmo.grid.HeadersVisibility.All,
+                    headersVisibility: wijmo.grid.HeadersVisibility.Column,
                     isReadOnly: true,
                     showMarquee: true,
                     formatItem: (sender, e) => {
@@ -174,31 +182,39 @@
                         }
                     },
                     columns: [
-                        {binding: 'projno', header: '번호', width: 80},
-                        {binding: 'projnm', header: '프로젝트 번호', width: 250},
-                        {binding: 'balcltnm', header: '프로젝트명', width: 250},
-                        {binding: 'projno', header: '등록 여부', width: '*'}
+                        {binding: 'ECO_NO', header: '번호', width: 90},
+                        {binding: 'PROJECT_NO', header: '프로젝트 번호', width: 150, align: 'center'},
+                        {binding: 'PROJECT_NM', header: '프로젝트명', width: 150},
+                        {binding: 'ERP_YN', header: '전송 여부', width: 100, align: 'center'},
+                        {binding: 'BPDATE', header: '전송 일자', width: 120, align: 'center'},
+                        {binding: 'BPPERNM', header: '수신자', width: 120, align: 'center'}
                     ],
                     itemsSource: this.viewData, // 데이터를 설정할 배열
                 });
 
                 new FlexGridContextMenu(this.grid);
                 this.grid.downloadFileName = '프로젝트 리스트';
-                let selector = new wijmo.grid.selector.Selector(this.grid);
 
-                this.grid.hostElement.addEventListener('dblclick', (e) => {
-                    const ht = this.grid.hitTest(e);
+                this.grid.hostElement.addEventListener('dblclick', function (e) {
+                    let ht = _this.grid.hitTest(e);
                     if (ht.cellType === wijmo.grid.CellType.Cell) {
-                        const selectedItem = this.grid.selectedItems[0];
+                        let row = ht.row;
+                        let item = _this.grid.rows[row].dataItem;
 
-                        $('#projno').val(selectedItem.projno);
-                        $('#projnm').val(selectedItem.projnm);
-                        $('#balcltnm').val(selectedItem.balcltnm);
-                        $('#balcltcd').val(selectedItem.balcltcd);
-                        $('#stdate').val(this.formatDateDash(selectedItem.stdate));
-                        $('#eddate').val(this.formatDateDash(selectedItem.eddate));
-                        $('#contdate').val(this.formatDateDash(selectedItem.contdate));
-                        $('#remark').val(selectedItem.remark);
+                        console.log('더블클릭된 데이터', item);
+                        let formattedDate = '';
+                        if (item.BPDATE && item.BPDATE.length === 8) {
+                            formattedDate = item.BPDATE.substring(0, 4) + '-' +
+                                item.BPDATE.substring(4, 6) + '-' +
+                                item.BPDATE.substring(6, 8);
+                        }
+
+                        // 각 필드에 값 설정
+                        document.getElementById('econo').value = item.ECO_NO || '';
+                        document.getElementById('projno').value = item.PROJECT_NO || '';
+                        document.getElementById('projnm').value = item.PROJECT_NM || '';
+                        document.getElementById('bpdate').value = formattedDate;
+                        document.getElementById('bppernm').value = item.BPPERNM || '';
                     }
                 });
 
@@ -218,7 +234,7 @@
 
             searchMainData() {
                 let _this = this;
-                let url = '/api/plm/plm/read_pj_synch'
+                let url = this.url + '/read_pj_synch';
 
                 let data = {
                     'srchStartDt': $("#srchStartDt").val(),
@@ -228,8 +244,7 @@
                 };
                 let fnsuccess = function (result) {
                     if (result != null) {
-                        _this.viewData = new wijmo.collections.CollectionView(result.data);
-                        _this.grid.itemsSource = _this.viewData;
+                        _this.viewData.sourceCollection = result.data;
                     }
                 };
 
@@ -313,12 +328,7 @@
 
             // 검색
             $('#btnSearch').click(function (e) {
-                if ($('#cboCompany').val() !== '' && $('#cboCompanyHidden').val() === '') {
-                    // 업체명 텍스트는 썼지만, 업체 검색 버튼 안 눌렀을 때
-                    page.searchMainData();
-                } else {
-                    page.searchMainData();
-                }
+                page.searchMainData();
             });
 
             //저장
@@ -335,7 +345,21 @@
 
 
 
-        })
+        });
+        document.addEventListener('DOMContentLoaded', function () {
+            const inputFlag = document.getElementById('input_flag');
+            const dateSection = document.getElementById('dateSection');
+
+            inputFlag.addEventListener('change', function () {
+                if (inputFlag.checked) {
+                    inputFlag.value = 'Y';
+                    dateSection.style.display = '';
+                } else {
+                    inputFlag.value = 'N';
+                    dateSection.style.display = 'none';
+                }
+            });
+        });
     </script>
 
 </th:block>

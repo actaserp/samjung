@@ -586,7 +586,6 @@ public class PlmService {
                     "UPDATE erp_project_buffer SET erp_yn = 'Y' WHERE eco_no = :ecoNo AND project_no = :projectNo",
                     updateParam
             );
-
         }
     }
 
@@ -613,13 +612,26 @@ public class PlmService {
     private void saveBomToMs(Map<String, Object> item, String today, String username) {
         String sql = """
         MERGE INTO tb_ca663 AS target
-        USING (SELECT :ecoNo AS eco_no, :parentNo AS parent_no, :childNo AS child_no) AS source
+        USING (
+            SELECT :ecoNo AS eco_no,
+                   :parentNo AS parent_no,
+                   :childNo AS child_no
+        ) AS source
         ON (target.eco_no = source.eco_no AND target.parent_no = source.parent_no AND target.child_no = source.child_no)
         WHEN MATCHED THEN
-            UPDATE SET qty = :qty, seq = :seq, plm_version = :plmVersion, erp_yn = 'Y', bpdate = :bpdate, bppernm = :bppernm
+            UPDATE SET qty = :qty,
+                       seq = :seq,
+                       plm_version = :plmVersion,
+                       project_no = :projectNo,
+                       hogi_no = :hogiNo,
+                       cmt = :cmt,
+                       bomid = :bomid,
+                       erp_yn = 'Y',
+                       bpdate = :bpdate,
+                       bppernm = :bppernm
         WHEN NOT MATCHED THEN
-            INSERT (eco_no, parent_no, child_no, qty, seq, plm_version, erp_yn, bpdate, bppernm)
-            VALUES (:ecoNo, :parentNo, :childNo, :qty, :seq, :plmVersion, 'Y', :bpdate, :bppernm);
+            INSERT (eco_no, parent_no, child_no, qty, seq, plm_version, project_no, hogi_no, cmt, bomid, erp_yn, bpdate, bppernm)
+            VALUES (:ecoNo, :parentNo, :childNo, :qty, :seq, :plmVersion, :projectNo, :hogiNo, :cmt, :bomid, 'Y', :bpdate, :bppernm);
     """;
 
         sqlRunner.execute(sql, new MapSqlParameterSource()
@@ -629,8 +641,13 @@ public class PlmService {
                 .addValue("qty", item.get("QTY"))
                 .addValue("seq", item.get("SEQ"))
                 .addValue("plmVersion", item.get("PLM_VERSION"))
+                .addValue("projectNo", item.get("PROJECT_NO"))
+                .addValue("hogiNo", item.get("HOGI_NO"))
+                .addValue("cmt", item.get("CMT"))
+                .addValue("bomid", item.get("BOMID"))
                 .addValue("bpdate", today)
-                .addValue("bppernm", username));
+                .addValue("bppernm", username)
+        );
     }
 
     private void savePartToMs(Map<String, Object> item, String today, String username) {

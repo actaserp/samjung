@@ -244,13 +244,18 @@
                     },
                     columns: [
                         {binding: 'ECO_NO', header: '번호', width: 120},
-                        {binding: 'PART_NO', header: '품목코드', width: 150, align: 'center'},
+                        {binding: 'HOGI_NO', header: '호기번호', width: 100, align: 'center'},
+                        {binding: 'SEQ', header: '시퀀스', width: 80, align: 'center'},
+                        {binding: 'PART_NO', header: '품목코드', width: 120, align: 'center'},
                         {binding: 'PART_NM', header: '퓸목명', width: 200},
-                        {binding: 'SPEC', header: '규격', width: 150},
-                        {binding: 'PART_SIZE', header: '사이즈', width: 120},
-                        {binding: 'UNIT', header: '단위', width: 120},
+                        {binding: 'BLOCK_NO', header: '블럭번호', width: 100, align: 'center'},
+                        {binding: 'SPEC', header: '규격', width: 100, align: 'center'},
+                        {binding: 'PART_SIZE', header: '사이즈', width: 100, align: 'center'},
+                        {binding: 'UNIT', header: '단위', width: 100, align: 'center'},
                         {binding: 'QTY', header: '사용수량', width: 100, align: 'center'},
+                        {binding: 'GUBUN', header: '내외작 구분', width: 100, align: 'center'},
                         {binding: 'DRAWING_NO', header: '도면 번호', width: 100, align: 'center'},
+                        {binding: 'CMT', header: '주석', width: 150, align: 'left'},
                         {binding: 'ERP_YN', header: '전송 여부', width: 100, align: 'center'},
                         {binding: 'BPDATE', header: '전송 일자', width: 120, align: 'center'},
                         {binding: 'BPPERNM', header: '수신자', width: 120, align: 'center'}
@@ -262,13 +267,15 @@
                 this.grid2.downloadFileName = 'BOM 내역';
 
                 this.grid.hostElement.addEventListener('dblclick', function (e) {
-                    let items = _this.grid.selectedItems;
-                    if (items.length === 0) {
-                        return false;
-                    }
+                    let ht = _this.grid.hitTest(e);
+                    if (ht.cellType === wijmo.grid.CellType.Cell) {
+                        let row = ht.row;
+                        let item = _this.grid.rows[row].dataItem;
 
-                    _this.searchDetailData(items);
+                        _this.searchDetailData([item]);  // 단일 행만 배열로 넘김
+                    }
                 });
+
             }
 
             searchMainData() {
@@ -283,7 +290,6 @@
                 };
                 let fnsuccess = function (result) {
                     if (result != null) {
-                        console.log()
                         _this.viewData.sourceCollection = result.data;
                     }
                 };

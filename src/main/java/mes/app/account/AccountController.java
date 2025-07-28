@@ -769,5 +769,62 @@ public class AccountController {
 
 		return result;
 	}
+	// 모바일 정보수정
+	@PostMapping("/account/myinfosave")
+	public AjaxResult setUserInfo(
+			@RequestParam("name") final String name,
+			@RequestParam("loginPwd") final String loginPwd,
+			@RequestParam("loginPwd2") final String loginPwd2,
+			@RequestParam("userHp") final String userHp,
+			Authentication auth
+	) {
+		MapSqlParameterSource dicParam = new MapSqlParameterSource();
+		AjaxResult result = new AjaxResult();
+		User user = (User)auth.getPrincipal();
 
+		if (StringUtils.hasText(loginPwd)==false | StringUtils.hasText(loginPwd2)==false) {
+			result.success=false;
+			result.message="The verification password is incorrect.";
+			return result;
+		}
+
+		if(loginPwd.equals(loginPwd2)==false) {
+			result.success=false;
+			result.message="비밀번호와 확인이 서로 맞지않습니다.";
+			return result;
+		}
+
+		String encodedPWD = Pbkdf2Sha256.encode(loginPwd2);
+		if(name != null && !name.isEmpty()) {
+			dicParam.addValue("name", name);
+		}
+		if(userHp != null && !userHp.isEmpty()) {
+			dicParam.addValue("userHp", userHp);
+		}
+		if(loginPwd2 != null && !loginPwd2.isEmpty()) {
+			dicParam.addValue("encodedPWD", encodedPWD);
+		}
+		//user.getUserProfile().setName(name);
+		String authSql = """
+        	update auth_user set 
+        	password = :encodedPWD, tel = :userHp, first_name = :name 
+        	where id=:id 
+        """;
+
+		String profileSql = """
+        	update user_profile set 
+        	"Name"=:name, _modified = now(), _modifier_id=:id 
+        	where "User_id"=:id 
+        """;
+
+		dicParam.addValue("name", name);
+		dicParam.addValue("id", user.getId());
+		this.sqlRunner.execute(authSql, dicParam);
+		this.sqlRunner.execute(profileSql, dicParam);
+
+		result.message="사용자 정보가 수정되었습니다.\n다시 로그인하여 주십시오";
+
+
+		return result;
+	}
 }

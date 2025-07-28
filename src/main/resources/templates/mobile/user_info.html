@@ -325,10 +325,10 @@
 
     function bindUserInfo(data) {
         $('#login_id').val(data.login_id || '');
-        $('#name').val(data.name);
+        $('#name').val(data.prenm);
         $('#loginPwd').val('');
         $('#loginPwd2').val('');
-        $('#userHp').val(data.userHp || '');
+        $('#userHp').val(data.phone || '');
         $('#email').val(data.email || '');
     }
     // 수정버튼

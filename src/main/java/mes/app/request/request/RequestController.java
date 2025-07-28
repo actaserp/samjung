@@ -188,8 +188,6 @@ public class RequestController {
 //                            @RequestParam(value = "spjangcd", required = false) String spjangcd,
                             HttpServletResponse response,
                             Authentication auth) throws Exception {
-        Path tempXlsx = null;
-        Path tempPdf = null;
         try {
             User user = (User) auth.getPrincipal();
             String username = user.getUsername();
@@ -213,96 +211,134 @@ public class RequestController {
                 response.flushBuffer();
                 return;
             }
+
+            final int MAX_ROW = 21; // 혹은 15
+            int fileCount = (int) Math.ceil(vacData.size() / (double) MAX_ROW);
+
+            // 임시파일, PDF 목록
+            List<Path> pdfList = new ArrayList<>();
+
             Map<String, Object> head = vacData.get(0);
-            // 1. UUID 기반 임시 파일명 생성
-            String uuid = UUID.randomUUID().toString();
-            tempXlsx = Files.createTempFile(uuid, ".xlsx");
-            tempPdf = Path.of(tempXlsx.toString().replace(".xlsx", ".pdf"));
-            // 2. 엑셀 템플릿 불러오기 및 수정(설치자재 출하 및 인수확인서)
-            System.out.println(">>> PDF 응답 직전");
-            try (FileInputStream fis = new FileInputStream("C:/Temp/mes21/문서/ReceiptConfirmation.xlsx");
-                 Workbook workbook = new XSSFWorkbook(fis);
-                 FileOutputStream fos = new FileOutputStream(tempXlsx.toFile())) {
 
-                Sheet sheet = workbook.getSheetAt(0);
-                // 660 정보 setCell
-                // HEAD 정보
-                setCell(sheet, 4, 2, (String) head.get("PROCD"));           // C5
-                setCell(sheet, 5, 2, (String) head.get("ACTNM"));           // C6
-                String chulDateStr = head.get("CHULDATE") == null ? "" : head.get("CHULDATE").toString();
-                setCell(sheet, 4, 13, formatToKorean((String) head.get("CHULDATE"))); // N5
+            for (int fileIdx = 0; fileIdx < fileCount; fileIdx++) {
+                int fromIdx = fileIdx * MAX_ROW;
+                int toIdx = Math.min(fromIdx + MAX_ROW, vacData.size());
+                List<Map<String, Object>> subList = vacData.subList(fromIdx, toIdx);
 
-                String remarkAll =
-                        (head.get("REMARK01") != null ? head.get("REMARK01") + "\n" : "") +
-                                (head.get("REMARK02") != null ? head.get("REMARK02") + "\n" : "") +
-                                (head.get("REMARK03") != null ? head.get("REMARK03") : "");
-                setCell(sheet, 29, 5, remarkAll.trim()); // F30
+                // 1. UUID 기반 임시 파일명 생성
+                String uuid = UUID.randomUUID().toString();
+                Path tempXlsx = Files.createTempFile(uuid, ".xlsx");
+                Path tempPdf = Path.of(tempXlsx.toString().replace(".xlsx", ".pdf"));
 
-                setCell(sheet, 34, 15, (String) head.get("last_name"));              // P35
-                setCell(sheet, 34, 6, (String) head.get("cltnm"));               // G35
-                setCell(sheet, 34, 12, (String) head.get("phone"));                 // M35
-                setCell(sheet, 34, 3, formatToDash((String) head.get("CHULDATE")));   // D35 yyyy-mm-dd
-                setCell(sheet, 36, 3, formatToDash((String) head.get("CHULDATE")));   // D37
-                setCell(sheet, 38, 3, formatToDash((String) head.get("CHULDATE")));   // D39
+                try (FileInputStream fis = new FileInputStream("C:/Temp/mes21/문서/ReceiptConfirmation.xlsx");
+                     Workbook workbook = new XSSFWorkbook(fis);
+                     FileOutputStream fos = new FileOutputStream(tempXlsx.toFile())) {
+
+                    Sheet sheet = workbook.getSheetAt(0);
+                    // 660 정보 setCell
+                    // HEAD 정보
+                    setCell(sheet, 4, 2, (String) head.get("PROCD"));           // C5
+                    setCell(sheet, 5, 2, (String) head.get("ACTNM"));           // C6
+                    String chulDateStr = head.get("CHULDATE") == null ? "" : head.get("CHULDATE").toString();
+                    setCell(sheet, 4, 13, formatToKorean((String) head.get("CHULDATE"))); // N5
+
+                    String remarkAll =
+                            (head.get("REMARK01") != null ? head.get("REMARK01") + "\n" : "") +
+                                    (head.get("REMARK02") != null ? head.get("REMARK02") + "\n" : "") +
+                                    (head.get("REMARK03") != null ? head.get("REMARK03") : "");
+                    setCell(sheet, 29, 5, remarkAll.trim()); // F30
+
+                    setCell(sheet, 34, 15, (String) head.get("last_name"));              // P35
+                    setCell(sheet, 34, 6, (String) head.get("cltnm"));               // G35
+                    setCell(sheet, 34, 12, (String) head.get("phone"));                 // M35
+                    setCell(sheet, 34, 3, formatToDash((String) head.get("CHULDATE")));   // D35 yyyy-mm-dd
+                    setCell(sheet, 36, 3, formatToDash((String) head.get("CHULDATE")));   // D37
+                    setCell(sheet, 38, 3, formatToDash((String) head.get("CHULDATE")));   // D39
 
 
-                // BODY 정보 (표 9행~29행, 최대 21개 row)
-                for (int i = 0; i < 21; i++) {
-                    int row = 8 + i; // B9부터
-                    if (i < vacData.size()) {
-                        Map<String, Object> line = vacData.get(i);
-                        String chulFlag = ((String)line.get("CHULFLAG")).equals("1") ? "확인" : "미출하";
-                        setCell(sheet, row, 0, String.valueOf(i + 1));      // 번호, A9~A32
-                        setCell(sheet, row, 1, (String) line.get("PNAME"));        // 품목, B9~B32
-                        setCell(sheet, row, 5, (String) line.get("PSIZE"));        // 규격, F9~F32
-                        setCell(sheet, row, 9, (String) line.get("PUNIT"));        // 단위, J9~J32
-                        setCell(sheet, row, 11, line.get("PQTY").toString());        // 수량, L9~L32
-                        setCell(sheet, row, 13, chulFlag);    // 출하여부, N9~N32
-                        setCell(sheet, row, 14, (String) line.get("REMARK"));      // 비고, O9~O32
-                    } else {
-                        // 빈 row 초기화 (공백)
-                        setCell(sheet, row, 0, "");
-                        setCell(sheet, row, 1, "");
-                        setCell(sheet, row, 5, "");
-                        setCell(sheet, row, 9, "");
-                        setCell(sheet, row, 11, "");
-                        setCell(sheet, row, 13, "");
-                        setCell(sheet, row, 14, "");
+                    // BODY 정보 (표 9행~29행, 최대 24개 row)
+                    for (int i = 0; i < MAX_ROW; i++) {
+                        int row = 8 + i; // B9부터
+                        int globalIndex = fromIdx + i; // 전체 vacData 기준
+                        if (i < subList.size()) {
+                            Map<String, Object> line = subList.get(i);
+                            String chulFlag = ((String) line.get("CHULFLAG")).equals("1") ? "확인" : "미출하";
+                            setCell(sheet, row, 0, String.valueOf(globalIndex + 1));      // 번호, A9~A32
+                            setCell(sheet, row, 1, (String) line.get("PNAME"));        // 품목, B9~B32
+                            setCell(sheet, row, 5, (String) line.get("PSIZE"));        // 규격, F9~F32
+                            setCell(sheet, row, 9, (String) line.get("PUNIT"));        // 단위, J9~J32
+                            setCell(sheet, row, 11, line.get("PQTY").toString());        // 수량, L9~L32
+                            setCell(sheet, row, 13, chulFlag);    // 출하여부, N9~N32
+                            setCell(sheet, row, 14, (String) line.get("REMARK"));      // 비고, O9~O32
+                        } else {
+                            // 빈 row 초기화 (공백)
+                            setCell(sheet, row, 0, "");
+                            setCell(sheet, row, 1, "");
+                            setCell(sheet, row, 5, "");
+                            setCell(sheet, row, 9, "");
+                            setCell(sheet, row, 11, "");
+                            setCell(sheet, row, 13, "");
+                            setCell(sheet, row, 14, "");
+                        }
                     }
+
+                    workbook.write(fos);
                 }
+                System.out.println(">>> PDF 응답 후");
 
-                workbook.write(fos);
+                // 3. LibreOffice로 PDF 변환
+                ProcessBuilder pb = new ProcessBuilder(
+                        "C:/Program Files/LibreOffice/program/soffice.exe",
+                        "--headless",
+                        "--convert-to", "pdf",
+                        "--outdir", tempPdf.getParent().toString(),
+                        tempXlsx.toAbsolutePath().toString()
+                );
+                pb.inheritIO();
+                Process process = pb.start();
+                process.waitFor();
+
+                if (!Files.exists(tempPdf) || Files.size(tempPdf) == 0) {
+                    continue; // 생성실패 skip
+                }
+                pdfList.add(tempPdf);
+                // 엑셀파일 삭제 예약 추가
+                final Path deleteXlsx = tempXlsx;
+                Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+                    try { Files.deleteIfExists(deleteXlsx); } catch (Exception ex) {}
+                }, 5, TimeUnit.MINUTES);
             }
-            System.out.println(">>> PDF 응답 후");
 
-            // 3. LibreOffice로 PDF 변환
-            ProcessBuilder pb = new ProcessBuilder(
-                    "C:/Program Files/LibreOffice/program/soffice.exe",
-                    "--headless",
-                    "--convert-to", "pdf",
-                    "--outdir", tempPdf.getParent().toString(),
-                    tempXlsx.toAbsolutePath().toString()
-            );
-            pb.inheritIO();
-            Process process = pb.start();
-            process.waitFor();
-
-            // 4. PDF 파일이 실제로 존재하는지 체크
-            if (!Files.exists(tempPdf) || Files.size(tempPdf) == 0) {
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\":\"PDF 생성 실패\"}");
-                response.flushBuffer();
-                return;
-            }
-
-            // 5. PDF 응답 전송 (정상 동작)
-            response.setContentType("application/pdf");
-            response.setHeader("Content-Disposition", "inline; filename=vacation.pdf");
-            try (FileInputStream fis = new FileInputStream(tempPdf.toFile())) {
-                IOUtils.copy(fis, response.getOutputStream());
-                response.flushBuffer();
-            }
+                // 5. PDF 응답 전송 (정상 동작)
+                if (pdfList.isEmpty()) {
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"PDF 생성 실패\"}");
+                    response.flushBuffer();
+                    return;
+                }
+                response.setContentType("application/zip");
+                response.setHeader("Content-Disposition", "attachment; filename=files.zip");
+                try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
+                    int i = 1;
+                    for (Path pdf : pdfList) {
+                        zos.putNextEntry(new ZipEntry("파일" + i + ".pdf"));
+                        Files.copy(pdf, zos);
+                        zos.closeEntry();
+                        i++;
+                    }
+                    zos.finish();
+                    response.flushBuffer();
+                }
+                // --- 임시파일 삭제 예약 ---
+                for (Path pdf : pdfList) {
+                    Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+                        try {
+                            Files.deleteIfExists(pdf);
+                        } catch (Exception ex) {
+                        }
+                    }, 5, TimeUnit.MINUTES);
+                }
         } catch (Exception e) {
             // 예외 발생 시 명확한 메시지 반환
             System.out.println(">>> 예외 발생: " + e.getMessage());
@@ -310,15 +346,6 @@ public class RequestController {
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"서버 에러: " + e.getMessage() + "\"}");
             response.flushBuffer();
-        } finally {
-            // 6. 임시 파일 삭제 (즉시)
-            final Path deleteXlsx = tempXlsx;
-            final Path deletePdf = tempPdf;
-
-            Executors.newSingleThreadScheduledExecutor().schedule(() -> {
-                try { if (deleteXlsx != null) Files.deleteIfExists(deleteXlsx); } catch (Exception ex) {}
-                try { if (deletePdf != null) Files.deleteIfExists(deletePdf); } catch (Exception ex) {}
-            }, 5, TimeUnit.MINUTES);
         }
     }
     // 엑셀파일 조회 및 파일 보기 메서드(거래명세서)
@@ -328,8 +355,6 @@ public class RequestController {
 //                            @RequestParam(value = "spjangcd", required = false) String spjangcd,
                              HttpServletResponse response,
                              Authentication auth) throws Exception {
-        Path tempXlsx = null;
-        Path tempPdf = null;
         try {
             User user = (User) auth.getPrincipal();
             String username = user.getUsername();
@@ -353,122 +378,163 @@ public class RequestController {
                 response.flushBuffer();
                 return;
             }
+
+            final int MAX_ROW = 15; //
+            int fileCount = (int) Math.ceil(vacData.size() / (double) MAX_ROW);
+
+            // 임시파일, PDF 목록
+            List<Path> pdfList = new ArrayList<>();
+
             Map<String, Object> head = vacData.get(0);
-            // 1. UUID 기반 임시 파일명 생성
-            String uuid = UUID.randomUUID().toString();
-            tempXlsx = Files.createTempFile(uuid, ".xlsx");
-            tempPdf = Path.of(tempXlsx.toString().replace(".xlsx", ".pdf"));
-            // 2. 엑셀 템플릿 불러오기 및 수정(설치자재 출하 및 인수확인서)
-            System.out.println(">>> PDF 응답 직전");
-            try (FileInputStream fis = new FileInputStream("C:/Temp/mes21/문서/DeliveryReceipt.xlsx");
-                 Workbook workbook = new XSSFWorkbook(fis);
-                 FileOutputStream fos = new FileOutputStream(tempXlsx.toFile())) {
 
-                Sheet sheet = workbook.getSheetAt(0);
-                // 660 정보 setCell
-                // HEAD 정보
-                setCell(sheet, 4, 3, (String) head.get("PROCD"));           // D5
-                setCell(sheet, 4, 8, (String) head.get("ACTNM"));           // I6
-                String chulDateStr = head.get("CHULDATE") == null ? "" : head.get("CHULDATE").toString();
-                setCell(sheet, 3, 5, formatToKorean((String) head.get("CHULDATE"))); // F4
+            for (int fileIdx = 0; fileIdx < fileCount; fileIdx++) {
+                int fromIdx = fileIdx * MAX_ROW;
+                int toIdx = Math.min(fromIdx + MAX_ROW, vacData.size());
+                List<Map<String, Object>> subList = vacData.subList(fromIdx, toIdx);
 
-                setCell(sheet, 6, 3, (String) head.get("cltnm"));              // D7
-                setCell(sheet, 6, 8, (String) head.get("saupnum"));               // I7
-                setCell(sheet, 7, 3, (String) head.get("prenm"));                 // D8
-                setCell(sheet, 7, 8, (String) head.get("telnum"));   // I8
-                setCell(sheet, 8, 3, (String) head.get("cltadres"));   // D9
-                setCell(sheet, 9, 3, (String) head.get("biztypenm"));   // D10
-                setCell(sheet, 9, 8, (String) head.get("bizitemnm"));   // I10
-                setCell(sheet, 10, 3, (String) head.get("agnernm"));   // D11
-                setCell(sheet, 10, 8, (String) head.get("agntel"));   // I11
+                // 1. UUID 기반 임시 파일명 생성
+                String uuid = UUID.randomUUID().toString();
+                Path tempXlsx = Files.createTempFile(uuid, ".xlsx");
+                Path tempPdf = Path.of(tempXlsx.toString().replace(".xlsx", ".pdf"));
 
-                setCell(sheet, 34, 8, (String) head.get("last_name"));              // I35
-                setCell(sheet, 34, 4, (String) head.get("cltnm"));               // E35
-                setCell(sheet, 34, 7, (String) head.get("phone"));                 // H35
-                setCell(sheet, 34, 2, formatToDash((String) head.get("CHULDATE")));   // C35
-                setCell(sheet, 36, 2, formatToDash((String) head.get("CHULDATE")));   // C37
-                setCell(sheet, 38, 2, formatToDash((String) head.get("CHULDATE")));   // C39
-                // 1. 합계 계산 변수 선언
-                long totalQty = 0;     // G30: 수량합계
-                long totalPrice = 0;   // H30: 단가합계 (이건 행별 단가라면 합계가 아닌 보통 공란이나 평균 넣음)
-                long totalSupply = 0;  // I30: 공급가액합계
-                long totalTax = 0;     // J30: 세액합계
-                // BODY 정보 (표 9행~29행, 최대 21개 row)
-                for (int i = 0; i < 15; i++) {
-                    int row = 14 + i; // 15행부터
-                    if (i < vacData.size()) {
-                        Map<String, Object> line = vacData.get(i);
-                        long qty = line.get("PQTY") == null ? 0 : Long.parseLong(line.get("PQTY").toString());
-                        long price = line.get("PUAMT") == null ? 0 : Long.parseLong(line.get("PUAMT").toString());
-                        long supply = line.get("PAMT") == null ? 0 : Long.parseLong(line.get("PAMT").toString());
-                        long tax = supply / 10;
-                        // 합계 계산
-                        totalQty += qty;
-                        totalPrice += price;
-                        totalSupply += supply;
-                        totalTax += tax;
+                try (FileInputStream fis = new FileInputStream("C:/Temp/mes21/문서/DeliveryReceipt.xlsx");
+                     Workbook workbook = new XSSFWorkbook(fis);
+                     FileOutputStream fos = new FileOutputStream(tempXlsx.toFile())) {
 
-                        setCell(sheet, row, 0, String.valueOf(i + 1));                  // A: 순번
-                        setCell(sheet, row, 1, (String) line.get("PNAME"));             // B: 품명
-                        setCell(sheet, row, 3, (String) line.get("PSIZE"));             // D: 규격
-                        setCell(sheet, row, 5, (String) line.get("PUNIT"));             // F: 단위
-                        setCell(sheet, row, 6, formatPrice(line.get("PQTY")));          // G: 수량 (콤마)
-                        setCell(sheet, row, 7, formatPrice(line.get("PUAMT")));         // H: 단가 (콤마)
-                        setCell(sheet, row, 8, formatPrice(line.get("PAMT")));         // I: 공급가액 (콤마)
-                        long pamt = line.get("PAMT") == null ? 0 : Long.parseLong(line.get("PAMT").toString());
-                        setCell(sheet, row, 9, formatPrice(pamt / 10));                // J : 세액 (10%)
-                    } else {
-                        // 빈 row
-                        setCell(sheet, row, 0, "");
-                        setCell(sheet, row, 1, "");
-                        setCell(sheet, row, 3, "");
-                        setCell(sheet, row, 5, "");
-                        setCell(sheet, row, 6, "");
-                        setCell(sheet, row, 7, "");
-                        setCell(sheet, row, 8, "");
+                    Sheet sheet = workbook.getSheetAt(0);
+                    // 660 정보 setCell
+                    // HEAD 정보
+                    setCell(sheet, 4, 3, (String) head.get("PROCD"));           // D5
+                    setCell(sheet, 4, 8, (String) head.get("ACTNM"));           // I6
+                    String chulDateStr = head.get("CHULDATE") == null ? "" : head.get("CHULDATE").toString();
+                    setCell(sheet, 3, 5, formatToKorean((String) head.get("CHULDATE"))); // F4
+
+                    setCell(sheet, 6, 3, (String) head.get("cltnm"));              // D7
+                    setCell(sheet, 6, 8, (String) head.get("saupnum"));               // I7
+                    setCell(sheet, 7, 3, (String) head.get("prenm"));                 // D8
+                    setCell(sheet, 7, 8, (String) head.get("telnum"));   // I8
+                    setCell(sheet, 8, 3, (String) head.get("cltadres"));   // D9
+                    setCell(sheet, 9, 3, (String) head.get("biztypenm"));   // D10
+                    setCell(sheet, 9, 8, (String) head.get("bizitemnm"));   // I10
+                    setCell(sheet, 10, 3, (String) head.get("agnernm"));   // D11
+                    setCell(sheet, 10, 8, (String) head.get("agntel"));   // I11
+
+                    setCell(sheet, 34, 8, (String) head.get("last_name"));              // I35
+                    setCell(sheet, 34, 4, (String) head.get("cltnm"));               // E35
+                    setCell(sheet, 34, 7, (String) head.get("phone"));                 // H35
+                    setCell(sheet, 34, 2, formatToDash((String) head.get("CHULDATE")));   // C35
+                    setCell(sheet, 36, 2, formatToDash((String) head.get("CHULDATE")));   // C37
+                    setCell(sheet, 38, 2, formatToDash((String) head.get("CHULDATE")));   // C39
+                    // 1. 합계 계산 변수 선언
+                    long totalQty = 0;     // G30: 수량합계
+                    long totalPrice = 0;   // H30: 단가합계 (이건 행별 단가라면 합계가 아닌 보통 공란이나 평균 넣음)
+                    long totalSupply = 0;  // I30: 공급가액합계
+                    long totalTax = 0;     // J30: 세액합계
+                    // BODY 정보 (표 9행~29행, 최대 21개 row)
+                    for (int i = 0; i < MAX_ROW; i++) {
+                        int globalIndex = fromIdx + i; // 전체 vacData 기준
+                        int row = 14 + i; // 15행부터
+                        if (i < subList.size()) {
+                            Map<String, Object> line = subList.get(i);
+                            long qty = line.get("PQTY") == null ? 0 : Long.parseLong(line.get("PQTY").toString());
+                            long price = line.get("PUAMT") == null ? 0 : Long.parseLong(line.get("PUAMT").toString());
+                            long supply = line.get("PAMT") == null ? 0 : Long.parseLong(line.get("PAMT").toString());
+                            long tax = supply / 10;
+                            // 합계 계산
+                            totalQty += qty;
+                            totalPrice += price;
+                            totalSupply += supply;
+                            totalTax += tax;
+
+                            setCell(sheet, row, 0, String.valueOf(globalIndex + 1));                  // A: 순번
+                            setCell(sheet, row, 1, (String) line.get("PNAME"));             // B: 품명
+                            setCell(sheet, row, 3, (String) line.get("PSIZE"));             // D: 규격
+                            setCell(sheet, row, 5, (String) line.get("PUNIT"));             // F: 단위
+                            setCell(sheet, row, 6, formatPrice(line.get("PQTY")));          // G: 수량 (콤마)
+                            setCell(sheet, row, 7, formatPrice(line.get("PUAMT")));         // H: 단가 (콤마)
+                            setCell(sheet, row, 8, formatPrice(line.get("PAMT")));         // I: 공급가액 (콤마)
+                            long pamt = line.get("PAMT") == null ? 0 : Long.parseLong(line.get("PAMT").toString());
+                            setCell(sheet, row, 9, formatPrice(pamt / 10));                // J : 세액 (10%)
+                        } else {
+                            // 빈 row
+                            setCell(sheet, row, 0, "");
+                            setCell(sheet, row, 1, "");
+                            setCell(sheet, row, 3, "");
+                            setCell(sheet, row, 5, "");
+                            setCell(sheet, row, 6, "");
+                            setCell(sheet, row, 7, "");
+                            setCell(sheet, row, 8, "");
 //                        setCell(sheet, row, 12, "");
+                        }
                     }
+                    // 2. 합계 행에 값 넣기 (G30~J30은 row 29)
+                    setCell(sheet, 29, 6, formatPrice(totalQty));      // G30: 수량합계
+                    setCell(sheet, 29, 7, "");                        // H30: 단가합계(일반적으로 미사용)
+                    setCell(sheet, 29, 8, formatPrice(totalSupply));   // I30: 공급가액합계
+                    setCell(sheet, 29, 9, formatPrice(totalTax));      // J30: 세액합계
+
+                    // 3. D12(11,3)에 총합계 (공급가액+세액)
+                    setCell(sheet, 11, 3, formatPrice(totalSupply + totalTax));  // D12: 총합계
+
+                    workbook.write(fos);
                 }
-                // 2. 합계 행에 값 넣기 (G30~J30은 row 29)
-                setCell(sheet, 29, 6, formatPrice(totalQty));      // G30: 수량합계
-                setCell(sheet, 29, 7, "");                        // H30: 단가합계(일반적으로 미사용)
-                setCell(sheet, 29, 8, formatPrice(totalSupply));   // I30: 공급가액합계
-                setCell(sheet, 29, 9, formatPrice(totalTax));      // J30: 세액합계
+                System.out.println(">>> PDF 응답 후");
 
-                // 3. D12(11,3)에 총합계 (공급가액+세액)
-                setCell(sheet, 11, 3, formatPrice(totalSupply + totalTax));  // D12: 총합계
+                // 3. LibreOffice로 PDF 변환
+                ProcessBuilder pb = new ProcessBuilder(
+                        "C:/Program Files/LibreOffice/program/soffice.exe",
+                        "--headless",
+                        "--convert-to", "pdf",
+                        "--outdir", tempPdf.getParent().toString(),
+                        tempXlsx.toAbsolutePath().toString()
+                );
+                pb.inheritIO();
+                Process process = pb.start();
+                process.waitFor();
 
-                workbook.write(fos);
+                if (!Files.exists(tempPdf) || Files.size(tempPdf) == 0) {
+                    continue; // 생성실패 skip
+                }
+                pdfList.add(tempPdf);
+                // 엑셀파일 삭제 예약 추가
+                final Path deleteXlsx = tempXlsx;
+                Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+                    try {
+                        Files.deleteIfExists(deleteXlsx);
+                    } catch (Exception ex) {
+                    }
+                }, 5, TimeUnit.MINUTES);
             }
-            System.out.println(">>> PDF 응답 후");
 
-            // 3. LibreOffice로 PDF 변환
-            ProcessBuilder pb = new ProcessBuilder(
-                    "C:/Program Files/LibreOffice/program/soffice.exe",
-                    "--headless",
-                    "--convert-to", "pdf",
-                    "--outdir", tempPdf.getParent().toString(),
-                    tempXlsx.toAbsolutePath().toString()
-            );
-            pb.inheritIO();
-            Process process = pb.start();
-            process.waitFor();
-
-            // 4. PDF 파일이 실제로 존재하는지 체크
-            if (!Files.exists(tempPdf) || Files.size(tempPdf) == 0) {
+            // 5. PDF 응답 전송 (정상 동작)
+            if (pdfList.isEmpty()) {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 response.setContentType("application/json");
                 response.getWriter().write("{\"error\":\"PDF 생성 실패\"}");
                 response.flushBuffer();
                 return;
             }
-
-            // 5. PDF 응답 전송 (정상 동작)
-            response.setContentType("application/pdf");
-            response.setHeader("Content-Disposition", "inline; filename=vacation.pdf");
-            try (FileInputStream fis = new FileInputStream(tempPdf.toFile())) {
-                IOUtils.copy(fis, response.getOutputStream());
+            response.setContentType("application/zip");
+            response.setHeader("Content-Disposition", "attachment; filename=files.zip");
+            try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
+                int i = 1;
+                for (Path pdf : pdfList) {
+                    zos.putNextEntry(new ZipEntry("파일" + i + ".pdf"));
+                    Files.copy(pdf, zos);
+                    zos.closeEntry();
+                    i++;
+                }
+                zos.finish();
                 response.flushBuffer();
+            }
+            // --- 임시파일 삭제 예약 ---
+            for (Path pdf : pdfList) {
+                Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+                    try {
+                        Files.deleteIfExists(pdf);
+                    } catch (Exception ex) {
+                    }
+                }, 5, TimeUnit.MINUTES);
             }
         } catch (Exception e) {
             // 예외 발생 시 명확한 메시지 반환
@@ -477,15 +543,6 @@ public class RequestController {
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"서버 에러: " + e.getMessage() + "\"}");
             response.flushBuffer();
-        } finally {
-            // 6. 임시 파일 삭제 (즉시)
-            final Path deleteXlsx = tempXlsx;
-            final Path deletePdf = tempPdf;
-
-            Executors.newSingleThreadScheduledExecutor().schedule(() -> {
-                try { if (deleteXlsx != null) Files.deleteIfExists(deleteXlsx); } catch (Exception ex) {}
-                try { if (deletePdf != null) Files.deleteIfExists(deletePdf); } catch (Exception ex) {}
-            }, 5, TimeUnit.MINUTES);
         }
     }
     private void setCell(Sheet sheet, int rowIdx, int colIdx, String value) {

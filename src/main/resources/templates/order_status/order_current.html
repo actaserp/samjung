@@ -201,7 +201,8 @@
         let SelectItem;
         let csrfToken = $("[name=_csrf]").val();
 
-        let currentPdfBlob = null;
+        let pdfBlobList = [];   // 여러 PDF Blob 저장용
+        let lastZipBlob = null; // ZIP 전체 Blob
         let currentExcelType = null; // "delivery" or "prov"
 
         // document.readyState === 'complete' ? init() : window.onload = init;
@@ -295,11 +296,11 @@
                     columns: [
                         {binding: 'FACFLAG', header: '자재출고', width: '*', align: 'center', dataType: wijmo.DataType.Boolean},
                         {binding: 'FACDATE', header: '출하일자', width: '*', align: 'center'},
-                        {binding: 'ACTNM', header: '현장명', width: '*', align: 'center'},
-                        {binding: 'PNAME', header: '품명', width: '*', align: 'center'},
+                        {binding: 'ACTNM', header: '현장명', width: '*', align: 'left'},
+                        {binding: 'PNAME', header: '품명', width: '*', align: 'left'},
                         {binding: 'PSIZE', header: '규격', width: '*', align: 'center'},
-                        {binding: 'PUNIT', header: '단위', width: '*', align: 'right'},
-                        {binding: 'PQTY', header: '수량', width: '*', align: 'right'},
+                        {binding: 'PUNIT', header: '단위', width: 100, align: 'center'},
+                        {binding: 'PQTY', header: '수량', width: 100, align: 'right'},
                         {binding: 'PUAMT', header: '단가', width: '*', align: 'right'},
                         {binding: 'PAMT', header: '금액', width: '*', align: 'right'},
                     ],
@@ -386,6 +387,8 @@
             let searchActnm = document.getElementById('searchActnm').value;
             // let spjangcd = document.getElementById('search_spjangcd').value;
 
+            pdfBlobList = [];
+            lastZipBlob = null;
 
             if(excelType === 'delivery') {
                 // ✅ 이전 PDF 제거
@@ -401,17 +404,25 @@
 
                 fetch(url)
                     .then(res => {
-                        // PDF 아닌 경우 바로 catch
-                        if (res.ok && res.headers.get("content-type").includes("pdf")) {
-                            return res.blob();
-                        } else {
-                            throw new Error("PDF 생성 실패!");
-                        }
+                        if (!res.ok) throw new Error("서버 응답 실패!");
+                        lastZipBlob = null;  // 초기화
+                        return res.blob(); // <- 이거 하나면 됨!
                     })
                     .then(blob => {
-                        currentPdfBlob = blob;
-                        const blobURL = URL.createObjectURL(blob);
-                        renderPdf(blobURL);
+                        lastZipBlob = blob;  // zip blob 저장
+                        return JSZip.loadAsync(blob);
+                    })
+                    .then(zip => {
+                        const pdfFiles = Object.keys(zip.files).filter(filename => filename.endsWith('.pdf'));
+                        if (pdfFiles.length === 0) throw new Error('ZIP 안에 PDF 없음');
+                        // N개든, 순서대로 전부 렌더
+                        pdfBlobList = [];  // 초기화
+                        pdfFiles.forEach(async (filename) => {
+                            const pdfData = await zip.files[filename].async('blob');
+                            pdfBlobList.push(pdfData);
+                            const url = URL.createObjectURL(pdfData);
+                            renderPdf(url);
+                        });
                     })
                     .catch(() => {
                         spinner.style.display = "none";
@@ -430,7 +441,7 @@
 
                 // ✅ 스피너 표시 (PDF 전에)
                 spinner.style.display = "flex";
-                const url = `/api/request/subRequest/readVacFile2`
+                const url = `/api/request/request/readVacFile2`
                     + `?search_Date=${encodeURIComponent(searchDate)}`
                     + `&search_actnm=${encodeURIComponent(searchActnm)}`;
                 //&spjangcd=${encodeURIComponent(spjangcd)}
@@ -438,17 +449,25 @@
 
                 fetch(url)
                     .then(res => {
-                        // PDF 아닌 경우 바로 catch
-                        if (res.ok && res.headers.get("content-type").includes("pdf")) {
-                            return res.blob();
-                        } else {
-                            throw new Error("PDF 생성 실패!");
-                        }
+                        if (!res.ok) throw new Error("서버 응답 실패!");
+                        lastZipBlob = null;  // 초기화
+                        return res.blob(); // <- 이거 하나면 됨!
                     })
                     .then(blob => {
-                        currentPdfBlob = blob;
-                        const blobURL = URL.createObjectURL(blob);
-                        renderPdf(blobURL);
+                        lastZipBlob = blob;  // zip blob 저장
+                        return JSZip.loadAsync(blob);
+                    })
+                    .then(zip => {
+                        const pdfFiles = Object.keys(zip.files).filter(filename => filename.endsWith('.pdf'));
+                        if (pdfFiles.length === 0) throw new Error('ZIP 안에 PDF 없음');
+                        // N개든, 순서대로 전부 렌더
+                        pdfBlobList = [];  // 초기화
+                        pdfFiles.forEach(async (filename) => {
+                            const pdfData = await zip.files[filename].async('blob');
+                            pdfBlobList.push(pdfData);
+                            const url = URL.createObjectURL(pdfData);
+                            renderPdf(url);
+                        });
                     })
                     .catch(() => {
                         spinner.style.display = "none";
@@ -539,9 +558,9 @@
             if (currentExcelType === 'delivery') fileName = '인수확인서.pdf';
             if (currentExcelType === 'prov') fileName = '거래명세서.pdf';
 
-            if (currentPdfBlob) {
-                // Blob이 있으면 즉시 다운로드
-                const url = window.URL.createObjectURL(currentPdfBlob);
+            // PDF 한 개만 있으면 바로 다운로드
+            if (pdfBlobList.length === 1) {
+                const url = window.URL.createObjectURL(pdfBlobList[0]);
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = fileName;
@@ -551,10 +570,25 @@
                     document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
                 }, 100);
-            } else {
-                // 혹시라도 Blob이 없다면 서버로부터 새로 요청 (옵션)
-                Alert.alert('', '다운로드할 PDF가 없습니다. 먼저 미리보기를 조회하세요.');
+                return;
             }
+
+            // PDF 여러 개(또는 0개)면 zip blob 다운로드
+            if (lastZipBlob) {
+                const url = window.URL.createObjectURL(lastZipBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (currentExcelType === 'delivery') ? '인수확인서.zip' : '거래명세서.zip';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+                return;
+            }
+
+            Alert.alert('', '다운로드할 파일이 없습니다. 먼저 미리보기를 조회하세요.');
         }
     </script>
 </th:block>

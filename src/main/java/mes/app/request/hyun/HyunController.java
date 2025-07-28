@@ -100,22 +100,22 @@ public class HyunController {
         }
         try {
             for (Map<String, Object> item : sendData) {
-                String chulFlag = normalizeChulFlag(item.get("FACFLAG"));
+                String hyunFlag = normalizeChulFlag(item.get("HYUNFLAG"));
                 Integer baljuNum = toInt(item.get("BALJUNUM"));
                 Integer baljuSeq = toInt(item.get("BALJUSEQ"));
 
                 // 1. 기존값 조회 (null이면 0 취급, 필요시 변환)
-                String oldFlag = (String) requestService.getFacFlag(baljuNum, baljuSeq).get("FACFLAG");
+                String oldFlag = (String) requestService.getHyunFlag(baljuNum, baljuSeq).get("HYUNFLAG");
                 if (oldFlag == null) oldFlag = "0";
 
                 // 2. 값이 다를 때만 처리
-                if (!Objects.equals(oldFlag, chulFlag)) {
-                    if ("1".equals(chulFlag)) { // 출고처리
+                if (!Objects.equals(oldFlag, hyunFlag)) {
+                    if ("1".equals(hyunFlag)) { // 출고처리
                         // 0 → 1
-                        requestService.updateFacInfo2(username, today, chulFlag, baljuNum, baljuSeq);
+                        requestService.updateHyunInfo2(username, today, hyunFlag, baljuNum, baljuSeq);
                     } else { // 출고 해제
                         // 1 → 0
-                        requestService.clearChulInfo2("0", baljuNum, baljuSeq);
+                        requestService.clearHyunInfo2("0", baljuNum, baljuSeq);
                     }
                 }
             }

@@ -643,18 +643,18 @@ public class HyunService {
         return items;
     }
     // 주문출고(현장) flag값 update
-    public void updateFacInfo2(String username, String today, String FACFLAG, Integer BALJUNUM, Integer BALJUSEQ) {
+    public void updateHyunInfo2(String username, String today, String HYUNFLAG, Integer BALJUNUM, Integer BALJUSEQ) {
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("username", username);
         dicParam.addValue("today", today);
-        dicParam.addValue("FACFLAG", FACFLAG);
+        dicParam.addValue("HYUNFLAG", HYUNFLAG);
         dicParam.addValue("BALJUNUM", BALJUNUM);
         dicParam.addValue("BALJUSEQ", BALJUSEQ);
         String sql = """
                 update TB_CA661
-                set "FACFLAG" = :FACFLAG
-                , "FACDATE" = :today
-                , "FACPERNM" = :username
+                set "HYUNFLAG" = :HYUNFLAG
+                , "HYUNDATE" = :today
+                , "HYUNPERNM" = :username
                 where BALJUNUM = :BALJUNUM
                 AND BALJUSEQ = :BALJUSEQ
                 """;
@@ -662,25 +662,25 @@ public class HyunService {
         int result = this.sqlRunner.execute(sql, dicParam);
     }
     // 주문출고(현장) 해제 메서드
-    public void clearChulInfo2(String chulFlag, Integer baljuNum, Integer baljuSeq) {
+    public void clearHyunInfo2(String hyunFlag, Integer baljuNum, Integer baljuSeq) {
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
-        dicParam.addValue("CHULFLAG", chulFlag);
+        dicParam.addValue("HYUNFLAG", hyunFlag);
         dicParam.addValue("BALJUNUM", baljuNum);
         dicParam.addValue("BALJUSEQ", baljuSeq);
         String sql = """
         update TB_CA661
-        set "FACFLAG" = :CHULFLAG
-          , "FACDATE" = ''
-          , "FACPERNM" = ''
+        set "HYUNFLAG" = :HYUNFLAG
+          , "HYUNDATE" = ''
+          , "HYUNPERNM" = ''
         where BALJUNUM = :BALJUNUM
           AND BALJUSEQ = :BALJUSEQ
     """;
         // 파라미터 세팅 후 update() 호출
         int result = this.sqlRunner.execute(sql, dicParam);
     }
-    public Map<String, Object> getFacFlag(Integer baljuNum, Integer baljuSeq) {
+    public Map<String, Object> getHyunFlag(Integer baljuNum, Integer baljuSeq) {
         // queryForObject나 queryForString 사용
-        String sql = "SELECT FACFLAG FROM TB_CA661 WHERE BALJUNUM = :BALJUNUM AND BALJUSEQ = :BALJUSEQ";
+        String sql = "SELECT HYUNFLAG FROM TB_CA661 WHERE BALJUNUM = :BALJUNUM AND BALJUSEQ = :BALJUSEQ";
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("BALJUNUM", baljuNum)
                 .addValue("BALJUSEQ", baljuSeq);

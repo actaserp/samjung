@@ -158,6 +158,7 @@
 </head>
 
 <body>
+<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 <div class="mobile-wrapper page-ticket-list"><!-- ★페이지 Class명 -->
   <!-- [모바일] 헤더  -->
   <div class="mobile-layout-header">
@@ -229,7 +230,7 @@
       </div><!--// contents-wrap end-->
       <div id="addressWrap" class="contents-wrap">
         <div class="btnArea" >
-          <button class="btn-dark" onclick="">저장</button>
+          <button class="btn-dark" onclick="deliverySave()">저장</button>
         </div>
       </div>
     </div> <!--//layout-contents end -->
@@ -250,6 +251,7 @@
   // if (groupname && groupname !== 'null') localStorage.setItem('groupname', groupname);
 </script>
 <script type="text/javascript">
+  let checkItems = [];
 
   const today = new Date();
   const year = today.getFullYear();
@@ -277,6 +279,7 @@
 
       // ✅ 데이터가 null이 아니면 실행
       if (result != null && result.data != null) {
+        checkItems = result.data; //
         // 조회된 데이터
         const items = result.data;
 
@@ -295,20 +298,25 @@
               </tr>
                 `;
 
-        items.forEach(item => {
-          tableHtml += `
-                    <tr>
-                        <td>${formatDateToYYMMDD(item.workym) || ''}</td>
-                        <td>${item.ACTNM || ''}</td>
-                        <td>${item.PNAME || ''}</td>
-                        <td>${item.PSIZE || ''}</td>
-                        <td>${item.PQTY || '-'}</td>
-                        <td>${item.PMAPSEQ || ''}</td>
-                        <td>${item.CHULFLAG || ''}</td>
-                        <td>${item.FACFLAG || ''}</td>
-                    </tr>
-                `;
+        items.forEach((item, idx) => {
+                tableHtml += `
+          <tr data-idx="${idx}">
+            <td>
+              <input type="checkbox" class="chul-checkbox"
+                ${item.HYUNFLAG === '1' ? 'checked' : ''}
+              >
+            </td>
+            <td>${item.ACTNM || ''}</td>
+            <td>${item.PNAME || ''}</td>
+            <td>${item.PSIZE || ''}</td>
+            <td>${item.PQTY || '-'}</td>
+            <td>${item.PMAPSEQ || ''}</td>
+            <td>${item.CHULFLAG === '1' ? '확인' : '-'}</td>
+            <td>${item.FACFLAG === '1' ? '확인' : '-'}</td>
+          </tr>
+        `;
         });
+
 
         tableHtml += `
                 </table>
@@ -328,6 +336,16 @@
     };
     AjaxUtil.getAsyncData(url, data, fnsuccess);
   }
+  // 체크박스 이벤트 위임 등록
+  document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('chul-checkbox')) {
+      const tr = e.target.closest('tr');
+      const idx = parseInt(tr.getAttribute('data-idx'));
+      checkItems[idx].HYUNFLAG = e.target.checked ? 1 : 0;
+      // 즉시 테이블의 "발주처확인" 셀 업데이트
+      tr.querySelectorAll('td')[6].innerText = e.target.checked ? '확인' : '-';
+    }
+  });
   // 검색버튼 클릭
   function handleSearch() {
     let requiredFields = [
@@ -349,6 +367,30 @@
     buttons.forEach(button => {
       button.click();
     });
+  }
+
+  function deliverySave() {
+    // 체크된 row만 추출
+    const sendData = checkItems
+            .filter(item => item.BALJUNUM && item.BALJUSEQ)
+            .map(item => ({
+              BALJUNUM: item.BALJUNUM,
+              BALJUSEQ: item.BALJUSEQ,
+              HYUNFLAG: item.HYUNFLAG
+            }));
+
+    let data = {
+      'sendData': JSON.stringify(sendData),
+      '_csrf': csrfToken // csrfToken 필요 시
+    };
+
+    let fnSuccess = function(res) {
+      if (res.success) {
+        Alert.alert('', '출고상태가 변경되었습니다.');
+        searchMainData();
+      }
+    };
+    AjaxUtil.postAsyncData('/api/request/hyun/saveDelivery', data, fnSuccess);
   }
 
 

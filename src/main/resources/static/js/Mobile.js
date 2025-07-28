@@ -818,7 +818,7 @@ function loadUserInfo() {
         success: function(response) {
             // console.log('응답 데이터:', response); // 응답 확인
             if (response.success) {
-                $('#userName').text(response.data.name || '사용자명');
+                $('#userName').text(response.data.prenm || '사용자명');
             } else {
                 console.error('사용자 정보를 가져올 수 없습니다:', response.message);
             }

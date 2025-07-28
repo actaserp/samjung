@@ -30,6 +30,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @RestController
 @RequestMapping("/api/request/subRequest")
@@ -170,8 +172,6 @@ public class SubRequestController {
 //                            @RequestParam(value = "spjangcd", required = false) String spjangcd,
                             HttpServletResponse response,
                             Authentication auth) throws Exception {
-        Path tempXlsx = null;
-        Path tempPdf = null;
         try {
             User user = (User) auth.getPrincipal();
             String username = user.getUsername();
@@ -195,11 +195,24 @@ public class SubRequestController {
                 response.flushBuffer();
                 return;
             }
+            final int MAX_ROW = 21; // 혹은 15
+            int fileCount = (int) Math.ceil(vacData.size() / (double) MAX_ROW);
+
+            // 임시파일, PDF 목록
+            List<Path> pdfList = new ArrayList<>();
+
             Map<String, Object> head = vacData.get(0);
+
+            for (int fileIdx = 0; fileIdx < fileCount; fileIdx++) {
+                int fromIdx = fileIdx * MAX_ROW;
+                int toIdx = Math.min(fromIdx + MAX_ROW, vacData.size());
+                List<Map<String, Object>> subList = vacData.subList(fromIdx, toIdx);
+
             // 1. UUID 기반 임시 파일명 생성
             String uuid = UUID.randomUUID().toString();
-            tempXlsx = Files.createTempFile(uuid, ".xlsx");
-            tempPdf = Path.of(tempXlsx.toString().replace(".xlsx", ".pdf"));
+            Path tempXlsx = Files.createTempFile(uuid, ".xlsx");
+            Path tempPdf = Path.of(tempXlsx.toString().replace(".xlsx", ".pdf"));
+
             // 2. 엑셀 템플릿 불러오기 및 수정(설치자재 출하 및 인수확인서)
             System.out.println(">>> PDF 응답 직전");
             try (FileInputStream fis = new FileInputStream("C:/Temp/mes21/문서/ReceiptConfirmation.xlsx");
@@ -229,16 +242,18 @@ public class SubRequestController {
 
 
                 // BODY 정보 (표 9행~29행, 최대 21개 row)
-                for (int i = 0; i < 21; i++) {
+                for (int i = 0; i < MAX_ROW; i++) {
                     int row = 8 + i; // B9부터
-                    if (i < vacData.size()) {
-                        Map<String, Object> line = vacData.get(i);
-                        setCell(sheet, row, 0, String.valueOf(i + 1));      // 번호, A9~A32
+                    int globalIndex = fromIdx + i; // 전체 vacData 기준
+                    if (i < subList.size()) {
+                        Map<String, Object> line = subList.get(i);
+                        String facFlag = ((String) line.get("FACFLAG")).equals("1") ? "확인" : "미출하";
+                        setCell(sheet, row, 0, String.valueOf(globalIndex + 1));      // 번호, A9~A32
                         setCell(sheet, row, 1, (String) line.get("PNAME"));        // 품목, B9~B32
                         setCell(sheet, row, 5, (String) line.get("PSIZE"));        // 규격, F9~F32
                         setCell(sheet, row, 9, (String) line.get("PUNIT"));        // 단위, J9~J32
                         setCell(sheet, row, 11, line.get("PQTY").toString());        // 수량, L9~L32
-                        setCell(sheet, row, 13, (String) line.get("FACFLAG"));    // 출하여부, N9~N32
+                        setCell(sheet, row, 13, facFlag);    // 출하여부, N9~N32
                         setCell(sheet, row, 14, (String) line.get("REMARK"));      // 비고, O9~O32
                     } else {
                         // 빈 row 초기화 (공백)
@@ -268,21 +283,46 @@ public class SubRequestController {
             Process process = pb.start();
             process.waitFor();
 
-            // 4. PDF 파일이 실제로 존재하는지 체크
-            if (!Files.exists(tempPdf) || Files.size(tempPdf) == 0) {
+                if (!Files.exists(tempPdf) || Files.size(tempPdf) == 0) {
+                    continue; // 생성실패 skip
+                }
+                pdfList.add(tempPdf);
+                // 엑셀파일 삭제 예약 추가
+                final Path deleteXlsx = tempXlsx;
+                Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+                    try { Files.deleteIfExists(deleteXlsx); } catch (Exception ex) {}
+                }, 5, TimeUnit.MINUTES);
+            }
+
+            // 5. PDF 응답 전송 (정상 동작)
+            if (pdfList.isEmpty()) {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 response.setContentType("application/json");
                 response.getWriter().write("{\"error\":\"PDF 생성 실패\"}");
                 response.flushBuffer();
                 return;
             }
-
-            // 5. PDF 응답 전송 (정상 동작)
-            response.setContentType("application/pdf");
-            response.setHeader("Content-Disposition", "inline; filename=vacation.pdf");
-            try (FileInputStream fis = new FileInputStream(tempPdf.toFile())) {
-                IOUtils.copy(fis, response.getOutputStream());
+            response.setContentType("application/zip");
+            response.setHeader("Content-Disposition", "attachment; filename=files.zip");
+            try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
+                int i = 1;
+                for (Path pdf : pdfList) {
+                    zos.putNextEntry(new ZipEntry("파일" + i + ".pdf"));
+                    Files.copy(pdf, zos);
+                    zos.closeEntry();
+                    i++;
+                }
+                zos.finish();
                 response.flushBuffer();
+            }
+            // --- 임시파일 삭제 예약 ---
+            for (Path pdf : pdfList) {
+                Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+                    try {
+                        Files.deleteIfExists(pdf);
+                    } catch (Exception ex) {
+                    }
+                }, 5, TimeUnit.MINUTES);
             }
         } catch (Exception e) {
             // 예외 발생 시 명확한 메시지 반환
@@ -291,15 +331,6 @@ public class SubRequestController {
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"서버 에러: " + e.getMessage() + "\"}");
             response.flushBuffer();
-        } finally {
-            // 6. 임시 파일 삭제 (즉시)
-            final Path deleteXlsx = tempXlsx;
-            final Path deletePdf = tempPdf;
-
-            Executors.newSingleThreadScheduledExecutor().schedule(() -> {
-                try { if (deleteXlsx != null) Files.deleteIfExists(deleteXlsx); } catch (Exception ex) {}
-                try { if (deletePdf != null) Files.deleteIfExists(deletePdf); } catch (Exception ex) {}
-            }, 5, TimeUnit.MINUTES);
         }
     }
     // 엑셀파일 조회 및 파일 보기 메서드(거래명세서)

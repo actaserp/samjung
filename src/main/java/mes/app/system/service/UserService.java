@@ -35,8 +35,82 @@ public class UserService {
     @Autowired
     TB_XClientRepository tbXClientRepository;
 
-    // 사용자 리스트
-    public List<Map<String, Object>> getUserList(boolean superUser, String spjangcd, String userGroup, String name, String username) {
+    // 사용자 관리 리스트
+    public List<Map<String, Object>> getUserList(String id ,boolean superUser, String spjangcd, String userGroup, String name, String username) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("id", id);
+        params.addValue("superUser", superUser);
+        params.addValue("spjangcd", spjangcd);
+        params.addValue("userGroup", userGroup);
+        params.addValue("name", name);
+        params.addValue("username", username);
+        String sql = """
+            select
+                au.username as userid,
+                u.perid,
+                u.custcd AS cltnm,
+                u.passwd1 ,
+                au.email , 
+                au.tel,
+                jc.divinm,
+                p.RSPNM,
+                ug.Name AS group_name,
+                j.handphone as Phone,
+                j.zipcd,
+                j.rzipadres ,
+                au.id,
+                ug.id AS group_id,
+                FORMAT(au.date_joined, 'yyyy-MM-dd') AS date_joined,
+                au.is_active,
+                au.last_name as prenm,
+                au.spjangcd,
+                  xa.spjangnm AS spjType
+              FROM
+                  auth_user au
+              LEFT JOIN
+                  user_profile up ON up.User_id = au.id
+              LEFT JOIN
+                  user_group ug ON ug.id = up.UserGroup_id
+              left join tb_xusers u on u.userid =au.username and au.last_name =u.pernm
+              LEFT JOIN tb_ja001 j  ON j.perid = CONCAT('p', u.perid)
+              LEFT JOIN tb_jc002 jc ON j.divicd = jc.divicd
+              LEFT JOIN tb_pz001 p  ON j.rspcd = p.RSPCD
+              left join tb_xa012 xa on xa.spjangcd = au.spjangcd
+              where  1 = 1  AND au.spjangcd = :spjangcd
+            """;
+
+        if (userGroup != null && !userGroup.isEmpty()) {
+            sql += " AND up.UserGroup_id = :userGroup ";
+            params.addValue("userGroup",  userGroup );
+        }
+
+        if (username != null && !username.isEmpty()) {
+            sql += " AND au.username LIKE :username ";
+            params.addValue("username", "%" + username + "%");
+        }
+
+        if (name != null && !name.isEmpty()) {
+            sql += " AND au.last_name LIKE :name ";
+            params.addValue("name", "%" + name + "%");
+        }
+        if (userGroup != null && !userGroup.isEmpty()) {
+            sql += " AND up.UserGroup_id = :userGroup ";
+            params.addValue("userGroup",  userGroup );
+        }
+        if (id != null && !id.isEmpty()) {
+            sql += " AND  au.id = :id ";
+            params.addValue("id",  id );
+        }
+        sql+= """
+            ORDER by au.date_joined DESC;
+            """;
+        log.info("사용자 관리 read 데이터 SQL: {}", sql);
+    log.info("SQL Parameters: {}", params.getValues());
+        return sqlRunner.getRows(sql, params);
+    }
+
+    // 업체관리 리스트
+    public List<Map<String, Object>> getCompanyList(boolean superUser, String spjangcd, String userGroup, String name, String username) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("superUser", superUser);
         params.addValue("spjangcd", spjangcd);
@@ -87,90 +161,12 @@ public class UserService {
             params.addValue("username", "%" + username + "%");
         }
 
-        if (name != null && !name.isEmpty()) {
-            sql += " AND au.last_name LIKE :name ";
-            params.addValue("name", "%" + name + "%");
-        }
+        sql+= """
+            ORDER by au.date_joined DESC;
+            """;
 
         return sqlRunner.getRows(sql.toString(), params);
     }
-
-
-    /*public List<Map<String, Object>> getUserList(boolean superUser, String cltnm, String prenm, String biztypenm, String bizitemnm, String email, String spjangcd) {
-    }*/
-    /*필요시
-    *  WHERE
-    * au.is_superuser = 0
-    * 추가 하기 */
-    // 사용자 리스트
-    /*public List<Map<String, Object>> getUserList(boolean superUser, String cltnm, String prenm, String biztypenm, String bizitemnm, String email, String spjangcd) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("superUser", superUser);
-
-        StringBuilder sql = new StringBuilder("""
-            SELECT
-                au.id,
-                au.last_name,
-                txc.cltnm,
-                au.username AS userid,
-                ug.id AS group_id,
-                au.email,
-                au.tel,
-                au.agencycd,
-                ug.Name AS group_name,
-                au.last_login,
-                up.lang_code,
-                au.is_active,
-                au.Phone,
-                txc.biztypenm,
-                txc.bizitemnm,
-                txc.prenm,
-                FORMAT(au.date_joined, 'yyyy-MM-dd') AS date_joined,
-                au.spjangcd AS spjType
-            FROM
-                auth_user au
-            LEFT JOIN
-                user_profile up ON up.User_id = au.id
-            LEFT JOIN
-                user_group ug ON ug.id = up.UserGroup_id
-            LEFT JOIN
-                TB_XCLIENT txc
-                ON au.username = txc.saupnum
-            WHERE
-                1 = 1
-        """);
-
-        if (spjangcd != null && !spjangcd.isEmpty()) {
-            sql.append(" AND au.spjangcd = :spjangcd");
-            params.addValue("spjangcd", spjangcd);
-        }
-        if (cltnm != null && !cltnm.isEmpty()) {
-            sql.append(" AND txc.cltnm LIKE CONCAT('%', :cltnm, '%')");
-            params.addValue("cltnm", cltnm);
-        }
-        if (prenm != null && !prenm.isEmpty()) {
-            sql.append(" AND txc.prenm LIKE CONCAT('%', :prenm, '%')");
-            params.addValue("prenm", prenm);
-        }
-        if (biztypenm != null && !biztypenm.isEmpty()) {
-            sql.append(" AND txc.biztypenm LIKE CONCAT('%', :biztypenm, '%')");
-            params.addValue("biztypenm", biztypenm);
-        }
-        if (bizitemnm != null && !bizitemnm.isEmpty()) {
-            sql.append(" AND txc.bizitemnm LIKE CONCAT('%', :bizitemnm, '%')");
-            params.addValue("bizitemnm", bizitemnm);
-        }
-        if (email != null && !email.isEmpty()) {
-            sql.append(" AND au.email LIKE CONCAT('%', :email, '%')");
-            params.addValue("email", email);
-        }
-
-        //log.info("Executing SQL:\n{}\nWith Parameters: {}", sql, params.getValues());
-        //log.info("Executing SQL: {} with params: {}", sql, params.getValues());
-        // SQL 실행 후 결과 반환
-        return sqlRunner.getRows(sql.toString(), params);
-    }*/
-
 
     // 사용자 상세정보 조회
     public Map<String, Object> getUserDetail(Integer id){

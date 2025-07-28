@@ -1,0 +1,294 @@
+<th:block th:fragment="popup_xuser_list">
+  <script type="text/x-tmpl" id="popupXuserIdSearchTemplate">
+
+    <div class="content_wrap popup">
+
+        <section class="section" style="padding-top: 10px;">
+
+            <div class="section-top">
+                <div class="search-wrap" style="text-align: left;">
+                    <dl>
+                        <dt>
+                            <label for="pernm">
+                                직원 이름<span class="eq"></span>
+                            </label>
+                        </dt>
+                        <dd>
+                            <div class="srch-box">
+                                <input type="text" id='pernm' name="pernm" style="width:160px;"/>
+                            </div>
+                        </dd>
+                    </dl>
+
+                    <dl>
+                        <dt>
+                            <label for="perid">
+                                사원 번호<span class="eq"></span>
+                            </label>
+                        </dt>
+                        <dd>
+                            <div class="srch-box">
+                                <input class="form-control2" type="text" id="perid" name="perid" style="width:160px;"/>
+                            </div>
+                        </dd>
+                    </dl>
+
+                    <dl>
+                        <dt>&nbsp;</dt>
+                        <dd>
+                            <li>
+                                <a class="btn btn-delete" title="검색" id="btnStaffSearch">
+                                    <!--                                        class 쓰이는 곳 찾고 없으면 클래스명 수정하기-->
+                                    <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
+                                    검색
+                                </a>
+                            </li>
+                        </dd>
+                    </dl>
+                </div>
+                <div class="container-fluid">
+                    <div id="theGrid2" style="height: 270px;"></div>
+                </div>
+            </div>
+
+        </section>
+            <div class="popup-button">
+                <button type="button" class="btn-popup" id="btnCompSelect" style="height: 40px;"><span data-commonCd="선택">선택</span></button>
+                <button type="button" class="btn-popup" id="btn-search-close" style="height: 40px;"><span data-commonCd="닫기">닫기</span></button>
+            </div>
+    </div>
+  </script>
+
+  <script type="text/javascript">
+
+    class PopXUserIdList {
+      static currentInstance = null;
+
+      constructor() {
+        if (PopXUserIdList.currentInstance) {
+          PopXUserIdList.currentInstance.close(); // 이전 인스턴스 닫기
+        }
+        PopXUserIdList.currentInstance = this;
+
+        this.grid = null;
+        this.viewData = new wijmo.collections.CollectionView();
+        this.selectedItem = null;
+        this.callback = null;
+        this.modalContainer = new PopupDraggable('사원 아이디 선택');
+        this.$btnStaffSearch = null;
+        this.$btnCompSelect = null;
+        this.$pernm = null;
+        this.$perid = null;
+        this.previousFocus = null;
+      }
+
+      searchDataBind() {
+        let _this = this;
+        let url = '/api/popup/search_userid';
+        let data = {
+          'pernm': _this.$pernm.val(),
+          'perid': _this.$perid.val(),
+          'spjangcd' : 'ZZ'
+        };
+
+        let result = AjaxUtil.getSyncData(url, data);
+        if (result) {
+          _this.viewData.sourceCollection = result.data;
+          // 첫 번째 행으로 포커스 이동
+          setTimeout(() => {
+            if (_this.grid && _this.grid.rows.length > 0) {
+              _this.grid.select(0, 0); // 첫 번째 행, 첫 번째 열 선택
+              _this.grid.focus(); // 그리드에 포커스
+            }
+          }, 0);
+          setTimeout(() => {
+            if (_this.grid.rows.length > 0) {
+              let colIndex = _this.grid.columns.findIndex(col => col.binding === 'accountNumber');
+
+              if (colIndex > -1) {
+                _this.grid.select(0, colIndex);
+                _this.grid.selection = new wijmo.grid.CellRange(0, colIndex);
+                _this.grid.focus();
+              }
+            }
+          }, 100);
+        }
+
+        //검색버튼을 누르고 초기화한다
+        this.selectedItem = null;
+      }
+
+      selectData(item) {
+        this._skipAutoFocus = false;
+
+        if (typeof this.callback === 'function') {
+          this._skipAutoFocus = true; // 콜백 안에서 포커스 줄 예정
+          this.callback(item);
+        }
+
+        this.close();
+      }
+
+      show(callback, presetKeyword = '') {
+        let _this = this;
+
+        this.callback = callback;
+
+        let content = tmpl('popupXuserIdSearchTemplate', {});
+        let $content = $(content);
+        this.modalContainer.open({width: 800, height: 500, $content});
+
+        setTimeout(() => {
+
+          const el = document.getElementById('theGrid2');
+          if (!el) {
+            return;
+          }
+
+          const existingGrid = wijmo.Control.getControl(el);
+          if (existingGrid) {
+            existingGrid.dispose();
+          }
+
+          this.grid = new wijmo.grid.FlexGrid('#theGrid2', {
+            selectionMode: wijmo.grid.SelectionMode.Row,
+            autoGenerateColumns: false,
+            showMarquee: true,
+            isReadOnly: true,
+            keyActionEnter: wijmo.grid.KeyAction.None,
+            columns: [
+              {binding: 'userid', header: '아이디', width: 110, align: 'center'},
+              {binding: 'perid', header: '사원코드', width: 120, align: 'center'},
+              {binding: 'divinm', header: '부서', width: 120, align: 'center'},
+              {binding: 'RSPNM', header: '직급', width: 100, align: 'center'},
+              {binding: 'pernm', header: '이름', width: 110, align: 'center'},
+              {binding: 'handphone', header: '연락처', width: 140, align: 'center'}
+            ],
+            itemsSource: this.viewData,
+          });
+          this.grid.rowHeaders.columns.splice(0, 1);
+          new FlexGridContextMenu(this.grid);
+          this.grid.downloadFileName = '직원 아이디 목록';
+
+          this.$btnStaffSearch = $content.find('#btnStaffSearch');
+          this.$pernm = $content.find('#pernm');
+          this.$perid = $content.find('#perid');
+          this.$btnCompSelect = $content.find('#btnCompSelect');
+
+
+          this.$btnStaffSearch.click(function (e) {
+            _this.searchDataBind();
+          });
+
+          $('#btnStaffSearch').click();
+
+
+          this.$btnCompSelect.click(function (e) {
+            // 그리드에서 현재 선택된 item을 찾아서 호출한다.
+            let items = _this.grid.selectedItems;
+            if (items.length === 0) {
+              return false;
+            }
+            _this.selectData(items[0]);
+          });
+
+
+          //닫기버튼을 아래 ID로 사용한다면 호출하는 화면에서 이벤트 처리 필요없음
+          $content.find('#btn-search-close').on('click', function () {
+            _this.close();
+          });
+
+          //새로고침
+          // $('#btnTest').click(function (e) {
+          //     _this.grid.collectionView.refresh(); // Wijmo 그리드 새로고침
+          // });
+
+          this.grid.hostElement.addEventListener('dblclick', function (e) {
+            let items = _this.grid.selectedItems;
+            if (items.length === 0) {
+              return false;
+            }
+            _this.selectData(items[0]); // btnCompSelect 클릭과 동일한 동작
+          });
+
+          if (presetKeyword && this.$pernm.length > 0) {
+            this.$pernm.val(presetKeyword);
+            this.$btnStaffSearch.trigger('click');
+          }
+
+          this.grid.hostElement.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+              setTimeout(() => {
+                const selected = _this.grid.selectedItems;
+                if (selected.length > 0) {
+                  _this.selectData(selected[0]);
+                } else {
+                  console.log('선택된 행 없음');
+                }
+              }, 0); // 다음 이벤트 루프에서 실행
+            }
+          });
+
+          this._escHandler = function (e) {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+              _this.close();
+            }
+          };
+          $(document).on('keydown.popupesc', this._escHandler);
+
+          // 모달 닫힐 때 포커스 복원
+          this.modalContainer.onClose = () => {
+            // ESC 후 포커스 복원
+            if (this.focusAfterClose && document.body.contains(this.focusAfterClose)) {
+              setTimeout(() => {
+                this.focusAfterClose.focus();
+              }, 50);
+            }
+            // ESC 이벤트 제거
+            $(document).off('keydown.popupesc', this._escHandler);
+          };
+        }, 50);
+      }
+
+      close() {
+        this.modalContainer.close();
+
+        // 팝업 컨텐츠 DOM 수동 제거
+        if (this.modalContainer.$content) {
+          this.modalContainer.$content.remove();
+          this.modalContainer.$content = null;
+        }
+
+        // 포커스 복원
+        if (!this._skipAutoFocus && this.focusAfterClose && document.body.contains(this.focusAfterClose)) {
+          setTimeout(() => {
+            this.focusAfterClose.focus();
+          }, 50);
+        }
+
+        // ESC 이벤트 제거
+        $(document).off('keydown.popupesc', this._escHandler);
+
+        // 싱글턴 정리
+        if (PopXUserIdList.currentInstance === this) {
+          PopXUserIdList.currentInstance = null;
+        }
+      }
+
+    }
+
+    $(document).on('keydown', '#pernm', function (e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        $('#btnStaffSearch').trigger('click');
+      }
+    });
+
+    $(document).on('keydown', '#perid', function (e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        $('#btnStaffSearch').trigger('click');
+      }
+    });
+
+  </script>

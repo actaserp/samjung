@@ -479,6 +479,58 @@ public class PopupController {
 		return result;
 	}
 
+	@RequestMapping("/search_userid")
+	public AjaxResult getSearch_userId_chase(
+			@RequestParam(value = "pernm", required = false) String pernm,
+			@RequestParam(value = "spjangcd", required = false) String spjangcd,
+			@RequestParam(value = "perid", required = false) String perid) {
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue("pernm", pernm);
+		paramMap.addValue("perid", perid);
+		paramMap.addValue("spjangcd", spjangcd);
+		AjaxResult result = new AjaxResult();
+
+		String sql = """
+     SELECT
+				     u.userid,
+				     u.perid,
+				     jc.divinm,
+				     p.RSPNM,
+				     j.handphone,
+						 j.zipcd,
+						 j.rzipadres ,
+				     u.*
+				 FROM
+				     tb_xusers u
+				 LEFT JOIN tb_ja001 j
+				     ON j.perid = CONCAT('p', u.perid)
+				 LEFT JOIN tb_jc002 jc
+				     ON j.divicd = jc.divicd
+				 LEFT JOIN tb_pz001 p
+				     ON j.rspcd = p.RSPCD
+				 WHERE
+				     u.useyn = '1'
+				     AND j.rtclafi = '001'
+				     and u.spjangcd =:spjangcd
+    """;
+
+		if (pernm != null && !pernm.isEmpty()) {
+			sql += " and u.pernm like :pernm ";
+			paramMap.addValue("pernm", "%" + pernm + "%");
+		}
+
+		if (perid != null && !perid.isEmpty()) {
+			sql += " and u.perid like :perid ";
+			paramMap.addValue("perid", "%" + perid + "%");
+		}
+
+		sql += " ORDER BY pernm ASC ";
+
+		result.data = this.sqlRunner.getRows(sql, paramMap);
+		return result;
+	}
+
 	@RequestMapping("/search_acmtnm")
 	public AjaxResult getsearch_acmtnmchase(
 			@RequestParam(value = "actnm", required = false) String actnm,

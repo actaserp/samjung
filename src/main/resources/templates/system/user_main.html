@@ -78,6 +78,37 @@
               <tbody>
               <tr>
                 <th>
+                  <label for="id">
+                    아이디
+                  </label>
+                </th>
+                <td>
+                  <div class="input-clear" style="display: flex;gap: 5px;">
+                    <input type="text" id="userid" name="userid" class="wp100" maxlength="50"
+                           placeholder="아이디" style="width: 400px !important;" readonly>
+                    <input type="hidden" id="id" name="id"/>
+                    <a class="btn in_btn" title="품목 검색" id="btnUserSearch" style="width: 35px">
+                      <img src="/images/icon/btn-srch-black.svg" alt="검색 아이콘" />
+                    </a>
+                    <div style="text-align:left; ">
+                      <span id="userid-check-message" style="color: red; display: none; ">중복된 코드입니다.</span>
+                    </div>
+                  </div>
+                </td>
+                <th>
+                  <label for="email">
+                    이메일
+                  </label>
+                </th>
+                <td>
+                  <div class="input-clear">
+                    <input type="text" id="email" name="email" placeholder="이메일"
+                           style="width: 400px !important;">
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <th>
                   <label for="">
                     업체명
                   </label>
@@ -150,34 +181,6 @@
               </tr>
               <tr>
                 <th>
-                  <label for="id">
-                    아이디
-                  </label>
-                </th>
-                <td>
-                  <div class="input-clear">
-                    <input type="text" id="userid" name="userid" class="wp100" maxlength="50"
-                           placeholder="아이디" style="width: 400px !important;" readonly>
-                    <input type="hidden" id="id" name="id"/>
-                    <div style="text-align:left; ">
-                      <span id="userid-check-message" style="color: red; display: none; ">중복된 코드입니다.</span>
-                    </div>
-                  </div>
-                </td>
-                <th>
-                  <label for="email">
-                    이메일
-                  </label>
-                </th>
-                <td>
-                  <div class="input-clear">
-                    <input type="text" id="email" name="email" placeholder="이메일"
-                           style="width: 400px !important;">
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <th>
                   사용자그룹
                 </th>
                 <td>
@@ -206,7 +209,7 @@
                            onclick="sample4_execDaumPostcode()"
                            style="width: 85px; margin-bottom: 3px; display: inline-block;">
                     <input type="text" id="address1" name="address1" placeholder="도로명주소"
-                           style="width: 380px; display: inline-block; margin-left: 5px;"
+                           style="width: 420px; display: inline-block; margin-left: 5px;"
                            readonly>
                     <input type="text" id="address2" name="address2" placeholder="상세주소"
                            style="width: 390px; display: inline-block; margin-left: 7px;">
@@ -226,8 +229,10 @@
                   </select>
                 </td>
                 <th>
+                  비밀번호
                 </th>
                 <td>
+                  <input type="text" id="passwd1" name="passwd1" placeholder="비밀번호" />
                 </td>
               </tr>
               </tbody>
@@ -316,6 +321,7 @@
   <th:block th:replace="/common/ax5_uploader :: ax5_uploader"></th:block>
   <th:block th:replace="/common/upload_one_image_box :: upload_one_image_box"></th:block>
   <th:block th:replace="/common/popup_select_user_code :: popup_select_user_code"></th:block>
+  <th:block th:replace="/common/xuser_list :: popup_xuser_list"></th:block>
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <script>
     var popupWindow;
@@ -427,7 +433,7 @@
 
       // 서버로부터 데이터를 비동기적으로 가져옴
       $.ajax({
-        url: '/api/system/user/read',
+        url: '/api/system/user/UserRead',
         type: 'GET',
         async: false,
         data: {
@@ -500,8 +506,8 @@
             {binding: 'cltnm', header: '업체명', width: '*', align: 'center', isReadOnly: true},
             {binding: 'group_name', header: '사용자그룹', width: '*', align: 'center', isReadOnly: true},
             {binding: 'group_id', header: '사용자그룹', width: '*', align: 'center', visible: false},
-            {binding: 'biztypenm', header: '부서', width: '*', align: 'center', isReadOnly: true},
-            {binding: 'bizitemnm', header: '직급', width: '*', align: 'center', isReadOnly: true},
+            {binding: 'divinm', header: '부서', width: '*', align: 'center', isReadOnly: true},
+            {binding: 'RSPNM', header: '직급', width: '*', align: 'center', isReadOnly: true},
             {binding: 'tel', header: '전화번호', width: '*', align: 'center', visible: false},
             {binding: 'Phone', header: '핸드폰', width: '*', align: 'center', visible: true},
             {binding: 'email', header: '이메일', width: '*', align: 'center', visible: false},
@@ -538,19 +544,15 @@
 
       // 그리드 더블 클릭 이벤트 추가
       let lastClickTime = 0;
-      theGrid.hostElement.addEventListener('click', function (e) {
-        const now = new Date().getTime();
+      theGrid.hostElement.addEventListener('dblclick', function (e) {
+        const ht = theGrid.hitTest(e);
 
-        if (now - lastClickTime < 300) {
-          const ht = theGrid.hitTest(e);
-
-          if (ht.cellType === wijmo.grid.CellType.Cell) {
-            const rowData = theGrid.rows[ht.row].dataItem;
-            showUserInfo(rowData);
-          }
+        if (ht.cellType === wijmo.grid.CellType.Cell) {
+          const rowData = theGrid.rows[ht.row].dataItem;
+          populateFields(rowData); // ✅ 여기서 바로 바인딩
         }
-        lastClickTime = now;
       });
+
     }//fetchListData
 
     function formatTelNumber(val) {
@@ -565,8 +567,9 @@
 
       return numbers; // fallback
     }
-
     <!-- 초반 페이지 진입시 그리드 바인딩 끝-->
+
+
     function showUserInfo(rowData) {
       // 필드 중 하나라도 비어있는지 확인하여 추가 데이터를 가져올지 결정
       const hasMissingFields = !rowData || !rowData.cltnm || !rowData.prenm || !rowData.biztypenm ||
@@ -578,9 +581,12 @@
         if (rowData && rowData.id) {
           // 추가 데이터가 필요한 경우 AJAX 요청으로 가져오기
           $.ajax({
-            url: '/api/system/user/detail',
+            url: '/api/system/user/UserRead',
             type: 'GET',
-            data: {id: rowData.id},
+            data: {
+              id: rowData.id,
+              userGroup : rowData.group_id
+            },
             success: function (response) {
               if (response && response.data) {
                 populateFields(response.data); // 서버에서 가져온 데이터로 폼 채우기
@@ -609,11 +615,12 @@
       document.getElementById("userid").value = data.userid || '';
       document.getElementById("cltnm").value = data.cltnm || '';
       document.getElementById("prenm").value = data.prenm || '';
-      document.getElementById("biztypenm").value = data.biztypenm || '';
-      document.getElementById("bizitemnm").value = data.bizitemnm || '';
+      document.getElementById("biztypenm").value = data.divinm || '';
+      document.getElementById("bizitemnm").value = data.RSPNM || '';
       document.getElementById("tel").value = data.tel || '';
       document.getElementById("Phone").value = data.Phone || '';
       document.getElementById("email").value = data.email || '';
+      document.getElementById("passwd1").value = data.passwd1 || '';
 
       // authType(사용자 그룹) 설정
       document.getElementById('authType').value = data.group_id;
@@ -623,13 +630,30 @@
       document.getElementById("is_active").checked = data.is_active || false;
 
       // 주소 관련 필드 설정
-      const addressParts = splitAddress(data.cltadres || '');
       document.getElementById("postno").value = data.zipcd || '';
-      document.getElementById("address1").value = addressParts.address1 || '';
-      document.getElementById("address2").value = addressParts.address2 || '';
+      document.getElementById("address1").value = data.rzipadres || '';
+      document.getElementById("address2").value = data.address2 || '';
 
       $('#userid').prop('readonly', true);
     }
+
+    $('#btnUserSearch').click(function (){
+      let poppage = new PopXUserIdList();
+      let $poppage = $(poppage);
+      let searchcallback = function (items) {
+        console.log('사용자 아이디 팝업', items);
+        document.getElementById("cltnm").value = items.custcd;
+        document.getElementById("userid").value = items.userid;
+        document.getElementById("biztypenm").value = items.divinm;
+        document.getElementById("bizitemnm").value = items.RSPNM;
+        document.getElementById("prenm").value = items.pernm;
+        document.getElementById("Phone").value = items.handphone;
+        document.getElementById("postno").value = items.zipcd;
+        document.getElementById("address1").value = items.rzipadres;
+        document.getElementById("passwd1").value = items.passwd1;
+      }
+      poppage.show(searchcallback);
+    });
 
     // fullAddress를 address1과 address2로 분리하는 함수
     function splitAddress(fullAddress) {
@@ -649,7 +673,8 @@
     function clearForm() {
       ['id', 'userid', 'prenm', 'cltnm', 'authType', 'email',
         'Phone', 'tel', 'divinm2', 'agencycd', 'firstSelect', 'placeAddress',
-        'biztypenm', 'bizitemnm', 'postno', 'address1', 'address2', 'username', 'spjType'].forEach(id => {
+        'biztypenm', 'bizitemnm', 'postno', 'address1', 'address2', 'username', 'spjType',
+        'passwd1' ].forEach(id => {
         const element = document.getElementById(id);
         if (element) { // 요소가 존재하는 경우에만 실행
           element.value = '';
@@ -685,7 +710,7 @@
         'choose',
         '1', // 선택된 값
         null, null, null,
-        row => ['1'].includes(String(row.value))
+        row => ['1','14','36'].includes(String(row.value))
       );
       AjaxUtil.fillSelectOption(
         $('#spjType'),
@@ -732,6 +757,7 @@
         // 입력 필드 값을 formData에 추가
         formData.append("cltnm", $('#cltnm').val() || '');
         formData.append("prenm", $('#prenm').val() || '');
+        formData.append("divinm", $('#biztypenm').val() || '');
         formData.append("biztypenm", $('#biztypenm').val() || '');
         formData.append("bizitemnm", $('#bizitemnm').val() || '');
         formData.append("tel", $('#tel').val() || '');
@@ -747,19 +773,14 @@
         formData.append("address1", $('#address1').val() || '');
         formData.append("address2", $('#address2').val() || '');
         formData.append("spjType", $('#spjType').val() || '');
-
+        formData.append("password", $('#passwd1').val() || '');
         // 체크박스 값 추가
         const isActiveCheckbox = document.getElementById("is_active");
         formData.append("is_active", isActiveCheckbox ? isActiveCheckbox.checked : false);
 
-        // 비밀번호 설정만 처리
-        let password = "0000";
-
-        formData.append("password", password); // 비밀번호만 추가
-
         // 서버로 데이터 전송
         $.ajax({
-          url: '/api/system/user/save',
+          url: '/api/system/user/saveUser',
           type: 'POST',
           data: formData,
           processData: false,
@@ -767,7 +788,6 @@
           headers: {'X-CSRF-TOKEN': csrfToken},
           success: function (response) {
             console.log("저장 성공:", response);
-              Alert.alert('','초기 비밀번호는 0000 입니다.')
             fetchListData(); // 목록 갱신
             clearForm(); // 폼 초기화
           },
@@ -846,6 +866,45 @@
       window.open(url, '_blank',
         'width=1040,height=1000,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes');
     }
+
+    function autoHyphenPhone(str) {
+      str = str.replace(/[^0-9]/g, ''); // 숫자만
+      let result = '';
+
+      if (str.startsWith("02")) {
+        // 서울번호 처리: 02-0000-0000
+        if (str.length < 3) {
+          return str;
+        } else if (str.length < 6) {
+          result = str.substring(0, 2) + '-' + str.substring(2);
+        } else if (str.length < 10) {
+          result = str.substring(0, 2) + '-' + str.substring(2, 5) + '-' + str.substring(5);
+        } else {
+          result = str.substring(0, 2) + '-' + str.substring(2, 6) + '-' + str.substring(6, 10);
+        }
+      } else {
+        // 그 외 지역번호 또는 휴대폰 번호: 010-0000-0000
+        if (str.length < 4) {
+          return str;
+        } else if (str.length < 7) {
+          result = str.substring(0, 3) + '-' + str.substring(3);
+        } else if (str.length < 11) {
+          result = str.substring(0, 3) + '-' + str.substring(3, 6) + '-' + str.substring(6);
+        } else {
+          result = str.substring(0, 3) + '-' + str.substring(3, 7) + '-' + str.substring(7, 11);
+        }
+      }
+
+      return result;
+    }
+
+    document.getElementById('Phone').addEventListener('input', function (e) {
+      this.value = autoHyphenPhone(this.value);
+    });
+
+    document.getElementById('tel').addEventListener('input', function (e) {
+      this.value = autoHyphenPhone(this.value);
+    });
 
   </script>
 </th:block>

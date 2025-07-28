@@ -64,8 +64,11 @@ public class UserController {
 	@Autowired
 	JdbcTemplate jdbcTemplate;
 
-	@GetMapping("/read")
-	public AjaxResult getUserList(@RequestParam(value = "userGroup", required = false) String userGroup,
+
+
+	@GetMapping("/UserRead")
+	public AjaxResult getUserList(@RequestParam(value = "id", required = false) String id,
+																@RequestParam(value = "userGroup", required = false) String userGroup,
 																@RequestParam(value = "name", required = false) String name,
 																@RequestParam(value = "username", required = false) String username,
 																Authentication auth){
@@ -77,7 +80,27 @@ public class UserController {
 			superUser = user.getUserProfile().getUserGroup().getCode().equals("dev");
 		}
 
-		List<Map<String, Object>> items = this.userService.getUserList(superUser, spjangcd,userGroup, name, username);
+		List<Map<String, Object>> items = this.userService.getUserList(id, superUser, spjangcd,userGroup, name, username);
+
+		result.data = items;
+
+		return result;
+	}
+
+	@GetMapping("/read")
+	public AjaxResult getCompanyList(@RequestParam(value = "userGroup", required = false) String userGroup,
+																@RequestParam(value = "name", required = false) String name,
+																@RequestParam(value = "username", required = false) String username,
+																Authentication auth){
+		AjaxResult result = new AjaxResult();
+		User user = (User)auth.getPrincipal();
+		boolean superUser = user.getSuperUser();
+		String spjangcd = user.getSpjangcd();
+		if (!superUser) {
+			superUser = user.getUserProfile().getUserGroup().getCode().equals("dev");
+		}
+
+		List<Map<String, Object>> items = this.userService.getCompanyList(superUser, spjangcd,userGroup, name, username);
 
 		result.data = items;
 
@@ -143,9 +166,172 @@ public class UserController {
 		return result;
 	}
 
-	@PostMapping("/save")
+
+	// 사용자 관리 저장
+	@PostMapping("/saveUser")
 	@Transactional
 	public AjaxResult saveUser(
+			@RequestParam(value = "id", required = false) Integer id,
+			@RequestParam(value = "divinm", required = false) String divinm,	//부서
+			@RequestParam(value = "cltnm") String cltnm,
+			@RequestParam(value = "prenm") String prenm,
+			@RequestParam(value = "tel") String tel,
+			@RequestParam(value = "Phone") String phone,
+			@RequestParam(value = "userid") String userid,
+			@RequestParam(value = "email") String email,
+			@RequestParam(value = "agencycd", required = false) String agencycd,
+			@RequestParam(value = "is_active") boolean isActive,
+			@RequestParam(value = "password") String password,
+			@RequestParam(value = "UserGroup_id", required = false) Integer UserGroup_id,
+			@RequestParam(value = "spjType", required = false) String spjangcd,
+			Authentication auth
+	) {
+		AjaxResult result = new AjaxResult();
+		try {
+			System.out.println("저장 로직 시작");
+
+			boolean isNewUser = (id == null); // 새 사용자 여부 판단
+			User user;
+
+			if (isNewUser) {
+				// 중복된 아이디 확인
+				if (userRepository.findByUsername(userid).isPresent()) {
+					result.success = false;
+					result.message = "중복된 아이디가 존재합니다.";
+					return result;
+				}
+				user = User.builder()
+						.username(userid)
+						.password(Pbkdf2Sha256.encode(password))
+						.divinm(divinm)
+						.email(email)
+						.first_name(cltnm)
+						.last_name(prenm)
+						.tel(tel)
+						.active(true)
+						.is_staff(false)
+						.date_joined(new Timestamp(System.currentTimeMillis()))
+						.superUser(false)
+						.phone(phone)
+						.spjangcd(spjangcd)
+						.build();
+			} else {
+				// 기존 사용자 업데이트
+				user = userRepository.findById(id)
+						.orElseThrow(() -> new RuntimeException("해당 사용자가 없습니다."));
+				user.setPassword(Pbkdf2Sha256.encode(password));
+				user.setEmail(email);
+				user.setDivinm(divinm);
+				user.setFirst_name(cltnm);
+				user.setLast_name(prenm);
+				user.setTel(tel);
+				user.setActive(isActive);
+				user.setPhone(phone);
+				user.setAgencycd(agencycd);
+			}
+
+			// 사용자 저장
+			user = userRepository.save(user);
+			System.out.println(isNewUser ? "새 사용자 저장 완료: " : "기존 사용자 업데이트 완료: " + user.getUsername());
+
+			// 사용자 프로필 처리
+			String profileSql = """
+			SET IDENTITY_INSERT user_profile ON;
+		
+			MERGE INTO user_profile AS target
+			USING (SELECT ? AS _created, ? AS lang_code, ? AS Name, ? AS UserGroup_id, ? AS User_id) AS source
+			ON target.User_id = source.User_id
+			WHEN MATCHED THEN
+				UPDATE SET Name = source.Name, UserGroup_id = source.UserGroup_id
+			WHEN NOT MATCHED THEN
+				INSERT (_created, lang_code, Name, UserGroup_id, User_id)
+				VALUES (source._created, source.lang_code, source.Name, source.UserGroup_id, source.User_id);
+		
+			SET IDENTITY_INSERT user_profile OFF;
+			""";
+
+			jdbcTemplate.update(
+					profileSql,
+					new Timestamp(System.currentTimeMillis()), // _created
+					"ko-KR",                                  // lang_code
+					prenm,                                    // Name
+					UserGroup_id,                             // UserGroup_id
+					user.getId()                              // User_id
+			);
+
+			System.out.println("User Profile 저장 또는 업데이트 완료");
+
+			// 거래처 처리 로직
+			Optional<TB_XA012> xa012Opt = tbXA012Repository.findById_Spjangcd(spjangcd);
+
+			if (xa012Opt.isEmpty()) {
+				result.success = false;
+				result.message = "해당 spjangcd에 해당하는 사업장 정보가 없습니다.";
+				return result;
+			}
+
+			/*String custcd = xa012Opt.get().getId().getCustcd();
+			String fullAddress = address1 + (address2 != null && !address2.isEmpty() ? " " + address2 : "");
+			String newCltcd = generateNewCltcd();
+			Optional<TB_XCLIENT> existingClientOpt = tbXClientRepository.findBySaupnum(userid);
+			TB_XCLIENT tbXClient;
+
+			if (existingClientOpt.isPresent()) {
+				tbXClient = existingClientOpt.get();
+				tbXClient.setPrenm(prenm);
+				tbXClient.setCltnm(cltnm);
+				tbXClient.setBiztypenm(biztypenm);
+				tbXClient.setBizitemnm(bizitemnm);
+				tbXClient.setZipcd(postno);
+				tbXClient.setCltadres(fullAddress);
+				tbXClient.setTelnum(tel);
+				tbXClient.setHptelnum(phone);
+				tbXClient.setAgneremail(email);
+			} else {
+				tbXClient = TB_XCLIENT.builder()
+						.saupnum(userid)
+						.prenm(prenm)
+						.cltnm(cltnm)
+						.biztypenm(biztypenm)
+						.bizitemnm(bizitemnm)
+						.zipcd(postno)
+						.cltadres(fullAddress)
+						.telnum(tel)
+						.hptelnum(phone)
+						.agneremail(email)
+						.id(new TB_XCLIENTId(custcd, newCltcd))
+						.rnumchk("0")
+						.corpperclafi("0")
+						//.cltdv("1")
+						.prtcltnm(cltnm)
+						.foreyn("0")
+						.relyn("O")    		// relyn = O (영문 )
+						//.bonddv("0")
+						.nation("KR")
+						.clttype("2")
+						//.cltynm("0")
+						.build();
+			}
+
+			tbXClientService.save(tbXClient);
+			System.out.println("TB_XCLIENT 저장 완료");*/
+
+			result.success = true;
+			result.message = isNewUser ? "사용자가 성공적으로 등록되었습니다." : "사용자 정보가 성공적으로 업데이트되었습니다.";
+		} catch (Exception e) {
+			System.err.println("오류 발생: " + e.getMessage());
+			e.printStackTrace();
+			result.success = false;
+			result.message = "사용자 정보를 저장하는 중 오류가 발생했습니다.";
+		}
+		return result;
+	}
+
+
+
+	@PostMapping("/save")
+	@Transactional
+	public AjaxResult saveCompany(
 			@RequestParam(value = "id", required = false) Integer id,
 			@RequestParam(value = "cltnm") String cltnm,
 			@RequestParam(value = "prenm") String prenm,
@@ -345,10 +531,40 @@ public class UserController {
 
 	// user 삭제
 	@Transactional
-	@PostMapping("/delete")
-	public AjaxResult deleteUser(@RequestParam("id") String id,
+	@PostMapping("/userDelete")
+	public AjaxResult userDelete(@RequestParam("id") String id,
 								 @RequestParam(value = "username", required = false) String username,
 								 @RequestParam boolean auth) {
+		AjaxResult result = new AjaxResult();
+		System.out.println("삭제 들어옴");
+
+		if(auth){
+			result.success = false;
+			result.message = "슈퍼유저는 수정 및 삭제가 불가능합니다.";
+			return result;
+		}
+		System.out.println("조회하려는 username: " + UtilClass.removeBrackers(username));
+		//Optional<User> user = userRepository.findByUsername(UtilClass.removeBrackers(username));
+		/*if (user.isPresent()) {
+			System.out.println("User 조회 성공: " + user.get());
+			tbXClientRepository.deleteBySaupnum(user.get().getUsername());
+		} else {
+			System.out.println("User 조회 실패. username이 존재하지 않습니다.");
+		}*/
+
+		Integer userid  = Integer.parseInt(UtilClass.removeBrackers(id));
+		this.userRepository.deleteById(userid);
+
+		return result;
+	}
+
+
+	// company 업체관리 삭제
+	@Transactional
+	@PostMapping("/delete")
+	public AjaxResult deleteUser(@RequestParam("id") String id,
+															 @RequestParam(value = "username", required = false) String username,
+															 @RequestParam boolean auth) {
 		AjaxResult result = new AjaxResult();
 		System.out.println("삭제 들어옴");
 

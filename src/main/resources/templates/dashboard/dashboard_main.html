@@ -481,7 +481,7 @@
             });
         }
 
-        // ✅ 더블 클릭 이벤트 핸들러 수정
+        // 더블 클릭 이벤트 핸들러 수정
         function attachDoubleClickEvent(grid) {
             let lastClickTime = 0;
 
@@ -494,18 +494,26 @@
                     if (ht.cellType === wijmo.grid.CellType.Cell) { // 셀을 클릭한 경우만 처리
                         const rowData = grid.rows[ht.row].dataItem; // 클릭한 행 데이터
 
-                        if (!rowData || !rowData.reqnum) {
-                            console.warn("❌ 유효한 rowData 또는 reqnum이 없습니다.");
+                        if (!rowData ) {
+                            console.warn("유효한 rowData가 없습니다.");
                             return;
                         }
-                        //sessionStorage 에 저장
+
+                        const isProject = rowData.ordflag === '프로젝트 등록';
+                        const pageId = isProject ? 'project_list' : 'wm_balju_list';
+                        const pageTitle = isProject ? '프로젝트 등록' : '외주발주현황';
+
+                        // sessionStorage에 저장
                         sessionStorage.setItem("tabAction", "toggle");
                         sessionStorage.setItem("sessionDate", rowData.reqdate);
+                        sessionStorage.setItem("sessionPN", rowData.project_nm);
+                        sessionStorage.setItem("sessionAN", rowData.actnm);
+
                         window.parent.postMessage({
                             action: "addTab",
-                            id: "order_request",
-                            title: "주문등록",
-                            url: '/gui/' + "order_request" + '/default',
+                            id: pageId,
+                            title: pageTitle,
+                            url: '/gui/' + pageId + '/default',
                             active: true,
                             allowClose: true,
                         });
@@ -514,6 +522,7 @@
                 lastClickTime = now;
             });
         }
+
     </script>
 </th:block>
 </html>

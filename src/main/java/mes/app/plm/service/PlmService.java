@@ -38,18 +38,18 @@ public class PlmService {
         // inputFlag = "N" → Oracle에서 ERP_YN = 'N' 만 조회
         if ("N".equalsIgnoreCase(inputFlag)) {
             String oracleSql = """
-            SELECT ECO_NO, PROJECT_NO, PROJECT_NM, ERP_YN
-            FROM SJ_DEFAULT.ERP_PROJECT_BUFFER
-            WHERE ERP_YN = 'N'
-        """;
+                        SELECT ECO_NO, PROJECT_NO, PROJECT_NM, ERP_YN
+                        FROM SJ_DEFAULT.ERP_PROJECT_BUFFER
+                        WHERE ERP_YN = 'N'
+                    """;
 
             if (StringUtils.hasText(txtDescription)) {
                 oracleSql += """
-                AND (
-                    PROJECT_NM LIKE '%' || :txtDescription || '%'
-                    OR PROJECT_NO LIKE '%' || :txtDescription || '%'
-                )
-            """;
+                            AND (
+                                PROJECT_NM LIKE '%' || :txtDescription || '%'
+                                OR PROJECT_NO LIKE '%' || :txtDescription || '%'
+                            )
+                        """;
             }
 
             result.addAll(oracleSqlRunner.getRows(oracleSql, dicParam));
@@ -58,40 +58,68 @@ public class PlmService {
         else if ("Y".equalsIgnoreCase(inputFlag)) {
             // 1. Oracle ERP_YN = 'N'
             String oracleSql = """
-                SELECT ECO_NO, PROJECT_NO, PROJECT_NM, ERP_YN
-                FROM SJ_DEFAULT.ERP_PROJECT_BUFFER
-                WHERE ERP_YN = 'N'
-            """;
+                        SELECT ECO_NO, PROJECT_NO, PROJECT_NM, ERP_YN
+                        FROM SJ_DEFAULT.ERP_PROJECT_BUFFER
+                        WHERE ERP_YN = 'N'
+                    """;
 
             if (StringUtils.hasText(txtDescription)) {
                 oracleSql += """
-                AND (
-                    PROJECT_NM LIKE '%' || :txtDescription || '%'
-                    OR PROJECT_NO LIKE '%' || :txtDescription || '%'
-                    )
-                """;
+                        AND (
+                            PROJECT_NM LIKE '%' || :txtDescription || '%'
+                            OR PROJECT_NO LIKE '%' || :txtDescription || '%'
+                            )
+                        """;
             }
 
             result.addAll(oracleSqlRunner.getRows(oracleSql, dicParam));
 
             // MS SQL TB_CA664 에서 날짜 범위로 조회
             String msSql = """
-                SELECT ECO_NO, PROJECT_NO, PROJECT_NM, 'Y' AS ERP_YN, BPDATE, BPPERNM
-                FROM TB_CA664
-                WHERE BPDATE BETWEEN :srchStartDt AND :srchEndDt
-            """;
+                        SELECT ECO_NO, PROJECT_NO, PROJECT_NM, 'Y' AS ERP_YN, BPDATE, BPPERNM
+                        FROM TB_CA664
+                        WHERE BPDATE BETWEEN :srchStartDt AND :srchEndDt
+                    """;
 
             if (StringUtils.hasText(txtDescription)) {
                 msSql += """
-                AND (
-                    PROJECT_NM LIKE '%' + :txtDescription + '%'
-                    OR PROJECT_NO LIKE '%' + :txtDescription + '%'
-                )
-            """;
+                            AND (
+                                PROJECT_NM LIKE '%' + :txtDescription + '%'
+                                OR PROJECT_NO LIKE '%' + :txtDescription + '%'
+                            )
+                        """;
             }
 
             result.addAll(sqlRunner.getRows(msSql, dicParam));
         }
+
+        return result;
+    }
+
+    public List<Map<String, Object>> getProjectList(String srchStartDt, String srchEndDt, String txtDescription) {
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+        dicParam.addValue("srchStartDt", srchStartDt);
+        dicParam.addValue("srchEndDt", srchEndDt);
+        dicParam.addValue("txtDescription", txtDescription);
+
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        String msSql = """
+                    SELECT ECO_NO, PROJECT_NO, PROJECT_NM, 'Y' AS ERP_YN, BPDATE, BPPERNM
+                    FROM TB_CA664
+                    WHERE BPDATE BETWEEN :srchStartDt AND :srchEndDt
+                """;
+
+        if (StringUtils.hasText(txtDescription)) {
+            msSql += """
+                        AND (
+                            PROJECT_NM LIKE '%' + :txtDescription + '%'
+                            OR PROJECT_NO LIKE '%' + :txtDescription + '%'
+                        )
+                    """;
+        }
+
+        result = sqlRunner.getRows(msSql, dicParam);
 
         return result;
     }
@@ -105,137 +133,137 @@ public class PlmService {
         if ("N".equalsIgnoreCase(erpYn)) {
             // Oracle 조회
             String oracleSql = """
-            SELECT
-                LEVEL AS BOM_LEVEL,
-                b.ECO_NO,
-                b.PROJECT_NO,
-                b.HOGI_NO,
-                b.PARENT_NO,
-                b.CHILD_NO,
-                b.SEQ,
-                b.QTY,
-                b.CMT,
-            
-                -- 모품 정보
-                p1.PART_NM AS PARENT_PART_NM,
-                p1.PLM_VERSION AS PARENT_VERSION,
-            
-                -- 자품 정보 (CHILD_NO 기준)
-                p2.PART_NO,
-                p2.PART_NM,
-                p2.PLM_VERSION,
-                p2.BLOCK_NO,
-                p2.G_NO,
-                p2.DRAWING_NO,
-                p2.GUBUN,
-                p2.UNIT,
-                p2.PART_SIZE,
-                p2.SPEC
-            
-            FROM SJ_DEFAULT.ERP_BOM_BUFFER b
-            LEFT JOIN SJ_DEFAULT.ERP_PART_BUFFER p1
-              ON b.PARENT_NO = p1.PART_NO
-             AND b.ECO_NO = p1.ECO_NO
-            LEFT JOIN SJ_DEFAULT.ERP_PART_BUFFER p2
-              ON b.CHILD_NO = p2.PART_NO
-             AND b.ECO_NO = p2.ECO_NO
-            
-            START WITH b.PARENT_NO IS NULL
-            CONNECT BY PRIOR b.CHILD_NO = b.PARENT_NO
-            
-            ORDER SIBLINGS BY b.SEQ
-            
-        """;
+                        SELECT
+                            LEVEL AS BOM_LEVEL,
+                            b.ECO_NO,
+                            b.PROJECT_NO,
+                            b.HOGI_NO,
+                            b.PARENT_NO,
+                            b.CHILD_NO,
+                            b.SEQ,
+                            b.QTY,
+                            b.CMT,
+                        
+                            -- 모품 정보
+                            p1.PART_NM AS PARENT_PART_NM,
+                            p1.PLM_VERSION AS PARENT_VERSION,
+                        
+                            -- 자품 정보 (CHILD_NO 기준)
+                            p2.PART_NO,
+                            p2.PART_NM,
+                            p2.PLM_VERSION,
+                            p2.BLOCK_NO,
+                            p2.G_NO,
+                            p2.DRAWING_NO,
+                            p2.GUBUN,
+                            p2.UNIT,
+                            p2.PART_SIZE,
+                            p2.SPEC
+                        
+                        FROM SJ_DEFAULT.ERP_BOM_BUFFER b
+                        LEFT JOIN SJ_DEFAULT.ERP_PART_BUFFER p1
+                          ON b.PARENT_NO = p1.PART_NO
+                         AND b.ECO_NO = p1.ECO_NO
+                        LEFT JOIN SJ_DEFAULT.ERP_PART_BUFFER p2
+                          ON b.CHILD_NO = p2.PART_NO
+                         AND b.ECO_NO = p2.ECO_NO
+                        
+                        START WITH b.PARENT_NO IS NULL
+                        CONNECT BY PRIOR b.CHILD_NO = b.PARENT_NO
+                        
+                        ORDER SIBLINGS BY b.SEQ
+                        
+                    """;
 
             return oracleSqlRunner.getRows(oracleSql, params);
 
         } else {
             // MS SQL 조회
             String msSql = """
-            -- 1. 자품목 행들
-                  SELECT
-                      b.ECO_NO,
-                      b.PROJECT_NO,
-                      b.HOGI_NO,
-                      b.PARENT_NO,
-                      b.CHILD_NO,
-                      b.SEQ,
-                      b.QTY,
-                      b.CMT,
-                      
-                      -- 모품 정보
-                      p1.PART_NM AS PARENT_PART_NM,
-                      p1.PLM_VERSION AS PARENT_VERSION,
-                  
-                      -- 자품 정보 (자품 기준 alias 통일)
-                      p2.PART_NO     AS PART_NO,
-                      p2.PART_NM     AS PART_NM,
-                      p2.PLM_VERSION AS PLM_VERSION,
-                      p2.BLOCK_NO,
-                      p2.G_NO,
-                      p2.DRAWING_NO,
-                      p2.GUBUN,
-                      p2.UNIT,
-                      p2.PART_SIZE,
-                      p2.SPEC
-                  
-                  FROM TB_CA663 b
-                  LEFT JOIN TB_CA662 p1
-                    ON b.ECO_NO = p1.ECO_NO
-                   AND b.PARENT_NO = p1.PART_NO
-                  LEFT JOIN TB_CA662 p2
-                    ON b.ECO_NO = p2.ECO_NO
-                   AND b.CHILD_NO = p2.PART_NO
-                  WHERE b.ECO_NO = :ecoNo
-                    AND b.PROJECT_NO = :projectNo
-                  
-                  UNION ALL
-                  
-                  -- 2. CHILD_NO로 단 한 번도 등장하지 않은 최상위 모품목
-                  SELECT
-                      b.ECO_NO,
-                      b.PROJECT_NO,
-                      NULL AS HOGI_NO,
-                      NULL AS PARENT_NO,
-                      b.PARENT_NO AS CHILD_NO,
-                      NULL AS SEQ,
-                      NULL AS QTY,
-                      NULL AS CMT,
-                  
-                      NULL AS PARENT_PART_NM,
-                      NULL AS PARENT_VERSION,
-                  
-                      -- 모품 정보를 자품 alias에 맞춰 출력
-                      p.PART_NO     AS PART_NO,
-                      p.PART_NM     AS PART_NM,
-                      p.PLM_VERSION AS PLM_VERSION,
-                      p.BLOCK_NO,
-                      p.G_NO,
-                      p.DRAWING_NO,
-                      p.GUBUN,
-                      p.UNIT,
-                      p.PART_SIZE,
-                      p.SPEC
-                  
-                  FROM TB_CA663 b
-                  LEFT JOIN TB_CA662 p
-                    ON b.ECO_NO = p.ECO_NO
-                   AND b.PARENT_NO = p.PART_NO
-                  WHERE b.ECO_NO = :ecoNo
-                    AND b.PROJECT_NO = :projectNo
-                    AND NOT EXISTS (
-                          SELECT 1
-                          FROM TB_CA663 sub
-                          WHERE sub.ECO_NO = b.ECO_NO
-                            AND sub.PROJECT_NO = b.PROJECT_NO
-                            AND sub.CHILD_NO = b.PARENT_NO
-                      )
-                  GROUP BY
-                      b.ECO_NO, b.PROJECT_NO, b.PARENT_NO,
-                      p.PART_NO, p.PART_NM, p.PLM_VERSION, p.BLOCK_NO, p.G_NO,
-                      p.DRAWING_NO, p.GUBUN, p.UNIT, p.PART_SIZE, p.SPEC
-                  
-        """;
+                        -- 1. 자품목 행들
+                              SELECT
+                                  b.ECO_NO,
+                                  b.PROJECT_NO,
+                                  b.HOGI_NO,
+                                  b.PARENT_NO,
+                                  b.CHILD_NO,
+                                  b.SEQ,
+                                  b.QTY,
+                                  b.CMT,
+                                  
+                                  -- 모품 정보
+                                  p1.PART_NM AS PARENT_PART_NM,
+                                  p1.PLM_VERSION AS PARENT_VERSION,
+                              
+                                  -- 자품 정보 (자품 기준 alias 통일)
+                                  p2.PART_NO     AS PART_NO,
+                                  p2.PART_NM     AS PART_NM,
+                                  p2.PLM_VERSION AS PLM_VERSION,
+                                  p2.BLOCK_NO,
+                                  p2.G_NO,
+                                  p2.DRAWING_NO,
+                                  p2.GUBUN,
+                                  p2.UNIT,
+                                  p2.PART_SIZE,
+                                  p2.SPEC
+                              
+                              FROM TB_CA663 b
+                              LEFT JOIN TB_CA662 p1
+                                ON b.ECO_NO = p1.ECO_NO
+                               AND b.PARENT_NO = p1.PART_NO
+                              LEFT JOIN TB_CA662 p2
+                                ON b.ECO_NO = p2.ECO_NO
+                               AND b.CHILD_NO = p2.PART_NO
+                              WHERE b.ECO_NO = :ecoNo
+                                AND b.PROJECT_NO = :projectNo
+                              
+                              UNION ALL
+                              
+                              -- 2. CHILD_NO로 단 한 번도 등장하지 않은 최상위 모품목
+                              SELECT
+                                  b.ECO_NO,
+                                  b.PROJECT_NO,
+                                  NULL AS HOGI_NO,
+                                  NULL AS PARENT_NO,
+                                  b.PARENT_NO AS CHILD_NO,
+                                  NULL AS SEQ,
+                                  NULL AS QTY,
+                                  NULL AS CMT,
+                              
+                                  NULL AS PARENT_PART_NM,
+                                  NULL AS PARENT_VERSION,
+                              
+                                  -- 모품 정보를 자품 alias에 맞춰 출력
+                                  p.PART_NO     AS PART_NO,
+                                  p.PART_NM     AS PART_NM,
+                                  p.PLM_VERSION AS PLM_VERSION,
+                                  p.BLOCK_NO,
+                                  p.G_NO,
+                                  p.DRAWING_NO,
+                                  p.GUBUN,
+                                  p.UNIT,
+                                  p.PART_SIZE,
+                                  p.SPEC
+                              
+                              FROM TB_CA663 b
+                              LEFT JOIN TB_CA662 p
+                                ON b.ECO_NO = p.ECO_NO
+                               AND b.PARENT_NO = p.PART_NO
+                              WHERE b.ECO_NO = :ecoNo
+                                AND b.PROJECT_NO = :projectNo
+                                AND NOT EXISTS (
+                                      SELECT 1
+                                      FROM TB_CA663 sub
+                                      WHERE sub.ECO_NO = b.ECO_NO
+                                        AND sub.PROJECT_NO = b.PROJECT_NO
+                                        AND sub.CHILD_NO = b.PARENT_NO
+                                  )
+                              GROUP BY
+                                  b.ECO_NO, b.PROJECT_NO, b.PARENT_NO,
+                                  p.PART_NO, p.PART_NM, p.PLM_VERSION, p.BLOCK_NO, p.G_NO,
+                                  p.DRAWING_NO, p.GUBUN, p.UNIT, p.PART_SIZE, p.SPEC
+                              
+                    """;
 
             return sqlRunner.getRows(msSql, params);
         }
@@ -248,89 +276,89 @@ public class PlmService {
 
         // 최신 Oracle BOM
         String oracleSql = """
-            SELECT b.ECO_NO, b.PROJECT_NO, b.HOGI_NO, b.PARENT_NO, b.CHILD_NO,
-                   b.SEQ, b.QTY, b.CMT,
-                   b.ERP_YN AS BOM_ERP_YN,
-                   p1.PART_NM AS PARENT_PART_NM,
-                   p1.PLM_VERSION AS PARENT_VERSION,
-                   p2.ERP_YN AS PART_ERP_YN,
-                   p2.PART_NO, p2.PART_NM, p2.PLM_VERSION,
-                   p2.BLOCK_NO, p2.G_NO, p2.DRAWING_NO, p2.GUBUN,
-                   p2.UNIT, p2.PART_SIZE, p2.SPEC
-            FROM SJ_DEFAULT.ERP_BOM_BUFFER b
-            LEFT JOIN SJ_DEFAULT.ERP_PART_BUFFER p1 ON b.PARENT_NO = p1.PART_NO AND b.ECO_NO = p1.ECO_NO
-            LEFT JOIN SJ_DEFAULT.ERP_PART_BUFFER p2 ON b.CHILD_NO = p2.PART_NO AND b.ECO_NO = p2.ECO_NO
-            WHERE b.ECO_NO = :ecoNo AND b.PROJECT_NO = :projectNo
-        """;
+                    SELECT b.ECO_NO, b.PROJECT_NO, b.HOGI_NO, b.PARENT_NO, b.CHILD_NO,
+                           b.SEQ, b.QTY, b.CMT,
+                           b.ERP_YN AS BOM_ERP_YN,
+                           p1.PART_NM AS PARENT_PART_NM,
+                           p1.PLM_VERSION AS PARENT_VERSION,
+                           p2.ERP_YN AS PART_ERP_YN,
+                           p2.PART_NO, p2.PART_NM, p2.PLM_VERSION,
+                           p2.BLOCK_NO, p2.G_NO, p2.DRAWING_NO, p2.GUBUN,
+                           p2.UNIT, p2.PART_SIZE, p2.SPEC
+                    FROM SJ_DEFAULT.ERP_BOM_BUFFER b
+                    LEFT JOIN SJ_DEFAULT.ERP_PART_BUFFER p1 ON b.PARENT_NO = p1.PART_NO AND b.ECO_NO = p1.ECO_NO
+                    LEFT JOIN SJ_DEFAULT.ERP_PART_BUFFER p2 ON b.CHILD_NO = p2.PART_NO AND b.ECO_NO = p2.ECO_NO
+                    WHERE b.ECO_NO = :ecoNo AND b.PROJECT_NO = :projectNo
+                """;
         List<Map<String, Object>> oracleList = oracleSqlRunner.getRows(oracleSql, params);
 
         // 부모 노드를 직접 수집 (Oracle 기준)
         String oracleParentSql = """
-            SELECT DISTINCT b.ECO_NO, b.PROJECT_NO, b.HOGI_NO,
-                   b.PARENT_NO AS CHILD_NO, NULL AS PARENT_NO,
-                   b.ERP_YN AS BOM_ERP_YN,
-                   NULL AS SEQ, NULL AS QTY, NULL AS CMT,
-                   p1.ERP_YN AS PART_ERP_YN,
-                   p1.PART_NM AS PARENT_PART_NM,
-                   p1.PLM_VERSION AS PARENT_VERSION,
-                   p1.PART_NO, p1.PART_NM, p1.PLM_VERSION,
-                   p1.BLOCK_NO, p1.G_NO, p1.DRAWING_NO, p1.GUBUN,
-                   p1.UNIT, p1.PART_SIZE, p1.SPEC
-            FROM SJ_DEFAULT.ERP_BOM_BUFFER b
-            LEFT JOIN SJ_DEFAULT.ERP_PART_BUFFER p1
-                   ON b.PARENT_NO = p1.PART_NO AND b.ECO_NO = p1.ECO_NO
-            WHERE b.ECO_NO = :ecoNo AND b.PROJECT_NO = :projectNo
-              AND b.PARENT_NO NOT IN (
-                SELECT DISTINCT CHILD_NO FROM SJ_DEFAULT.ERP_BOM_BUFFER
-                WHERE ECO_NO = :ecoNo AND PROJECT_NO = :projectNo
-              )
-        """;
+                    SELECT DISTINCT b.ECO_NO, b.PROJECT_NO, b.HOGI_NO,
+                           b.PARENT_NO AS CHILD_NO, NULL AS PARENT_NO,
+                           b.ERP_YN AS BOM_ERP_YN,
+                           NULL AS SEQ, NULL AS QTY, NULL AS CMT,
+                           p1.ERP_YN AS PART_ERP_YN,
+                           p1.PART_NM AS PARENT_PART_NM,
+                           p1.PLM_VERSION AS PARENT_VERSION,
+                           p1.PART_NO, p1.PART_NM, p1.PLM_VERSION,
+                           p1.BLOCK_NO, p1.G_NO, p1.DRAWING_NO, p1.GUBUN,
+                           p1.UNIT, p1.PART_SIZE, p1.SPEC
+                    FROM SJ_DEFAULT.ERP_BOM_BUFFER b
+                    LEFT JOIN SJ_DEFAULT.ERP_PART_BUFFER p1
+                           ON b.PARENT_NO = p1.PART_NO AND b.ECO_NO = p1.ECO_NO
+                    WHERE b.ECO_NO = :ecoNo AND b.PROJECT_NO = :projectNo
+                      AND b.PARENT_NO NOT IN (
+                        SELECT DISTINCT CHILD_NO FROM SJ_DEFAULT.ERP_BOM_BUFFER
+                        WHERE ECO_NO = :ecoNo AND PROJECT_NO = :projectNo
+                      )
+                """;
 
         // 위 결과 + 기존 children 모두 합치기
-        List<Map<String, Object>> oracleParentList  = oracleSqlRunner.getRows(oracleParentSql, params);
+        List<Map<String, Object>> oracleParentList = oracleSqlRunner.getRows(oracleParentSql, params);
 
         // 기존 MS BOM
         String msSql = """
-            SELECT b.ECO_NO, b.PROJECT_NO, b.HOGI_NO, b.PARENT_NO, b.CHILD_NO,
-                   b.SEQ, b.QTY, b.CMT,
-                   b.BPDATE AS BOM_BPDATE,
-                   b.BPPERNM AS BOM_BPPERNM,
-                   p1.PART_NM AS PARENT_PART_NM,
-                   p1.PLM_VERSION AS PARENT_VERSION,
-                   p2.PART_NO, p2.PART_NM, p2.PLM_VERSION,
-                   p2.BLOCK_NO, p2.G_NO, p2.DRAWING_NO, p2.GUBUN,
-                   p2.UNIT, p2.PART_SIZE, p2.SPEC,
-                   p2.BPDATE AS PART_BPDATE,
-                   p2.BPPERNM AS PART_BPPERNM
-            FROM TB_CA663 b
-            LEFT JOIN TB_CA662 p1 ON b.ECO_NO = p1.ECO_NO AND b.PARENT_NO = p1.PART_NO
-            LEFT JOIN TB_CA662 p2 ON b.ECO_NO = p2.ECO_NO AND b.CHILD_NO = p2.PART_NO
-            WHERE b.ECO_NO = :ecoNo AND b.PROJECT_NO = :projectNo
-        """;
+                    SELECT b.ECO_NO, b.PROJECT_NO, b.HOGI_NO, b.PARENT_NO, b.CHILD_NO,
+                           b.SEQ, b.QTY, b.CMT,
+                           b.BPDATE AS BOM_BPDATE,
+                           b.BPPERNM AS BOM_BPPERNM,
+                           p1.PART_NM AS PARENT_PART_NM,
+                           p1.PLM_VERSION AS PARENT_VERSION,
+                           p2.PART_NO, p2.PART_NM, p2.PLM_VERSION,
+                           p2.BLOCK_NO, p2.G_NO, p2.DRAWING_NO, p2.GUBUN,
+                           p2.UNIT, p2.PART_SIZE, p2.SPEC,
+                           p2.BPDATE AS PART_BPDATE,
+                           p2.BPPERNM AS PART_BPPERNM
+                    FROM TB_CA663 b
+                    LEFT JOIN TB_CA662 p1 ON b.ECO_NO = p1.ECO_NO AND b.PARENT_NO = p1.PART_NO
+                    LEFT JOIN TB_CA662 p2 ON b.ECO_NO = p2.ECO_NO AND b.CHILD_NO = p2.PART_NO
+                    WHERE b.ECO_NO = :ecoNo AND b.PROJECT_NO = :projectNo
+                """;
         List<Map<String, Object>> msList = sqlRunner.getRows(msSql, params);
 
         // MS 부모 노드 직접 수집
         String msParentSql = """
-            SELECT DISTINCT b.ECO_NO, b.PROJECT_NO, b.HOGI_NO,
-               b.PARENT_NO AS CHILD_NO, NULL AS PARENT_NO,
-               b.BPDATE AS BOM_BPDATE,
-               b.BPPERNM AS BOM_BPPERNM,
-               NULL AS SEQ, NULL AS QTY, NULL AS CMT,
-               p1.PART_NM AS PARENT_PART_NM,
-               p1.PLM_VERSION AS PARENT_VERSION,
-               p1.PART_NO, p1.PART_NM, p1.PLM_VERSION,
-               p1.BLOCK_NO, p1.G_NO, p1.DRAWING_NO, p1.GUBUN,
-               p1.UNIT, p1.PART_SIZE, p1.SPEC,
-               p1.BPDATE AS PART_BPDATE,
-               p1.BPPERNM AS PART_BPPERNM
-            FROM TB_CA663 b
-            LEFT JOIN TB_CA662 p1 ON b.ECO_NO = p1.ECO_NO AND b.PARENT_NO = p1.PART_NO
-            WHERE b.ECO_NO = :ecoNo AND b.PROJECT_NO = :projectNo
-              AND b.PARENT_NO NOT IN (
-                SELECT DISTINCT CHILD_NO FROM TB_CA663
-                WHERE ECO_NO = :ecoNo AND PROJECT_NO = :projectNo
-              )
-        """;
+                    SELECT DISTINCT b.ECO_NO, b.PROJECT_NO, b.HOGI_NO,
+                       b.PARENT_NO AS CHILD_NO, NULL AS PARENT_NO,
+                       b.BPDATE AS BOM_BPDATE,
+                       b.BPPERNM AS BOM_BPPERNM,
+                       NULL AS SEQ, NULL AS QTY, NULL AS CMT,
+                       p1.PART_NM AS PARENT_PART_NM,
+                       p1.PLM_VERSION AS PARENT_VERSION,
+                       p1.PART_NO, p1.PART_NM, p1.PLM_VERSION,
+                       p1.BLOCK_NO, p1.G_NO, p1.DRAWING_NO, p1.GUBUN,
+                       p1.UNIT, p1.PART_SIZE, p1.SPEC,
+                       p1.BPDATE AS PART_BPDATE,
+                       p1.BPPERNM AS PART_BPPERNM
+                    FROM TB_CA663 b
+                    LEFT JOIN TB_CA662 p1 ON b.ECO_NO = p1.ECO_NO AND b.PARENT_NO = p1.PART_NO
+                    WHERE b.ECO_NO = :ecoNo AND b.PROJECT_NO = :projectNo
+                      AND b.PARENT_NO NOT IN (
+                        SELECT DISTINCT CHILD_NO FROM TB_CA663
+                        WHERE ECO_NO = :ecoNo AND PROJECT_NO = :projectNo
+                      )
+                """;
         List<Map<String, Object>> msParentList = sqlRunner.getRows(msParentSql, params);
 
 
@@ -418,8 +446,10 @@ public class PlmService {
 
                 // 조건 3: BPPERNM 중복 제거 후 합치기
                 Set<String> bppernmSet = new LinkedHashSet<>();
-                if (msRow.get("BOM_BPPERNM") != null) bppernmSet.addAll(Arrays.asList(msRow.get("BOM_BPPERNM").toString().split(",")));
-                if (msRow.get("PART_BPPERNM") != null) bppernmSet.addAll(Arrays.asList(msRow.get("PART_BPPERNM").toString().split(",")));
+                if (msRow.get("BOM_BPPERNM") != null)
+                    bppernmSet.addAll(Arrays.asList(msRow.get("BOM_BPPERNM").toString().split(",")));
+                if (msRow.get("PART_BPPERNM") != null)
+                    bppernmSet.addAll(Arrays.asList(msRow.get("PART_BPPERNM").toString().split(",")));
                 String joinedBppernm = String.join(", ", bppernmSet.stream().map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList()));
                 oracleRow.put("BPPERNM", joinedBppernm);
 
@@ -591,15 +621,15 @@ public class PlmService {
 
     private void saveProjectToMs(String ecoNo, String projectNo, String projectNm, String today, String username) {
         String sql = """
-        MERGE INTO tb_ca664 AS target
-        USING (SELECT :ecoNo AS eco_no, :projectNo AS project_no) AS source
-        ON (target.eco_no = source.eco_no AND target.project_no = source.project_no)
-        WHEN MATCHED THEN
-            UPDATE SET project_nm = :projectNm, erp_yn = 'Y', bpdate = :bpdate, bppernm = :bppernm
-        WHEN NOT MATCHED THEN
-            INSERT (eco_no, project_no, project_nm, erp_yn, bpdate, bppernm)
-            VALUES (:ecoNo, :projectNo, :projectNm, 'Y', :bpdate, :bppernm);
-    """;
+                    MERGE INTO tb_ca664 AS target
+                    USING (SELECT :ecoNo AS eco_no, :projectNo AS project_no) AS source
+                    ON (target.eco_no = source.eco_no AND target.project_no = source.project_no)
+                    WHEN MATCHED THEN
+                        UPDATE SET project_nm = :projectNm, erp_yn = 'Y', bpdate = :bpdate, bppernm = :bppernm
+                    WHEN NOT MATCHED THEN
+                        INSERT (eco_no, project_no, project_nm, erp_yn, bpdate, bppernm)
+                        VALUES (:ecoNo, :projectNo, :projectNm, 'Y', :bpdate, :bppernm);
+                """;
 
         sqlRunner.execute(sql, new MapSqlParameterSource()
                 .addValue("ecoNo", ecoNo)
@@ -611,28 +641,28 @@ public class PlmService {
 
     private void saveBomToMs(Map<String, Object> item, String today, String username) {
         String sql = """
-        MERGE INTO tb_ca663 AS target
-        USING (
-            SELECT :ecoNo AS eco_no,
-                   :parentNo AS parent_no,
-                   :childNo AS child_no
-        ) AS source
-        ON (target.eco_no = source.eco_no AND target.parent_no = source.parent_no AND target.child_no = source.child_no)
-        WHEN MATCHED THEN
-            UPDATE SET qty = :qty,
-                       seq = :seq,
-                       plm_version = :plmVersion,
-                       project_no = :projectNo,
-                       hogi_no = :hogiNo,
-                       cmt = :cmt,
-                       bomid = :bomid,
-                       erp_yn = 'Y',
-                       bpdate = :bpdate,
-                       bppernm = :bppernm
-        WHEN NOT MATCHED THEN
-            INSERT (eco_no, parent_no, child_no, qty, seq, plm_version, project_no, hogi_no, cmt, bomid, erp_yn, bpdate, bppernm)
-            VALUES (:ecoNo, :parentNo, :childNo, :qty, :seq, :plmVersion, :projectNo, :hogiNo, :cmt, :bomid, 'Y', :bpdate, :bppernm);
-    """;
+                    MERGE INTO tb_ca663 AS target
+                    USING (
+                        SELECT :ecoNo AS eco_no,
+                               :parentNo AS parent_no,
+                               :childNo AS child_no
+                    ) AS source
+                    ON (target.eco_no = source.eco_no AND target.parent_no = source.parent_no AND target.child_no = source.child_no)
+                    WHEN MATCHED THEN
+                        UPDATE SET qty = :qty,
+                                   seq = :seq,
+                                   plm_version = :plmVersion,
+                                   project_no = :projectNo,
+                                   hogi_no = :hogiNo,
+                                   cmt = :cmt,
+                                   bomid = :bomid,
+                                   erp_yn = 'Y',
+                                   bpdate = :bpdate,
+                                   bppernm = :bppernm
+                    WHEN NOT MATCHED THEN
+                        INSERT (eco_no, parent_no, child_no, qty, seq, plm_version, project_no, hogi_no, cmt, bomid, erp_yn, bpdate, bppernm)
+                        VALUES (:ecoNo, :parentNo, :childNo, :qty, :seq, :plmVersion, :projectNo, :hogiNo, :cmt, :bomid, 'Y', :bpdate, :bppernm);
+                """;
 
         sqlRunner.execute(sql, new MapSqlParameterSource()
                 .addValue("ecoNo", item.get("ECO_NO"))
@@ -652,15 +682,15 @@ public class PlmService {
 
     private void savePartToMs(Map<String, Object> item, String today, String username) {
         String sql = """
-        MERGE INTO tb_ca662 AS target
-        USING (SELECT :ecoNo AS eco_no, :partNo AS part_no) AS source
-        ON (target.eco_no = source.eco_no AND target.part_no = source.part_no)
-        WHEN MATCHED THEN
-            UPDATE SET part_nm = :partNm, spec = :spec, unit = :unit, erp_yn = 'Y', bpdate = :bpdate, bppernm = :bppernm
-        WHEN NOT MATCHED THEN
-            INSERT (eco_no, part_no, part_nm, spec, unit, erp_yn, bpdate, bppernm)
-            VALUES (:ecoNo, :partNo, :partNm, :spec, :unit, 'Y', :bpdate, :bppernm);
-    """;
+                    MERGE INTO tb_ca662 AS target
+                    USING (SELECT :ecoNo AS eco_no, :partNo AS part_no) AS source
+                    ON (target.eco_no = source.eco_no AND target.part_no = source.part_no)
+                    WHEN MATCHED THEN
+                        UPDATE SET part_nm = :partNm, spec = :spec, unit = :unit, erp_yn = 'Y', bpdate = :bpdate, bppernm = :bppernm
+                    WHEN NOT MATCHED THEN
+                        INSERT (eco_no, part_no, part_nm, spec, unit, erp_yn, bpdate, bppernm)
+                        VALUES (:ecoNo, :partNo, :partNm, :spec, :unit, 'Y', :bpdate, :bppernm);
+                """;
 
         sqlRunner.execute(sql, new MapSqlParameterSource()
                 .addValue("ecoNo", item.get("ECO_NO"))

@@ -33,14 +33,6 @@
                     </dl>
                     <dl>
                         <dt>
-                            <label>완료 포함</label>
-                        </dt>
-                        <dd>
-                            <input class="form-control2" type="checkbox" id="input_flag" name="input_flag" value="N" >
-                        </dd>
-                    </dl>
-                    <dl id="dateSection" style="display: none;">
-                        <dt>
                             등록일
                         </dt>
                         <dd>
@@ -234,21 +226,54 @@
 
             searchMainData() {
                 let _this = this;
-                let url = this.url + '/read_pj_synch';
+                let url = this.url + '/read_pj';
+
+                const sessionDate = sessionStorage.getItem("sessionDate");
+                const sessionPN = sessionStorage.getItem("sessionPN");
+                if (sessionDate && /^\d{8}$/.test(sessionDate)) {
+                    const formattedDate = sessionDate.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');
+                    $("#srchStartDt").val(formattedDate);
+                    $("#srchEndDt").val(formattedDate);
+                }
+                if (sessionPN) {
+                    $("#txtDescription").val(sessionPN);
+                }
 
                 let data = {
                     'srchStartDt': $("#srchStartDt").val(),
                     'srchEndDt': $("#srchEndDt").val(),
-                    'input_flag': $("#input_flag").val(),
                     'txtDescription': $("#txtDescription").val(),
                 };
                 let fnsuccess = function (result) {
                     if (result != null) {
                         _this.viewData.sourceCollection = result.data;
+
+                        if (result.data.length === 1) {
+                            let item = result.data[0];
+
+                            let formattedDate = '';
+                            if (item.BPDATE && item.BPDATE.length === 8) {
+                                formattedDate = item.BPDATE.substring(0, 4) + '-' +
+                                    item.BPDATE.substring(4, 6) + '-' +
+                                    item.BPDATE.substring(6, 8);
+                            }
+
+                            // 각 필드에 값 설정 (init의 더블클릭 내용 복붙)
+                            document.getElementById('econo').value = item.ECO_NO || '';
+                            document.getElementById('projno').value = item.PROJECT_NO || '';
+                            document.getElementById('projnm').value = item.PROJECT_NM || '';
+                            document.getElementById('bpdate').value = formattedDate;
+                            document.getElementById('bppernm').value = item.BPPERNM || '';
+                        }
                     }
                 };
 
-                AjaxUtil.getAsyncData(url, data, fnsuccess);
+                AjaxUtil.getAsyncData(url, data, fnsuccess)
+
+                sessionStorage.removeItem("tabAction");
+                sessionStorage.removeItem("sessionDate");
+                sessionStorage.removeItem("sessionPN");
+                sessionStorage.removeItem("sessionAN");
             }
 
             //저장
@@ -346,20 +371,7 @@
 
 
         });
-        document.addEventListener('DOMContentLoaded', function () {
-            const inputFlag = document.getElementById('input_flag');
-            const dateSection = document.getElementById('dateSection');
 
-            inputFlag.addEventListener('change', function () {
-                if (inputFlag.checked) {
-                    inputFlag.value = 'Y';
-                    dateSection.style.display = '';
-                } else {
-                    inputFlag.value = 'N';
-                    dateSection.style.display = 'none';
-                }
-            });
-        });
     </script>
 
 </th:block>

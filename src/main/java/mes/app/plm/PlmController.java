@@ -8,7 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+
 import org.springframework.security.core.Authentication;
+
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +41,22 @@ public class PlmController {  //프로젝트 관리
         srchStartDt = formatDate8(srchStartDt);
         srchEndDt = formatDate8(srchEndDt);
         List<Map<String, Object>> items = this.plmService.getProjectListSynch(srchStartDt, srchEndDt, txtDescription, input_flag);
+
+        AjaxResult result = new AjaxResult();
+        result.data = items;
+
+        return result;
+    }
+
+    @GetMapping("/read_pj")
+    public AjaxResult getProjectList(@RequestParam(value = "srchStartDt") String srchStartDt,
+                                     @RequestParam(value = "srchEndDt") String srchEndDt,
+                                     @RequestParam(value = "txtDescription") String txtDescription,
+                                     HttpServletRequest request) {
+
+        srchStartDt = formatDate8(srchStartDt);
+        srchEndDt = formatDate8(srchEndDt);
+        List<Map<String, Object>> items = this.plmService.getProjectList(srchStartDt, srchEndDt, txtDescription);
 
         AjaxResult result = new AjaxResult();
         result.data = items;

@@ -366,21 +366,21 @@ $(document).ready(function () {
     });
 
     // Drag and drop functionality
-    $('.card-edit-wrap').sortable({
-        items: 'section',
-        placeholder: 'ui-state-highlight',
-        helper: 'clone', // Using a clone of the dragged element for better performance
-        tolerance: 'pointer', // Improves the drop detection accuracy
-        start: function (event, ui) {
-            $(".gesture-box").hide();
-        },
-        stop: function (event, ui) {
-            // When dragging stops, remove 'on' class from all sections
-            $('.card-edit-wrap section').removeClass('on');
-            // Add 'on' class to the dragged section
-            ui.item.addClass('on');
-        }
-    });
+    // $('.card-edit-wrap').sortable({
+    //     items: 'section',
+    //     placeholder: 'ui-state-highlight',
+    //     helper: 'clone', // Using a clone of the dragged element for better performance
+    //     tolerance: 'pointer', // Improves the drop detection accuracy
+    //     start: function (event, ui) {
+    //         $(".gesture-box").hide();
+    //     },
+    //     stop: function (event, ui) {
+    //         // When dragging stops, remove 'on' class from all sections
+    //         $('.card-edit-wrap section').removeClass('on');
+    //         // Add 'on' class to the dragged section
+    //         ui.item.addClass('on');
+    //     }
+    // });
 
     // Click event to toggle 'card-hidden' class
     $('.btn-hidden').click(function (e) {

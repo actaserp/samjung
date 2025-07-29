@@ -133,7 +133,7 @@
 
         // 계산 이벤트 바인딩
         $row.find('input[name^="pqty_"], input[name^="puamt_"]').off('input change keyup').on('input change keyup', function () {
-          calculateAmount({ row: $row });
+          calculateAmount({row: $row});
         });
 
         $row.find('input[name^="pamt_"]').off('input').on('input', function () {
@@ -176,7 +176,7 @@
 
             if (!keyword) return showPopup();
 
-            $.get('/api/popup/search_part', { PART_NM: keyword }, function (res) {
+            $.get('/api/popup/search_part', {PART_NM: keyword}, function (res) {
               if (res.data?.length === 1) {
                 set(res.data[0]);
               } else {
@@ -201,9 +201,10 @@
         });
       }
     };
+
     class BaljuOrderPage {
       constructor() {
-        this.url = '/api/balju/balju_order';
+        this.url = '/api/balju/balju_list';
         this.grid = null;
         this.$btnEdit = $('#btnEdit');
         this.$btnAddNew = $('#btnAddNew');
@@ -227,32 +228,36 @@
             }
           },
           columns: [
+            {binding: 'project_no', header: '프로젝트번호', width: 120},
             {binding: 'BALJUNUM', header: '주문번호', width: 150, visible: false},
-            {binding: 'ACTNM', header: '발주처', width: 150},
+            {binding: 'BALJUSEQ', header: 'seq', width: 150, visible: false},
+            {binding: 'CLTNM', header: '발주처', width: 170},
             {binding: 'BALJUDATE', header: '발주일', width: 120, align: 'center'},
-            {binding: 'project_no', header: '프로젝트번호', width: 120 },
             {binding: 'PERNM', header: '현장 PM', width: 100, align: 'center'},
             {binding: 'ACTNM', header: '현장명', width: 170, align: 'center'},
             {binding: 'ichdate', header: '납기일자', width: 120, align: 'center'},
-            {binding: 'pname', header: '품명', width: 120, align: 'center'},
+            {binding: 'pname', header: '품명', width: 170, align: 'center'},
+            {binding: 'pmapseq', header: '도번', width: 120, align: 'center'},
             {binding: 'punit', header: '단위', width: 70, align: 'center'},
-            {binding: 'pqty', header: '수량', width: 70, align: 'right', format: 'n0'},
-            {binding: 'puamt', header: '단가', width: 100, align: 'right',format: 'n0'},
-            {binding: 'pamt', header: '금액', width: 100, align: 'right'},
-            {binding: 'pmapseq', header: '도번', width: 100, align: 'right'},
-            {binding: 'chulflag', header: '발주처 출고여부', width: 120, align: 'center'},
+            {binding: 'pqty', header: '수량', width: 60, align: 'right', format: 'n0'},
+            {binding: 'puamt', header: '단가', width: 110, align: 'right', format: 'n0'},
+            {binding: 'pamt', header: '금액', width: 110, align: 'right',format: 'n0'},
+            {binding: 'FACFLAG', header: '발주처 출고여부', width: 120, align: 'center'},
             {binding: 'CHULDATE', header: '발주처 출고일자', width: 120, align: 'center'},
-            {binding: 'facflag', header: '공장출고여부', width: 120, align: 'center'},
-            {binding: 'FACDATE', header: '공장출고여부', width: 120, align: 'center'},
-            {binding: 'hyunflag', header: '현장확인여부', width: 120, align: 'center'},
-            {binding: 'HYUNDATE', header: '현장확인여부', width: 120, align: 'center'},
+            {binding: 'CHULPERNM', header: '발주처 출고자', width: 120, align: 'center'},
+            {binding: 'facflag', header: '공장 출고 여부', width: 120, align: 'center'},
+            {binding: 'FACDATE', header: '공장 출고 일자', width: 120, align: 'center'},
+            {binding: 'FACPERNM', header: '공장 출고자', width: 120, align: 'center'},
+            {binding: 'hyunflag', header: '현장 확인 여부', width: 120, align: 'center'},
+            {binding: 'HYUNDATE', header: '현장 확인 일자', width: 120, align: 'center'},
+            {binding: 'HYUNPERNM', header: '현장 확인자', width: 120, align: 'center'},
             {binding: 'remark', header: '비고', width: 150, align: 'center'},
           ],
           itemsSource: this.viewData, // 데이터를 설정할 배열
         });
 
         new FlexGridContextMenu(this.grid);
-        this.grid.downloadFileName = '발주 등록';
+        this.grid.downloadFileName = '발주 상세 현황';
 
         this.grid.hostElement.addEventListener('dblclick', function (e) {
           let items = _this.grid.selectedItems;
@@ -262,80 +267,6 @@
           _this.$btnEdit.trigger('click');
         });
 
-        let nowDate = CommonUtil.getYYYYMMDD();
-        let ichdate = CommonUtil.getYYYYMMDD(10);
-
-        //발주등록 클릭
-        this.$btnAddNew.click(function (e) {
-          let defaultData = {
-            id: '',
-            mode: 'new',
-            baljudate: nowDate,
-            ichdate: ichdate,
-            State: 'draft',
-            spjangcd: _this.spjangcd.val()
-          };
-          _this.showBaljuForm(defaultData);
-        });
-
-        // 발주 수정 클릭
-        this.$btnEdit.click(function (e) {
-          let selectedItems = _this.grid.selectedItems;
-
-          if (selectedItems.length === 1) {
-
-            let selected = selectedItems[0];
-
-            let data = {
-              id: selected.BALJUNUM,
-              action: 'detail'
-            };
-            // console.info("가지고 가는 데이터", data);
-            let fnsuccess = function (result) {
-              if (!result || !result.data) {
-                Alert.alert('오류', '상세 데이터를 불러올 수 없습니다.');
-                return;
-              }
-
-              result.data['mode'] = 'edit';
-              _this.showBaljuForm(result.data);
-              // console.log("팝업 응답 JSON:", JSON.stringify(result.data, null, 2));
-            };
-            AjaxUtil.getAsyncData(_this.url + '/detail', data, fnsuccess);
-          } else if (items.length > 1) {
-            Alert.alert('', '데이터를 하나만 선택하세요.');
-          } else {
-            Alert.alert('', '선택된 데이터가 없습니다.');
-          }
-
-        });
-
-        // 삭제 버튼
-        $('#btnDelete').click(function (e) {
-          let items = _this.grid.selectedItems;
-          if (items.length > 0) {
-            //console.log('🔍 삭제 대상 데이터:', items);
-            let id = items[0].BALJUNUM;
-            const { chulflag, facflag, hyunflag } = items[0];
-            const isDraft = chulflag === "미출고" && facflag === "미출고" && hyunflag === "미확인";
-
-            if (!isDraft) {
-              Alert.alert('', '미출고 , 미확인 시에만 삭제 할 수 있습니다.');
-              return;
-            }
-            Alert.confirm('', '삭제하시겠습니까?',
-              function () {
-                _this.deleteBalJuData(id);
-              },
-              function () {}
-            );
-          } else {
-            Alert.alert('', '삭제할 항목을 선택해주세요.', function () {
-              $(this).focus();
-            });
-          }
-        });
-
         // 엔터키 검색
         $('#keyword').on('keypress', function (e) {
           if (e.keyCode === 13) {
@@ -343,890 +274,60 @@
           }
         });
 
-        $('#btnPrinted').click(function (e) {
-          const grid = wijmo.Control.getControl('#theGrid'); // FlexGrid 인스턴스
-          const selectedItem = grid?.selectedItems?.[0];
-
-          if (!selectedItem || !selectedItem.BALJUNUM) {
-            Alert.alert('', '출력할 행을 선택하세요.');
-            return;
-          }
-
-          const baljunum = selectedItem.BALJUNUM;
-
-          const data = {
-            baljunum: baljunum
-          };
-
-          const url = '/print/purchase'; // 서버에서 처리할 URL
-
-          AjaxUtil.postAsyncData(url, data, function (response) {
-            if (response.success && response.downloadUrl) {
-              // 서버에서 출력파일 URL 반환 시 다운로드 또는 새 창 열기
-              window.open(response.downloadUrl, '_blank');
-            } else {
-              Alert.alert('', '출력 중 오류가 발생했습니다.');
-            }
-          });
-        });//구매 품의서 프린트
-
-        $('#btnbaljuPrinted').click(function (e) {
-          const grid = wijmo.Control.getControl('#theGrid'); // FlexGrid 인스턴스
-          let csrfToken = $("[name=_csrf]").val();
-          const selectedItem = grid?.selectedItems?.[0];
-
-          if (!selectedItem || !selectedItem.BALJUNUM) {
-            Alert.alert('', '출력할 행을 선택하세요.');
-            return;
-          }
-
-          const baljunum = selectedItem.BALJUNUM;
-
-          $.ajax({
-            url: '/api/balju/balju_order/print/balJuPurchase',
-            type: 'POST', // POST 방식
-            data: {
-              BALJUNUM: baljunum
-            },
-            headers: {
-              'X-CSRF-TOKEN': csrfToken
-            },
-            success: function (response) {
-              if (response.success && response.downloadUrl) {
-                window.open(response.downloadUrl, '_blank'); // ✅ 엑셀 열기 or 저장
-              } else {
-                Alert.alert('', '출력 중 오류가 발생했습니다.');
-              }
-            },
-            error: function () {
-              Alert.alert('', '서버와의 통신 중 오류가 발생했습니다.');
-            }
-          });
-
-        });//외주발주서 프린트
-
       }//init
-
-      showBaljuForm(data) {
-        //baljuTemplate
-        let _this = this;
-        let content = tmpl('baljuTemplate', data);
-        let $content = $(content);
-        let originalUnitPrice = null;
-
-        let modalContainer = null;
-        if (data.mode === 'new') {
-          modalContainer = new PopupDraggable('발주 등록');
-        } else {
-          modalContainer = new PopupDraggable('발주 수정');
-        }
-
-        //모달 크기
-        modalContainer.open({width: 1300, height: 630, $content});
-        $('#popSrchDt1').ax5DatePicker({direction: 'top'});
-        $('#popSrchDt2').ax5DatePicker({direction: 'top'});
-
-        // 제품검색
-        let $btnProductSearch = $content.find('#btnProductSearch');
-        let $btnCompanySearch = $content.find('#btnCompanySearch');
-        let $MaterialGroupName = $content.find('#MaterialGroupName');
-        let $product_code = $content.find('#product_code');
-        let $txtPname = $content.find('#txtPname');
-        let $Material_id = $content.find('#Material_id');
-
-        let $baljuForm = $content.find('#baljuForm');
-
-        let $cboBaljuType = $content.find('#cboBaljuType');
-        let $cboMaterial = $content.find('#cboMaterial');
-        let $baljudate = $content.find('#baljudate');
-        let $ichdate = $content.find('#ichdate');
-
-        let $AvailableStock = $('#AvailableStock');
-        let $unit = $('#unit');
-        let $cboCompany = $('#cboCompany');
-        let $CompanyName = $('#CompanyName');
-        let $quantity = $('#quantity');
-        let $SujuQty = $('#SujuQty');
-        let $BaljuUnitPrice = $content.find('#BaljuUnitPrice');
-        let $BaljuPrice = $content.find('#BaljuPrice');
-        let $BaljuVat = $content.find('#BaljuVat');
-        let $isVatExempt = $content.find('#VatExempt').val() === 'Y';
-        let $BaljuTotalPrice = $content.find('#BaljuTotalPrice');
-        let $vatCheck = $content.find('#VatIncluded');
-
-        let $sujuQty3 = $content.find('#sujuQty3');
-
-        $content.find('#spjangcdHidden').val(data.spjangcd || '');
-
-        if (data.mode === 'new') {
-          $btnProductSearch.removeAttr('disabled');
-
-        }
-
-        //발주구분(정기를 디폴트로)
-        AjaxUtil.fillSelectOptions($cboBaljuType, 'system_code', 'choose', 'Regular', 'Balju_type');
-
-        let itemList = [];
-
-        //거래처
-        $content.find('#btnCompanySearch').click(function () {
-          let poppage = new PopCompComponentPurchase();
-          let $poppage = $(poppage);
-          let searchcallback = function (items) {
-            console.log('btnCompanySearch', items);
-            $content.find('#cltcd').val(items.cltcd);
-            $content.find('#CompanyName').val(items.cltnm);
-            $content.find('#cltemail').val(items.taxmail);
-            $content.find('#cltpernm').val(items.agnernm);
-            $content.find('#cltjik').val(items.agnerdivinm);
-            $content.find('#clttelno').val(items.agntel);
-
-          }
-          poppage.show(searchcallback);
-        });
-
-        //현장 pm
-        $content.find('#btnPernmSearch').click(function () {
-          let poppage = new PopStaff();
-          let $poppage = $(poppage);
-          let searchcallback = function (items) {
-            $content.find('#pernmcd').val(items.perid);
-            $content.find('#pernm').val(items.pernm);
-            $content.find('#pernm_rspcdcd').val(items.rspcd);
-            $content.find('#pernm_rspcd').val(items.RSPNM);
-            $content.find('#pertelno').val(items.handphone);
-          };
-          poppage.show(searchcallback);
-          setTimeout(() => {
-            $content.find('#actnm').focus();
-          }, 50);
-        });
-
-        // ✅ 초기화 함수
-        function clearPernmInfo($context) {
-          $context.find('#pernmcd').val('');
-          $context.find('#pernm').val('');
-          $context.find('#pernm_rspcdcd').val('');
-          $context.find('#pernm_rspcd').val('');
-          $context.find('#pertelno').val('');
-        }
-
-// ✅ 자동입력 함수
-        function setPernmInfo(item, $context) {
-          $context.find('#pernmcd').val(item.perid);
-          $context.find('#pernm').val(item.pernm);
-          $context.find('#pernm_rspcdcd').val(item.rspcd);
-          $context.find('#pernm_rspcd').val(item.RSPNM);
-          $context.find('#pertelno').val(item.handphone);
-
-          // 다음 입력 포커스로 이동
-          setTimeout(() => {
-            $context.find('#actnm').focus();
-          }, 50);
-        }
-
-// ✅ 엔터키 검색 이벤트
-        $content.find('#pernm').on('keydown', function (e) {
-          if (e.key === 'Enter' || e.keyCode === 13) {
-            e.preventDefault();
-
-            const keyword = $(this).val().trim();
-
-            // ✅ 입력이 없으면 무조건 팝업
-            if (keyword === '') {
-              const poppage = new PopStaff();
-              poppage.show(function (item) {
-                if (item && item.perid) {
-                  setPernmInfo(item, $content);
-                }
-              }, ''); // preset 없음
-              return;
-            }
-
-            // ✅ 입력이 있으면 Ajax 검색
-            AjaxUtil.getAsyncData('/api/popup/search_staff', {
-              keyword: keyword,
-              spjangcd: sessionStorage.getItem('spjangcd')
-            }, function (result) {
-              if (!result.success) {
-                Alert.alert('', '검색 중 오류가 발생했습니다.');
-                return;
-              }
-
-              const items = result.data;
-
-              if (items.length === 0) {
-                Alert.alert('', '검색 결과가 없습니다.');
-                clearPernmInfo($content);
-              } else if (items.length === 1) {
-                setPernmInfo(items[0], $content);
-              } else {
-                const poppage = new PopStaff();
-                poppage.show(function (item) {
-                  if (item && item.perid) {
-                    setPernmInfo(item, $content);
-                  }
-                }, keyword); // 검색어 preset
-              }
-            });
-          }
-        });
-
-        // ✅ 입력이 비면 초기화
-        $content.find('#pernm').on('input', function () {
-          if ($(this).val().trim() === '') {
-            clearPernmInfo($content);
-          }
-        });
-
-        //현장
-        $content.find('#btnactnmSearch').click(function () {
-          let poppage = new Popacmtnm();
-          let $poppage = $(poppage);
-          let searchcallback = function (items) {
-            console.log('현장 팝업', items);
-            $content.find('#actnm').val(items.actnm);
-            $content.find('#actcd').val(items.actcd);
-            $content.find('#actaddress').val(items.address);
-          }
-          poppage.show(searchcallback);
-          setTimeout(() => {
-            $content.find('#CompanyName').focus();
-          }, 50);
-        });
-
-        $content.find('#btnProjectSearch').click(function () {
-          let poppage = new PopProjectList();
-          let $poppage = $(poppage);
-          let searchcallback = function (items) {
-            console.log('프로젝트목록 팝업', items);
-            $content.find('#procd').val(items.BOMID);
-            $content.find('#eco_no').val(items.eco_no);
-            $content.find('#project_no').val(items.project_no);
-            $content.find('#PROJECT_NM').val(items.project_nm);
-
-            // bom 리스트가지고와서 동적행에
-            /*AjaxUtil.getAsyncData('/api/balju/balju_order/bomList', { eco_no: items.eco_no , project_no: items.project_no }, function (result) {
-              if (result.success && result.data.length > 0) {
-                const bomList = result.data;
-                const $tbody = $content.find('.item-table tbody');
-                const $template = $tbody.find('.item-template-row');
-                let itemIndex = 0;
-
-                const $rows = $tbody.find('tr:not(.item-template-row)');
-
-                // 기존 입력 행 모두 초기화
-                $rows.find('input').val('');
-
-                // 품목 데이터 순회하여 행 채우기 or 새로 생성
-                bomList.forEach((item, i) => {
-                  let $targetRow;
-
-                  if (i < $rows.length) {
-                    // 기존 행 재사용
-                    $targetRow = $rows.eq(i);
-                  } else {
-                    // 새 행 생성
-                    $targetRow = $template.clone().removeClass('item-template-row').show();
-
-                    // name 고유화
-                    $targetRow.find('input').each(function () {
-                      const baseName = $(this).attr('name');
-                      if (baseName) {
-                        $(this).attr('name', `${baseName}_${itemIndex}`);
-                      }
-                    });
-
-                    $tbody.append($targetRow);
-                    ProductInputHandler.bind({ rowSelector: $targetRow, $content: $content });
-
-                    // 이벤트 바인딩
-                    ProductInputHandler.bind({
-                      rowSelector: $targetRow,
-                      $content: $content,
-                    });
-
-                    itemIndex++;
-                  }
-
-                  fillRowWithItem($targetRow, item);
-                });
-
-                // 남은 기존 행이 있다면 비우기 or 삭제 (선택)
-                if ($rows.length > bomList.length) {
-                  $rows.slice(bomList.length).remove(); // 또는 .hide()
-                }
-
-                function fillRowWithItem($targetRow, item) {
-                  $targetRow.find('input[name^="txtPname"]').val(item.PART_NM);
-                  $targetRow.find('input[name^="bpid_"]').val(item.bpid);
-                  $targetRow.find('input[name^="pcode_"]').val(item.PART_NO);
-                  $targetRow.find('input[name^="psize_"]').val(item.PART_SIZE);
-                  $targetRow.find('input[name^="punit_"]').val(item.UNIT);
-                  $targetRow.find('input[name^="pqty_"]').val(item.QTY);
-                  $targetRow.find('input[name^="pmapseq_"]').val(item.DRAWING_NO);
-                  $targetRow.find('input[name="isbom_"]').val('Y');
-
-                  $targetRow.addClass('from-bom');
-                }
-              } else {
-                Alert.alert('', 'BOM 품목이 없습니다.');
-              }
-            });*/
-          }
-          poppage.show(searchcallback);
-        });
-
-        $content.find('.item-table tbody tr:not(.item-template-row)').each(function () {
-          const $row = $(this);
-          $row.find('input[name^="totalEdited_"]').val('N');
-          const item = {
-            id: $row.find('input[name^="balju_id"]').val(),
-            productName: $row.find('input[name^="txtPname_"]').val(),
-            Material_id: $row.find('input[name^="Material_id_"]').val(),
-            quantity: $row.find('input[name^="quantity_"]').val().replace(/,/g, ''),
-            unitPrice: $row.find('input[name^="BaljuUnitPrice_"]').val().replace(/,/g, ''),
-            supplyPrice: $row.find('input[name^="BaljuPrice_"]').val().replace(/,/g, ''),
-            vat: $row.find('input[name^="BaljuVat_"]').val().replace(/,/g, ''),
-            total_price: $row.find('input[name^="totalAmount_"]').val().replace(/,/g, ''),
-            totalEdited: $row.find('input[name^="totalEdited_"]').val() === 'Y',
-            description: $row.find('input[name^="description_"]').val(),
-            vatIncluded: $row.find('input[name^="VatIncluded"]').prop('checked') ? 'Y' : 'N',
-            cboBaljuType: $row.find('input[name^="BalJuHeadType"]').val()
-          };
-
-          console.log("🔍 저장될 항목:", item);
-          itemList.push(item);
-        });
-
-        //포커스 이동
-        $content.on('keydown', 'input', function (e) {
-
-        });
-
-
-        //단가 검색
-        function tryShowBaljuPrice(row) {
-          const $unitPrice = row.find('input[name^="BaljuUnitPrice_"]');
-          const $supply = row.find('input[name^="BaljuPrice_"]');
-          const $vat = row.find('input[name^="BaljuVat_"]');
-
-          const mat_pk = row.find('input[name^="Material_id_"]').val();
-          const company_id = $('#cboCompany').val();
-          const baljudate = $('#baljudate').val();
-
-          console.log('[단가 조회] 호출됨', { mat_pk, company_id, baljudate });
-
-          if (!mat_pk || !company_id || !baljudate) {
-            console.warn('[단가 조회] 필수값 누락으로 요청 취소');
-            return;
-          }
-
-          AjaxUtil.getAsyncData('/api/balju/balju_order/price', {
-            mat_pk, company_id, baljudate
-          }, function (result) {
-            console.log('[단가 조회 결과]', result);
-
-            if (result?.data?.length) {
-              const item = result.data[0];
-              const unitPrice = item.UnitPrice || 0;
-              $unitPrice.val(unitPrice);
-              $supply.val(unitPrice);
-              $vat.val('');
-
-              row.find('input[name^="originalUnitPrice_"]').val(unitPrice);
-
-            } else {
-              $unitPrice.val('');
-              $supply.val('');
-              $vat.val('');
-              row.find('input[name^="originalUnitPrice_"]').val('');
-            }
-          });
-        }
-        // 저장버튼
-        let $btnPopBaljuSave = $('#btnPopBaljuSave');
-
-        // 상태 값 정리
-        const isDraft = Array.isArray(data.items) && data.items.every(item =>
-          item.chulflag === "0" && item.facflag === "0" && item.hyunflag === "0"
-        );
-
-        // 등록 모드일 경우 → 버튼 숨김
-        if (data.mode === 'new') {
-          $btnProductSearch.removeAttr('disabled');
-        } else {
-          // 상태가 draft가 아니면 저장 버튼 숨기고 단가 읽기 전용
-          if (!isDraft) {
-            $btnPopBaljuSave.hide();
-            $BaljuUnitPrice.prop('readonly', true);
-          }
-        }
-
-
-        //팝업타이틀 설정
-        let $popTitle = $content.find('#popTitle');
-        if (data.mode === 'new') {
-          $popTitle.text('발주 등록');
-        } else {
-          // 발주 수정시 제품그룹과 제품을 수정하게 할 것 인지?
-          $popTitle.text('발주 수정');
-
-          if (data.Company_id) {
-            $CompanyName.attr('readonly', true);
-          }
-        }
-        FormUtil.BindDataForm(data, $baljuForm);
-
-        if (data.SujuQty > 0) {
-          $SujuQty.val(data.SujuQty.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","));
-        }
-
-
-        // 발주등록 팝업 저장버튼 클릭
-        $btnPopBaljuSave.click(function (e) {
-          let csrfToken = $("[name=_csrf]").val();
-          let formData = FormUtil.extractForm($baljuForm); // 상단 정보
-          formData.spjangcd = $('#spjangcdHidden').val();
-
-          let itemRows = [];
-          let priceSaveList = []; // 변경된 단가만 저장
-          let isValid = true;
-
-          $content.find('.item-table tbody tr:not(.item-template-row)').each(function () {
-            const $row = $(this);
-
-            const item = {
-              bpid: $row.find('input[name^="bpid_"]').val(),              // 품목ID (hidden)
-              pcode: $row.find('input[name^="pcode_"]').val(),            // 품목코드
-              pname: $row.find('input[name^="txtPname_"]').val(),         // 품명
-              psize: $row.find('input[name^="psize_"]').val(),            // 규격
-              punit: $row.find('input[name^="punit_"]').val(),            // 규격
-              quantity: $row.find('input[name^="pqty_"]').val().replace(/,/g, ''), // 수량
-              unit_price: $row.find('input[name^="puamt_"]').val().replace(/,/g, ''), // 단가
-              amount: $row.find('input[name^="pamt_"]').val().replace(/,/g, ''),     // 금액
-              pmapseq: $row.find('input[name^="pmapseq_"]').val(),        // 도번
-              remark: $row.find('input[name^="remark_"]').val()           // 비고
-            };
-
-            itemRows.push(item);
-            console.log("📦 저장할 itemRows:", itemRows);
-
-          });
-
-          let payload = {
-            ...formData,
-            items: itemRows
-          };
-          console.log("📦 저장할 payload:", payload);
-
-          Alert.confirm('', '저장하시겠습니까?', function () {
-            if (priceSaveList.length > 0) {
-              const savePromises = priceSaveList.map(price => {
-                return new Promise((resolve, reject) => {
-                  $.ajax({
-                    type: 'POST',
-                    url: '/api/balju/balju_order/savePrice',
-                    data: JSON.stringify(price),
-                    contentType: 'application/json',
-                    headers: {
-                      'X-CSRF-TOKEN': csrfToken
-                    },
-                    success: function (res) {
-                      if (res.success) {
-                        resolve();
-                      } else {
-                        reject(res.message || '단가 저장 실패');
-                      }
-                    },
-                    error: function (xhr) {
-                      reject(xhr.responseText || '서버 오류');
-                    }
-                  });
-                });
-              });
-
-              Promise.all(savePromises)
-                .then(() => {
-                  doBaljuSave(payload); // 모든 단가 저장 성공 시 발주 저장
-                })
-                .catch(err => {
-                  Alert.alert('단가 저장 오류', err);
-                });
-
-            } else {
-              doBaljuSave(payload); // 단가 변경 없으면 바로 발주 저장
-            }
-          });
-
-          // 실제 발주 저장 함수
-          function doBaljuSave(data) {
-            $.ajax({
-              type: 'POST',
-              url: '/api/balju/balju_order/multi_save',
-              data: JSON.stringify(data),
-              contentType: 'application/json',
-              headers: {
-                'X-CSRF-TOKEN': csrfToken
-              },
-              success: function (res) {
-                if (res.success) {
-                  Notify.success("저장되었습니다.");
-                  _this.searchMainData();
-                  modalContainer.close();
-                } else {
-                  Alert.alert('저장 실패', res.message || '서버 오류');
-                }
-              },
-              error: function (xhr) {
-                console.error('❌ 발주 저장 실패:', xhr.responseText);
-                Alert.alert('저장 오류', '서버 오류가 발생했습니다.\n' + xhr.responseText);
-              }
-            });
-          }
-        });
-
-        // Ctrl + S 로 저장 가능하게
-        $content.on('keydown', function (e) {
-          if (e.ctrlKey && e.key.toLowerCase() === 's') {
-            e.preventDefault();
-            $btnPopBaljuSave.trigger('click');
-          }
-        });
-
-        FormUtil.BindDataForm(data, $baljuForm);
-
-        let itemIndex = 1;
-
-        // 발주 수정 시 품목 리스트 렌더링
-        if (data.mode === 'edit' && Array.isArray(data.items)) {
-          const $tbody = $content.find('.item-table tbody');
-          const $template = $tbody.find('.item-template-row');
-          const isDraft = data.items.every(item =>
-            item.chulflag === "0" && item.facflag === "0" && item.hyunflag === "0"
-          );
-
-          for (let i = 0; i < data.items.length; i++) {
-            const item = data.items[i];
-            const $newRow = $template.clone().removeClass('item-template-row').show();
-
-            // input name 속성 고유화
-            $newRow.find('input').each(function () {
-              const baseName = $(this).attr('name');
-              if (baseName) {
-                $(this).attr('name', `${baseName}_${itemIndex}`);
-              }
-            });
-
-            // 데이터 바인딩
-            $newRow.find('input[name^="pcode_"]').val(item.pcode);
-            $newRow.find('input[name^="bpid_"]').val(item.bpid);
-            $newRow.find('input[name^="punit_"]').val(item.punit);
-            $newRow.find('input[name^="BALJUSEQ_"]').val(item.BALJUSEQ);
-            $newRow.find('input[name^="txtPname_"]').val(item.txtPname);
-            $newRow.find('input[name^="psize_"]').val(item.psize);
-            $newRow.find('input[name^="pqty_"]').val(item.pqty);
-            $newRow.find('input[name^="puamt_"]').val(item.puamt);
-            $newRow.find('input[name^="pamt_"]').val(item.pamt);
-            $newRow.find('input[name^="pmapseq_"]').val(item.pmapseq);
-            $newRow.find('input[name^="remark_"]').val(item.remark);
-            $newRow.find('input[name^="chulflag_"]').val(item.chulflag);
-            $newRow.find('input[name^="facflag_"]').val(item.facflag);
-            $newRow.find('input[name^="hyunflag_"]').val(item.hyunflag);
-
-            if (!isDraft) {
-              $newRow.find('input').prop('readonly', true);
-              $newRow.find('a.btn').hide();
-            }
-
-            ProductInputHandler.bind({ rowSelector: $newRow, $content: $content });
-            $tbody.append($newRow);
-            itemIndex++;
-          }
-
-          // ✅ 부족한 행 추가: 3줄은 기본 보장
-          const minRows = 3;
-          const existingRows = data.items.length;
-          const additionalRows = Math.max(0, minRows - existingRows);
-
-          for (let j = 0; j < additionalRows; j++) {
-            const $emptyRow = $template.clone().removeClass('item-template-row').show();
-
-            $emptyRow.find('input').each(function () {
-              const baseName = $(this).attr('name');
-              if (baseName) {
-                $(this).attr('name', `${baseName}_${itemIndex}`);
-              }
-            });
-
-            ProductInputHandler.bind({ rowSelector: $emptyRow, $content, tryShowBaljuPrice });
-            $tbody.append($emptyRow);
-            itemIndex++;
-          }
-        }
-
-        // 행 추가
-        $content.find('#addRemark').click(function () {
-          const $tbody = $content.find('.item-table tbody');
-          const $template = $tbody.find('.item-template-row');
-
-          for (let i = 0; i < 3; i++) {
-            const $newRow = $template.clone().removeClass('item-template-row').show();
-
-            $newRow.find('input').each(function () {
-              const baseName = $(this).attr('name');
-              if (baseName) {
-                $(this).attr('name', `${baseName}_${itemIndex}`);
-              }
-            });
-
-            $tbody.append($newRow);
-            ProductInputHandler.bind({ rowSelector: $newRow, $content: $content, tryShowBaljuPrice });
-
-            itemIndex++;
-          }
-        });
-
-        $content.on('click', 'a[title="품목 검색"]', function () {
-          const $clickedRow = $(this).closest('tr');
-          const $tbody = $content.find('.item-table tbody');
-          const $template = $tbody.find('.item-template-row').first();
-          const $rows = $tbody.find('tr:not(.item-template-row)');
-
-          const ecoNo = $content.find('#eco_no').val();
-          const partPopup = new PopPart();
-          partPopup.show(function (selectedItems) {
-            if (!Array.isArray(selectedItems) || selectedItems.length === 0) return;
-
-            console.log('선택된 품목 목록:', selectedItems);
-
-            let itemIndex = $rows.length;
-
-            // 현재 존재하는 모든 PART_NO 수집
-            const existingPartNos = $rows.map(function () {
-              return $(this).find('input[name^="pcode"]').val();
-            }).get();
-            console.log('현재 테이블에 있는 품목코드 목록:', existingPartNos);
-            // 빈 행 필터링
-            const $emptyRows = $rows.filter(function () {
-              return $(this).find('input[type="text"], input[type="number"]').filter(function () {
-                return $(this).val().trim() !== '';
-              }).length === 0;
-            });
-            let usedClickedRow = false;
-            for (let i = 0; i < selectedItems.length; i++) {
-              const item = selectedItems[i];
-              let $targetRow;
-
-              if (!usedClickedRow) {
-                // ✅ 클릭한 행에 무조건 바인딩
-                $targetRow = $clickedRow;
-                usedClickedRow = true;
-              } else if (i < $emptyRows.length) {
-                $targetRow = $emptyRows.eq(i);
-              } else {
-                // 새 행 생성
-                const $newRow = $template.clone().removeClass('item-template-row').show();
-
-                $newRow.find('input').each(function () {
-                  const baseName = $(this).attr('name');
-                  if (baseName) {
-                    $(this).attr('name', `${baseName}_${itemIndex}`);
-                  }
-                });
-
-                $tbody.append($newRow);
-
-                ProductInputHandler.bind({
-                  rowSelector: $newRow,
-                  $content: $content,
-                });
-
-                $targetRow = $newRow;
-                itemIndex++;
-              }
-
-              fillRowWithItem($targetRow, item);
-            }
-
-            // ✅ 선택된 품목을 행에 채우는 함수
-            function fillRowWithItem($targetRow, item) {
-              $targetRow.find('input[name^="txtPname"]').val(item.PART_NM);
-              $targetRow.find('input[name^="bpid"]').val(item.bpid);
-              $targetRow.find('input[name^="pcode"]').val(item.PART_NO);
-              $targetRow.find('input[name^="psize"]').val(item.PART_SIZE);
-              $targetRow.find('input[name^="punit"]').val(item.unit);
-              $targetRow.find('input[name^="pmapseq"]').val(item.DRAWING_NO);
-
-              // 중복 품목이면 비고란에 메시지 표시
-              if (existingPartNos.includes(item.PART_NO)) {
-                $targetRow.find('input[name^="remark"]').val('이중 발주된 제품');
-              }
-            }
-          }, ecoNo);
-        });
-
-        // 포커스 자동 이동: Enter + 방향키(←→↑↓)
-        $content.on('keydown', 'input', function (e) {
-          const key = e.key;
-
-          if (!['Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) return;
-          e.preventDefault();
-
-          const $input = $(this);
-          const $row = $input.closest('tr');
-          const nameAttr = $input.attr('name') || '';
-
-          const focusOrder = [
-            'txtPname_',
-            'psize_',
-            'pqty_',
-            'puamt_',
-            'pamt_',
-            'pmapseq_',
-            'remark_',
-          ];
-
-          const currentIndex = focusOrder.findIndex(prefix => nameAttr.startsWith(prefix));
-          if (currentIndex === -1) return;
-
-          let $nextInput = null;
-
-          // ↔️ 좌우 이동
-          if (key === 'ArrowRight' && currentIndex < focusOrder.length - 1) {
-            const nextPrefix = focusOrder[currentIndex + 1];
-            $nextInput = $row.find(`input[name^="${nextPrefix}"]`);
-          } else if (key === 'ArrowLeft' && currentIndex > 0) {
-            const prevPrefix = focusOrder[currentIndex - 1];
-            $nextInput = $row.find(`input[name^="${prevPrefix}"]`);
-          }
-
-          // ↕️ 상하 이동
-          if (key === 'ArrowDown' || key === 'ArrowUp') {
-            const $targetRow = key === 'ArrowDown'
-              ? $row.nextAll('tr:visible').first()
-              : $row.prevAll('tr:visible').first();
-
-            const allowAutoAdd = ['txtPname_', 'description_'];
-            const isAllowedField = allowAutoAdd.some(prefix => nameAttr.startsWith(prefix));
-
-            // ⬇️ 방향키 + 현재 행이 마지막 + 허용된 필드일 경우 → 행 자동 추가
-            if (key === 'ArrowDown' && !$targetRow.length && isAllowedField) {
-              $content.find('#addRemark').trigger('click');
-
-              setTimeout(() => {
-                const $rows = $content.find('.item-table tbody tr:visible').not('.item-template-row');
-                const $newRow = $rows.last();
-                const $newInput = $newRow.find('input[name^="txtPname_"]');
-                if ($newInput.length) $newInput.focus().select();
-              }, 50);
-              return;
-            }
-            // 일반 상하 이동
-            $nextInput = $targetRow.find(`input[name^="${focusOrder[currentIndex]}"]`);
-          }
-
-          // ↵ Enter 키: 현재 행 내 다음 필드
-          if (key === 'Enter' && currentIndex < focusOrder.length - 1) {
-            const nextPrefix = focusOrder[currentIndex + 1];
-            $nextInput = $row.find(`input[name^="${nextPrefix}"]`);
-          } else if (key === 'Enter' && nameAttr.startsWith('description_')) {
-            const $nextRow = $row.nextAll('tr:visible').first();
-            if (!$nextRow.length) {
-              //console.log('다음 행 없음. 행 자동 추가 트리거.');
-              $content.find('#addRemark').trigger('click');
-
-              setTimeout(() => {
-                const $rows = $content.find('.item-table tbody tr:visible').not('.item-template-row');
-                const $newRow = $rows.last();
-                const $newInput = $newRow.find('input[name^="txtPname_"]');
-                if ($newInput.length) $newInput.focus().select();
-              }, 50);
-              return;
-            } else {
-              $nextInput = $nextRow.find('input[name^="txtPname_"]');
-            }
-          }
-
-          if ($nextInput && $nextInput.length) {
-            $nextInput.focus().select();
-          }
-        });
-
-        // 이 부분은 초기 스크립트에 한 번만 선언하면 됨
-        $content.on('click', 'a[title="행 삭제"]', function () {
-          const $tbody = $(this).closest('tbody');
-          const $rows = $tbody.find('tr:not(.item-template-row)');
-          const $targetRow = $(this).closest('tr');
-
-          if ($rows.length <= 3) {
-            const hasData = $targetRow.find('input[type="text"], input[type="number"]').filter(function () {
-              return $(this).val().trim() !== '';
-            }).length > 0;
-
-            if (hasData) {
-              $targetRow.find('input[type="text"], input[type="number"]').val('');
-              $targetRow.find('input[type="hidden"]').val('');
-              $targetRow.find('input[name^="totalAmount_"]').val('0'); // totalAmount 초기화
-              $targetRow.removeClass('from-bom');
-
-            }
-          } else {
-            $targetRow.remove();
-          }
-
-          // 🔥 모든 행 다시 계산
-          $content.find('.item-table tbody tr:not(.item-template-row)').each(function () {
-            calculateAmount({ row: $(this), $content });
-          });
-
-        });
-
-        if (data.mode === 'new') {
-          setTimeout(() => {
-            $content.find('#addRemark').trigger('click');
-          }, 10);
-        }
-      }
-
-
-      deleteBalJuData(id) {
-        let _this = this;
-        let url = _this.url + '/delete';
-        let data = {'id': id  }
-        let fnsuccess = function (res) {
-          if (res.success) {
-            Notify.success('삭제되었습니다.');
-            _this.searchMainData();
-          } else {
-            Alert.alert('', res.message);
-          }
-        };
-
-        AjaxUtil.postAsyncData(url, data, fnsuccess);
-      }
 
       searchMainData() {
         let _this = this;
         let date_kind = $('#cboDateKind').val();  //발주구분
         let start = $('#srchStartDt').val();  //시작일
         let end = $('#srchEndDt').val();      //종료일
+        let txtClt = $('#txtClt').val(); //발주처
+        let txtActnm = $('#txtActnm').val(); //현잔 명
         let url = this.url + '/read';
 
+        const sessionDate = sessionStorage.getItem("sessionDate");
+        const sessionAN = sessionStorage.getItem("sessionAN");
+        if (sessionDate && /^\d{8}$/.test(sessionDate)) {
+          const formattedDate = sessionDate.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');
+          $("#srchStartDt").val(formattedDate);
+          $("#srchEndDt").val(formattedDate);
+        }
+        if (sessionAN) {
+          $("#txtActnm").val(sessionAN);
+        }
+
         let data = {
+          'clt': txtClt,
+          'actnm': txtActnm,
           'date_kind': date_kind,
           'start': start,
           'end': end,
-          'action': 'read',
-          spjangcd: this.spjangcd.val()
+          'action': 'read'
         };
 
         let fnsuccess = function (result) {
-          if (result != null) {
-            _this.viewData.sourceCollection = result.data;
+          if (result && Array.isArray(result.data)) {
+            _this.viewData = new wijmo.collections.CollectionView(result.data, {
+              sortDescriptions: [
+                {property: 'BALJUNUM', ascending: true},
+                {property: 'BALJUSEQ', ascending: true}
+              ],
+              groupDescriptions: [
+                new wijmo.collections.PropertyGroupDescription('BALJUNUM', item => {
+                  return `주문번호: ${item.BALJUNUM} / 발주처: ${item.ACTNM} / 총금액: ${item.TOTAL_PAMT?.toLocaleString() ?? 0}원`;
+                })
+              ]
+            });
+
+            _this.grid.itemsSource = _this.viewData;
           }
         };
         AjaxUtil.getAsyncData(url, data, fnsuccess);
+
+        sessionStorage.removeItem("tabAction");
+        sessionStorage.removeItem("sessionDate");
+        sessionStorage.removeItem("sessionPN");
+        sessionStorage.removeItem("sessionAN");
       }
     }
 

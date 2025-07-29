@@ -30,7 +30,10 @@ public class WebMvcConfig implements WebMvcConfigurer{
         registry.addResourceHandler("/editorFile/**")
                 .addResourceLocations("file:///c:/temp/editorFile/");
         registry.addResourceHandler("/baljuFile/**")
-            .addResourceLocations("file:///C:/Temp/mes21/외주발주서/");
+            .addResourceLocations(
+                "file:///C:/Temp/mes21/외주발주서/",
+                "file:///C:/Temp/mes21/구매품의서/"
+            );
 
     }
 

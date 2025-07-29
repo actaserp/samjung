@@ -23,9 +23,10 @@ public class BaljuOrderService {
   @Autowired
   SqlRunner sqlRunner;
 
-  public List<Map<String, Object>> getBaljuList(String date_kind, Timestamp start, Timestamp end, String spjangcd) {
+  public List<Map<String, Object>> getBaljuList(String date_kind, Timestamp start, Timestamp end, String spjangcd,String CompanyName) {
     MapSqlParameterSource param = new MapSqlParameterSource();
 
+    param.addValue("CompanyName", CompanyName);
     param.addValue("spjangcd", spjangcd);
     param.addValue("start", start);
     param.addValue("end", end);
@@ -83,6 +84,10 @@ WITH main_data AS (
       sql += " AND h.BALJUDATE BETWEEN :start AND :end ";
     } else {
       sql += " AND h.ICHDATE BETWEEN :start AND :end ";
+    }
+    if (CompanyName != null && !CompanyName.isEmpty()) {
+      sql += " and h.ACTNM like :CompanyName ";
+      param.addValue("CompanyName", "%" + CompanyName + "%");
     }
 
     sql += """
@@ -147,6 +152,7 @@ WITH main_data AS (
         h.remark01,
         h.remark02,
         h.remark01,
+        h.remark03,
         d.BALJUSEQ,
         d.pcode,
         d.procd ,
@@ -198,6 +204,7 @@ WITH main_data AS (
     header.put("cltemail", first.get("cltemail"));
     header.put("remark01", first.get("remark01"));
     header.put("remark02", first.get("remark02"));
+    header.put("remark03", first.get("remark03"));
 
 // items 처리
     List<Map<String, Object>> items = new ArrayList<>();
@@ -298,5 +305,32 @@ WITH main_data AS (
 //    log.info("SQL Parameters: {}", dicParam.getValues());
     return sqlRunner.getRows(sql, dicParam);
   }
+
+  public Map<String, Object> getUserItem(String userId) {
+    MapSqlParameterSource dicParam = new MapSqlParameterSource();
+    dicParam.addValue("userId", userId);
+
+    String sql = """
+        select
+         j.rspcd ,
+          c.divinm ,
+         p.RSPNM ,
+         j.perid ,
+         j.pernm ,
+         j.handphone as handphone,
+         j.divicd
+        FROM 
+            tb_xusers u
+        LEFT JOIN tb_ja001 j ON j.perid = CONCAT('p', u.perid)
+         left join tb_pz001 p on j.spjangcd = p.SPJANGCD and j.rspcd = p.RSPCD
+         left join tb_jc002 c on j.divicd  = c.divicd and j.spjangcd = c.spjangcd\s
+         left join tb_xa012 t on j.spjangcd = t.spjangcd
+         where j.rtclafi = '001'and u.userid =:userId 
+        """;
+//    log.info("발주 getUserItem 데이터 SQL: {}", sql);
+//    log.info("SQL Parameters: {}", dicParam.getValues());
+    return sqlRunner.getRow(sql, dicParam);
+  }
+
 
 }

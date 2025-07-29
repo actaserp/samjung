@@ -18,7 +18,7 @@
 
     <section class="section">
       <div class="section-top">
-        <div class="search-wrap">
+        <div class="search-wrap" >
           <input type="hidden" id="spjangcdHidden" name="spjangcd"/>
           <dl>
             <dt>
@@ -52,7 +52,19 @@
               </ul>
             </dd>
           </dl>
-
+          <dl>
+            <dt>
+              <label for="searchCompanyName">
+                발주처<span class="eq">*</span>
+              </label>
+            </dt>
+            <dd>
+              <div class="srch-box">
+                <input type="text" id="searchCompanyName" name="searchCompanyName" class="input-srch"
+                       placeholder="발주처" style="border-radius: 5px; width: 120px;">
+              </div>
+            </dd>
+          </dl>
           <dl>
             <dt>&nbsp;</dt>
             <dd>
@@ -492,8 +504,63 @@
     </div>
   </script>
 
-</th:block>
+  <div class="dashboard-layout-popup">
+    <div class="popup-overlay" id="popup1"></div>
+    <div class="popup-wrapper" id="wrapper1">
+      <div class="popup-title">
+        <h3>파일 미리보기</h3>
+        <input type="hidden" id="searchExcelType" value="">
+        <a onclick="NewClose()" title="팝업닫기" class="btn-popup-close">
+          <img src="/images/icon/btn-popup-close.svg" alt="닫기">
+        </a>
+      </div>
+      <div class="popup-contents">
+        <form id="searchExcelForm" autocomplete="off">
+          <div class="table-wrap">
+            <table class="view-table" id="selectedData" style="max-height: 760px;">
+              <caption>파일 미리보기</caption>
+              <colgroup>
+                <col class="wp20">
+                <col class="wauto">
+                <col class="wp20">
+                <col class="wauto">
+              </colgroup>
+              <tbody>
+              <tr>
+                <td colspan="5">
+                  <div id="pdfWrapper" style="display: flex;">
+                    <div id="pdfView" class="tab-item wp100" style="display: block;">
+                      <div id="pdfContainer" style="
+                              width: 100%;
+                              height: auto;
+                              padding: 10px;
+                              background: #f8f9fa;
+                              overflow-y: auto;
+                              max-height: 500px;">
+                        <!-- PDF 페이지가 동적으로 추가됩니다. -->
+                        <div id="loadingSpinner" style="display: none;">
+                          <div class="spinner"></div>
+                          <p>PDF를 불러오는 중입니다...</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </form>
+      </div>
+      <div class="popup-button">
+        <button type="button" class="btn-navy btn-reject" id="btnDownloadExcel">엑셀 다운로드</button>
+        <button type="button" class="btn-popup-close" id="popuopClean" >종료</button>
+      </div>
+    </div>
+  </div>
 
+
+</th:block>
 <th:block layout:fragment="scripts">
   <!--<th:block th:replace="/common/columns_setting :: columns_setting"></th:block>-->
   <th:block th:replace="/common/multiform_material :: multiform_material"></th:block>
@@ -600,6 +667,7 @@
       constructor() {
         this.url = '/api/balju/balju_order';
         this.grid = null;
+        this.baljuResponse = null;
         this.$btnEdit = $('#btnEdit');
         this.$btnAddNew = $('#btnAddNew');
         this.$btnMail = $('#btnMail');
@@ -735,8 +803,10 @@
           }
         });
 
+        //구매품의서
         $('#btnPrinted').click(function (e) {
           const grid = wijmo.Control.getControl('#theGrid'); // FlexGrid 인스턴스
+          let csrfToken = $("[name=_csrf]").val();
           const selectedItem = grid?.selectedItems?.[0];
 
           if (!selectedItem || !selectedItem.BALJUNUM) {
@@ -746,21 +816,57 @@
 
           const baljunum = selectedItem.BALJUNUM;
 
-          const data = {
-            baljunum: baljunum
-          };
+          // iframe 내부에서 부모의 로딩바 보여주기
+          if (parent && parent.showLoader) {
+            parent.showLoader();
+          }
 
-          const url = '/print/purchase'; // 서버에서 처리할 URL
+          $.ajax({
+            url: '/api/balju/balju_order/print/balJuPrinted',
+            type: 'POST', // POST 방식
+            data: {
+              BALJUNUM: baljunum
+            },
+            headers: {
+              'X-CSRF-TOKEN': csrfToken
+            },
+            success: function (response) {
+              if (response.success && response.pdfUrl) {
+                window.baljuResponse = response;
 
-          AjaxUtil.postAsyncData(url, data, function (response) {
-            if (response.success && response.downloadUrl) {
-              // 서버에서 출력파일 URL 반환 시 다운로드 또는 새 창 열기
-              window.open(response.downloadUrl, '_blank');
-            } else {
-              Alert.alert('', '출력 중 오류가 발생했습니다.');
+                // ✅ iframe 생성 + 로드 완료 시 로딩바 숨김
+                const iframe = document.createElement('iframe');
+                iframe.src = response.pdfUrl;
+                iframe.width = '100%';
+                iframe.height = '500px';
+                iframe.style.border = 'none';
+                iframe.onload = function () {
+                  // 로딩 끝났을 때 로딩바 숨기기
+                  if (parent && parent.hideLoader) {
+                    parent.hideLoader();
+                  }
+
+                };
+
+                $('#pdfContainer').empty().append(iframe);
+                $('#popup1').show();
+                $('#wrapper1').show();
+              } else {
+                // 로딩 끝났을 때 로딩바 숨기기
+                if (parent && parent.hideLoader) {
+                  parent.hideLoader();
+                }
+
+                Alert.alert('', 'PDF 미리보기에 실패했습니다.');
+              }
+            },
+            error: function () {
+              Alert.alert('', '서버와의 통신 중 오류가 발생했습니다.');
             }
           });
-        });//구매 품의서 프린트
+
+        });//구매품의서
+
 
         $('#btnbaljuPrinted').click(function (e) {
           const grid = wijmo.Control.getControl('#theGrid'); // FlexGrid 인스턴스
@@ -773,6 +879,10 @@
           }
 
           const baljunum = selectedItem.BALJUNUM;
+          // iframe 내부에서 부모의 로딩바 보여주기
+          if (parent && parent.showLoader) {
+            parent.showLoader();
+          }
 
           $.ajax({
             url: '/api/balju/balju_order/print/balJuPurchase',
@@ -784,10 +894,31 @@
               'X-CSRF-TOKEN': csrfToken
             },
             success: function (response) {
-              if (response.success && response.downloadUrl) {
-                window.open(response.downloadUrl, '_blank'); // ✅ 엑셀 열기 or 저장
+              if (response.success && response.pdfUrl) {
+                window.baljuResponse = response;
+
+                // ✅ iframe 생성 + 로드 완료 시 로딩바 숨김
+                const iframe = document.createElement('iframe');
+                iframe.src = response.pdfUrl;
+                iframe.width = '100%';
+                iframe.height = '500px';
+                iframe.style.border = 'none';
+                iframe.onload = function () {
+                  // 로딩 끝났을 때 로딩바 숨기기
+                  if (parent && parent.hideLoader) {
+                    parent.hideLoader();
+                  }
+                };
+                $('#pdfContainer').empty().append(iframe);
+                $('#popup1').show();
+                $('#wrapper1').show();
               } else {
-                Alert.alert('', '출력 중 오류가 발생했습니다.');
+                // 로딩 끝났을 때 로딩바 숨기기
+                if (parent && parent.hideLoader) {
+                  parent.hideLoader();
+                }
+
+                Alert.alert('', 'PDF 미리보기에 실패했습니다.');
               }
             },
             error: function () {
@@ -795,10 +926,23 @@
             }
           });
 
-        });//외주발주서 프린트
+        });//외주발주서
+
+        $('#btnDownloadExcel').click(function () {
+          if (window.baljuResponse && window.baljuResponse.downloadUrl) {
+            window.open(window.baljuResponse.downloadUrl, '_blank');
+          } else {
+            Alert.alert('', '엑셀 파일이 준비되지 않았습니다.');
+          }
+        });
+        $('#popuopClean').click(function () {
+          $('#popup1').hide();
+          $('#wrapper1').hide();
+          $('#pdfContainer').empty();
+          window.baljuResponse = undefined;
+        });
 
       }//init
-
       showBaljuForm(data) {
         //baljuTemplate
         let _this = this;
@@ -1603,9 +1747,11 @@
         let date_kind = $('#cboDateKind').val();  //발주구분
         let start = $('#srchStartDt').val();  //시작일
         let end = $('#srchEndDt').val();      //종료일
+        let CompanyName  = $('#searchCompanyName').val();
         let url = this.url + '/read';
 
         let data = {
+          'CompanyName' :CompanyName,
           'date_kind': date_kind,
           'start': start,
           'end': end,
@@ -1621,6 +1767,7 @@
         AjaxUtil.getAsyncData(url, data, fnsuccess);
       }
     }
+
     function isRowEmpty($row) {
       return $row.find('input[type="text"], input[type="number"]').filter(function () {
         return $(this).val().trim() !== '';
@@ -1651,7 +1798,6 @@
       // 4개 이상이면 정상 삭제
       $targetRow.remove();
     }
-
 
     function formatNumberInput(inputValue, targetSelector) {
       let cleaned = inputValue.replace(/[^0-9]/g, '').replace(/,/g, '');// 숫자만 남기기

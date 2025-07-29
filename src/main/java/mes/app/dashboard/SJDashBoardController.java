@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/sjdashboard")
@@ -95,6 +96,68 @@ public class SJDashBoardController {
         result.data = items;
         return result;
     }
+
+    @GetMapping("/read_month_gantt")
+    private AjaxResult getListMonthGantt(@RequestParam("startDate") String startDate,
+                                         @RequestParam("endDate") String endDate,
+                                         Authentication auth) {
+
+        String search_startDate = startDate.replaceAll("-", "");
+        String search_endDate = endDate.replaceAll("-", "");
+
+        List<Map<String, Object>> items = this.dashBoardService.getListGantt(search_startDate, search_endDate, null);
+        items.sort(Comparator.comparing(m -> m.get("start").toString())); // start = BPDATE
+
+        // 프로젝트명 + 현장명 기준 그룹핑 (title 값 그대로 쓰면 중복 방지됨)
+        Map<String, List<Map<String, Object>>> groupedByTitle = items.stream()
+                .collect(Collectors.groupingBy(
+                        item -> item.get("title").toString(), // title = "프로젝트 - 현장명 (상태)"
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        List<Map<String, Object>> ganttEvents = new ArrayList<>();
+
+        for (Map.Entry<String, List<Map<String, Object>>> entry : groupedByTitle.entrySet()) {
+            List<Map<String, Object>> records = entry.getValue();
+            if (records.isEmpty()) continue;
+
+            Map<String, Object> row = records.get(0); // 모든 필드가 하나의 row에 포함됨
+
+            String title = row.get("title").toString();
+            String start = row.get("start").toString(); // BPDATE
+            String end = row.get("end") != null ? row.get("end").toString() : start;
+            String ordflag = row.get("ordflag") != null ? row.get("ordflag").toString() : "미정";
+
+            Map<String, Object> event = new HashMap<>();
+            event.put("title", title);
+            event.put("start", start);
+            event.put("end", end);
+            event.put("ordflag", ordflag);
+
+            ganttEvents.add(event);
+        }
+
+        AjaxResult result = new AjaxResult();
+        result.data = ganttEvents;
+        return result;
+    }
+
+    @GetMapping("/read_day")
+    private AjaxResult getListDay(@RequestParam(value = "date", required = false) String date,
+                               @RequestParam(value = "search_type", required = false) String searchType,
+                               Authentication auth) {
+
+        String search_date = (date).replaceAll("-", "");
+
+        List<Map<String, Object>> items = this.dashBoardService.getListDay(search_date, searchType);
+
+        AjaxResult result = new AjaxResult();
+        result.data = items;
+
+        return result;
+    }
+
 
 
 

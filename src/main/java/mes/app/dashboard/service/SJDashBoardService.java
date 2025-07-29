@@ -7,6 +7,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -380,6 +382,147 @@ public class SJDashBoardService {
 
         return this.sqlRunner.getRows(sql.toString(), dicParam);
     }
+
+    public List<Map<String, Object>> getListGantt(String startDate, String endDate, String searchType) {
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+
+        // 오늘 날짜 yyyyMMdd
+        String today = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+        dicParam.addValue("today", today);
+
+        StringBuilder sql = new StringBuilder("""
+        SELECT
+            CONCAT(
+                P.PROJECT_NM,
+                CASE WHEN C.ACTNM IS NOT NULL THEN ' - ' + C.ACTNM ELSE '' END,
+                ' (',
+                CASE
+                    WHEN C.PROCD IS NULL THEN '프로젝트 등록'
+                    WHEN MAX(D.HYUNFLAG) = '1' THEN '현장확인'
+                    WHEN MAX(D.FACFLAG) = '1' THEN '공장출고'
+                    WHEN MAX(D.CHULFLAG) = '1' THEN '발주출고'
+                    ELSE '발주등록'
+                END,
+                ')'
+            ) AS title,
+
+            P.BPDATE AS start,
+
+            CONVERT(VARCHAR(10),
+                ISNULL(
+                    MAX(NULLIF(D.HYUNDATE, '')),
+                    ISNULL(NULLIF(C.ICHDATE, ''), :today)
+                ), 112
+            ) AS [end],
+
+            CASE
+                WHEN C.PROCD IS NULL THEN '프로젝트 등록'
+                WHEN MAX(D.HYUNFLAG) = '1' THEN '현장확인'
+                WHEN MAX(D.FACFLAG) = '1' THEN '공장출고'
+                WHEN MAX(D.CHULFLAG) = '1' THEN '발주출고'
+                ELSE '발주등록'
+            END AS ordflag
+
+        FROM TB_CA664 P
+        LEFT JOIN TB_CA660 C ON C.PROCD = P.PROJECT_NO
+        LEFT JOIN TB_CA661 D ON D.BALJUNUM = C.BALJUNUM
+        WHERE 1=1
+    """);
+
+        if (startDate != null && !startDate.isEmpty()) {
+            sql.append("""
+            AND (
+                P.BPDATE >= :startDate OR
+                C.BALJUDATE >= :startDate
+            )
+        """);
+            dicParam.addValue("startDate", startDate);
+        }
+
+        if (endDate != null && !endDate.isEmpty()) {
+            sql.append("""
+            AND (
+                P.BPDATE <= :endDate OR
+                C.BALJUDATE <= :endDate
+            )
+        """);
+            dicParam.addValue("endDate", endDate);
+        }
+
+        sql.append("""
+        GROUP BY P.PROJECT_NM, P.BPDATE, C.ACTNM, C.PROCD, C.ICHDATE, C.BALJUDATE
+        ORDER BY P.BPDATE
+    """);
+
+        return this.sqlRunner.getRows(sql.toString(), dicParam);
+    }
+
+    public List<Map<String, Object>> getListDay(String date, String searchType) {
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+        dicParam.addValue("date", date);
+        dicParam.addValue("searchType", searchType);
+
+        StringBuilder sql = new StringBuilder("""
+        SELECT
+            t.ordflag,
+            t.reqdate,
+            t.project_nm,
+            t.actnm,
+            t.ichdate
+        FROM (
+            SELECT
+                CASE
+                    WHEN C.PROCD IS NULL THEN '프로젝트 등록'
+                    WHEN MAX(D.HYUNFLAG) = '1' THEN '현장-확인완료'
+                    WHEN MAX(D.FACFLAG) = '1' THEN '공장-출고완료'
+                    WHEN MAX(D.CHULFLAG) = '1' THEN '발주처-출고완료'
+                    ELSE '발주등록'
+                END AS ordflag,
+
+                P.BPDATE AS reqdate,  -- 시작일
+                P.PROJECT_NM AS project_nm,
+                C.ACTNM AS actnm,
+
+                -- 종료일: HYUNDATE > ICHDATE > 오늘날짜
+                CONVERT(VARCHAR(8), 
+                    ISNULL(
+                        MAX(NULLIF(D.HYUNDATE, '')),
+                        ISNULL(NULLIF(C.ICHDATE, ''), CONVERT(VARCHAR(8), GETDATE(), 112))
+                    ), 112
+                ) AS ichdate
+
+            FROM TB_CA664 P
+            LEFT JOIN TB_CA660 C ON C.PROCD = P.PROJECT_NO
+            LEFT JOIN TB_CA661 D ON D.BALJUNUM = C.BALJUNUM
+
+            GROUP BY P.BPDATE, P.PROJECT_NM, C.ACTNM, C.PROCD, C.ICHDATE
+        ) t
+        WHERE 1=1
+          AND t.reqdate <= :date
+          AND t.ichdate >= :date
+    """);
+
+        if (searchType != null && !searchType.isEmpty()) {
+            List<String> flags = switch (searchType) {
+                case "1" -> List.of("프로젝트 등록");
+                case "2" -> List.of("발주등록");
+                case "3" -> List.of("발주처-출고완료", "발주처-부분출고");
+                case "4" -> List.of("공장-출고완료", "공장-부분출고");
+                case "5" -> List.of("현장-확인완료", "현장-부분확인");
+                default -> List.of();
+            };
+
+            if (!flags.isEmpty()) {
+                String inClause = flags.stream()
+                        .map(flag -> "'" + flag + "'")
+                        .collect(Collectors.joining(", "));
+                sql.append(" AND t.ordflag IN (" + inClause + ")");
+            }
+        }
+
+        return this.sqlRunner.getRows(sql.toString(), dicParam);
+    }
+
 
 
 }

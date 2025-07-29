@@ -91,60 +91,6 @@
             <!-- 오른쪽: 현황 카드 및 그리드 (40%) -->
             <div style="flex: 4; display: grid; flex-direction: column;">
 
-                <!-- 상단 카드 섹션 -->
-                <section style="box-sizing: border-box;margin-bottom: 0;">
-                    <div style="margin-bottom: 15px">
-                        <h3 id="year-status"></h3>
-                    </div>
-                    <div class="tab-contents">
-                        <div class="row">
-                            <div class="section-card-wrap"
-                                 style="display: flex; align-items: stretch; flex-wrap: nowrap; gap: 5px;">
-                                <section class="fetchCard" data-search-type="1"
-                                         style="background-color: #37474F; color: #fff; flex: 0.5; padding: 5px;">
-                                    <div class="title"><h3>프로젝트 등록</h3></div>
-                                    <div class="projectCnt" style="font-size: 32px; text-align: right; font-weight: 700;">
-                                        -<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>
-                                    </div>
-                                </section>
-
-                                <section class="fetchCard" data-search-type="2"
-                                         style="background-color: #00695C; color: #fff; flex: 0.5; padding: 5px;">
-                                    <div class="title"><h3>발주등록</h3></div>
-                                    <div class="baljuCnt" style="font-size: 32px; text-align: right;">
-                                        -<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>
-                                    </div>
-                                </section>
-
-                                <section class="fetchCard" data-search-type="3"
-                                         style="background-color: #283593; color: #fff; flex: 0.5; padding: 5px;">
-                                    <div class="title"><h3>발주출고</h3></div>
-                                    <div class="chulCnt" style="font-size: 32px; text-align: right;">
-                                        -<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>
-                                    </div>
-                                </section>
-
-                                <section class="fetchCard" data-search-type="4"
-                                         style="background-color: #512DA8; color: #fff; flex: 0.5; padding: 5px;">
-                                    <div class="title"><h3>공장출고</h3></div>
-                                    <div class="facCnt" style="font-size: 32px; text-align: right;">
-                                        -<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>
-                                    </div>
-                                </section>
-
-                                <section class="fetchCard" data-search-type="5"
-                                         style="background-color: #6D4C41	; color: #fff; flex: 0.5; padding: 5px;">
-                                    <div class="title"><h3>현장확인</h3></div>
-                                    <div class="hyunCnt" style="font-size: 32px; text-align: right;">
-                                        -<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>
-                                    </div>
-                                </section>
-                            </div>
-                        </div>
-
-                    </div>
-                </section>
-
                 <!-- 하단 그리드 섹션 -->
                 <section style="flex: 1; box-sizing: border-box;">
                     <div class="tab-item-sub" id="tab1_2">
@@ -155,7 +101,7 @@
                                     <dd>
                                         <ul class="date-box">
                                             <li><input type="date" id="startDate" name="startDate"></li>
-                                            <li><input type="date" id="endDate" name="endDate"></li>
+                                            <li><input type="date" id="endDate" name="endDate" style="display: none;"></li>
                                             <li>
                                                 <a class="btn btn-delete" id="btn-srch"
                                                    onclick="fetchListData();">
@@ -169,7 +115,7 @@
                         </div>
                         <div class="container-fluid" style="padding-left: 0; padding-right: 0;">
                             <div class="col-12" style="margin-bottom: 10px;">
-                                <div id="theGrid" style="width: 100%; height: 490px;"></div>
+                                <div id="theGrid" style="width: 100%; height: 672px;"></div>
                             </div>
                         </div>
                     </div>
@@ -223,11 +169,10 @@
         function fetchListData(searchTypeValue) {
             let data2 = []; // 데이터를 담을 배열
             $.ajax({
-                url: '/api/sjdashboard/read',
+                url: '/api/sjdashboard/read_day',
                 type: 'GET',
                 data: {
-                    'startDate': $('#startDate').val(),
-                    'endDate': $('#endDate').val(),
+                    'date': $('#startDate').val(),
                     'search_type': searchTypeValue
                 },
                 async: false,
@@ -304,18 +249,12 @@
                     datesSet: function (info) {
                         const centerDate = calendar.getDate();
                         const currentYear = centerDate.getFullYear();
-                        document.getElementById('year-status').innerText = `${currentYear}년 현황`;
                         const start = info.startStr.replaceAll('-', '');
                         const end = new Date(info.end - 1).toISOString().slice(0, 10).replaceAll('-', '');
 
                         // 보이는 월의 내역 카운트
                         fetchCalendarEvents(start, end);
 
-                        // 보이는 년도의 내역 카운트
-                        if (prevYear !== currentYear) {
-                            fetchYearCount(currentYear);
-                            prevYear = currentYear;
-                        }
                     },
                     dateClick: function (info) {
                         document.getElementById("startDate").value = info.dateStr;
@@ -324,7 +263,7 @@
                     },
                     events: [] // 기본 이벤트는 빈 배열로 설정
                 });
-
+                calendar.render(); // 캘린더 렌더링
                 // 공휴일 데이터 가져오기
                 fetchHolidays().then(holidays => {
                     console.log("holidays : ", holidays)
@@ -338,10 +277,7 @@
                             extendedProps: { isHoliday: true }
                         });
                     });
-                    setTimeout(() => {
-                        calendar.render(); // 캘린더 렌더링
-                        console.log('캘린더가 렌더링되었습니다.');
-                    }, 500); // 500ms 딜레이
+
                 }).catch(error => {
                     console.error('공휴일 데이터를 가져오는 데 실패했습니다:', error);
                 });
@@ -366,26 +302,35 @@
         // 주문현황 데이터를 가져오는 함수
         function fetchCalendarEvents(start, end) {
             $.ajax({
-                url: '/api/sjdashboard/read_month',
+                url: '/api/sjdashboard/read_month_gantt',
                 type: 'GET',
                 data: { startDate: start, endDate: end },
                 success: function (res) {
                     const colorMap = {
-                        '프로젝트 등록': { bg: '#37474F', border: '#263238' },
-                        '발주등록': { bg: '#00695C', border: '#004D40' },
-                        '발주출고': { bg: '#283593', border: '#1A237E' },
-                        '공장출고': { bg: '#512DA8', border: '#311B92' },
-                        '현장확인': { bg: '#6D4C41', border: '#4E342E' }
+                        '프로젝트 등록': { bg: 'rgba(55, 71, 79, 0.6)', border: '#263238' },
+                        '발주등록': { bg: 'rgba(0, 105, 92, 0.6)', border: '#004D40' },
+                        '발주출고': { bg: 'rgba(40, 53, 147, 0.6)', border: '#1A237E' },
+                        '공장출고': { bg: 'rgba(81, 45, 168, 0.6)', border: '#311B92' },
+                        '현장확인': { bg: 'rgba(109, 76, 65, 0.6)', border: '#4E342E' }
                     };
 
+                    const today = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+
                     const events = res.data.map(item => {
-                        // title 접두사만 추출
-                        const baseTitle = Object.keys(colorMap).find(prefix => item.title.startsWith(prefix));
-                        const color = colorMap[baseTitle] || { bg: '#00aaff', border: '#0077aa' };
+                        const baseTitle = Object.keys(colorMap).find(prefix => item.ordflag?.startsWith(prefix)) || '';
+                        let color = colorMap[baseTitle] || { bg: '#00aaff', border: '#0077aa' };
+
+                        const endDate = item.end;
+                        const isOverdue = endDate < today && item.ordflag !== '현장확인';
+
+                        if (isOverdue) {
+                            color = { bg: 'rgba(211, 47, 47, 0.6)', border: '#B71C1C' }; // 밝은 빨간 배경
+                        }
 
                         return {
                             title: item.title,
                             start: item.start.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'),
+                            end: item.end.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'),
                             backgroundColor: color.bg,
                             borderColor: color.border,
                             textColor: 'white'
@@ -434,51 +379,6 @@
                 };
 
                 xhr.send();
-            });
-        }
-
-        function fetchYearCount(year) {
-            $.ajax({
-                url: '/api/sjdashboard/yearCount',
-                type: 'GET',
-                data: { year: year },
-                async: false,
-                success: function (data) {
-                    const data2 = data?.data ?? [];
-
-                    // 초기화: 모든 카드에 - 건 표시
-                    $('.projectCnt').html('-<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
-                    $('.baljuCnt').html('-<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
-                    $('.chulCnt').html('-<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
-                    $('.facCnt').html('-<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
-                    $('.hyunCnt').html('-<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>');
-
-                    // 데이터 있을 때만 갱신
-                    data2.forEach(item => {
-                        const cnt = item.ordflag_count;
-                        const html = `${cnt}<span class="small-unit" style="font-size: 0.5em; opacity: 0.5;"> 건</span>`;
-
-                        switch (item.ordflag) {
-                            case '프로젝트 등록':
-                                $('.projectCnt').html(html);
-                                break;
-                            case '발주등록':
-                                $('.baljuCnt').html(html);
-                                break;
-                            case '발주출고':
-                                $('.chulCnt').html(html);
-                                break;
-                            case '공장출고':
-                                $('.facCnt').html(html);
-                                break;
-                            case '현장확인':
-                                $('.hyunCnt').html(html);
-                                break;
-                            default:
-                                console.warn("정의되지 않은 ordflag:", item.ordflag);
-                        }
-                    });
-                }
             });
         }
 

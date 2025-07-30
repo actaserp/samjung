@@ -27,8 +27,7 @@ public class BalJuListServicr {
     paramMap.addValue("end", end);
     paramMap.addValue("spjangcd", spjangcd);
 
-    String sql= """
-        
+    String sql= """     
         SELECT 
           h.BALJUNUM,
           STUFF(STUFF(h.BALJUDATE, 5, 0, '-'), 8, 0, '-') AS BALJUDATE,
@@ -63,9 +62,9 @@ public class BalJuListServicr {
           STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-') AS ichdate,
           h.PERNM,
           h.ACTNM,
-          au1.last_name AS CHULPERNM,
-            au2.last_name AS FACPERNM,
-            au3.last_name AS HYUNPERNM,
+          au3.last_name AS CHULPERNM,
+          au2.last_name AS FACPERNM,
+          au1.last_name AS HYUNPERNM,
              total_amt.TOTAL_PAMT
         FROM TB_CA661 d
         JOIN TB_CA660 h ON d.BALJUNUM = h.BALJUNUM

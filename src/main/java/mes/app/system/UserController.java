@@ -31,6 +31,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @RestController
@@ -427,51 +429,66 @@ public class UserController {
 			}
 
 			String custcd = xa012Opt.get().getId().getCustcd();
-			String fullAddress = address1 + (address2 != null && !address2.isEmpty() ? " " + address2 : "");
-			String newCltcd = generateNewCltcd();
-			Optional<TB_XCLIENT> existingClientOpt = tbXClientRepository.findBySaupnum(userid);
-			TB_XCLIENT tbXClient;
-
-			if (existingClientOpt.isPresent()) {
-				tbXClient = existingClientOpt.get();
-				tbXClient.setPrenm(prenm);
-				tbXClient.setCltnm(cltnm);
-				tbXClient.setBiztypenm(biztypenm);
-				tbXClient.setBizitemnm(bizitemnm);
-				tbXClient.setZipcd(postno);
-				tbXClient.setCltadres(fullAddress);
-				tbXClient.setTelnum(tel);
-				tbXClient.setHptelnum(phone);
-				tbXClient.setAgneremail(email);
-			} else {
-				tbXClient = TB_XCLIENT.builder()
-						.saupnum(userid)
-						.prenm(prenm)
-						.cltnm(cltnm)
-						.biztypenm(biztypenm)
-						.bizitemnm(bizitemnm)
-						.zipcd(postno)
-						.cltadres(fullAddress)
-						.telnum(tel)
-						.hptelnum(phone)
-						.agneremail(email)
-						.id(new TB_XCLIENTId(custcd, newCltcd))
-						.rnumchk("0")
-						.corpperclafi("0")
-						//.cltdv("1")
-						.prtcltnm(cltnm)
-						.foreyn("0")
-						.relyn("O")    		// relyn = O (영문 )
-						//.bonddv("0")
-						.nation("KR")
-						.clttype("2")
-						//.cltynm("0")
-						.build();
+			// address1에 괄호 포함된 전체 주소가 들어오는 경우 자동 분리
+			if ((address2 == null || address2.isBlank()) && address1 != null && address1.contains("(")) {
+				Pattern pattern = Pattern.compile("^(.*?)\\s*\\((.*)\\)$");
+				Matcher matcher = pattern.matcher(address1.trim());
+				if (matcher.matches()) {
+					address1 = matcher.group(1).trim();              // 괄호 앞 주소
+					address2 = "(" + matcher.group(2).trim() + ")";  // 괄호 포함 뒤 주소
+				}
 			}
 
-			tbXClientService.save(tbXClient);
-			System.out.println("TB_XCLIENT 저장 완료");
+			String fullAddress = address1 + (address2 != null && !address2.isEmpty() ? " " + address2 : "");
+			String newCltcd = generateNewCltcd();
 
+			Optional<TB_XCLIENT> existingClientOpt = tbXClientRepository.findBySaupnum(userid);
+			boolean clientExists = existingClientOpt.isPresent();
+			boolean userExists = userRepository.findByUsername(userid).isPresent();
+
+			if (!(clientExists && !userExists)) {
+				TB_XCLIENT tbXClient;
+				if (clientExists) {
+					// 수정
+					tbXClient = existingClientOpt.get();
+					tbXClient.setPrenm(prenm);
+					tbXClient.setCltnm(cltnm);
+					tbXClient.setBiztypenm(biztypenm);
+					tbXClient.setBizitemnm(bizitemnm);
+					tbXClient.setZipcd(postno);
+					tbXClient.setCltadres(fullAddress);
+					tbXClient.setTelnum(tel);
+					tbXClient.setHptelnum(phone);
+					tbXClient.setAgneremail(email);
+				} else {
+					// 신규
+					tbXClient = TB_XCLIENT.builder()
+							.saupnum(userid)
+							.prenm(prenm)
+							.cltnm(cltnm)
+							.biztypenm(biztypenm)
+							.bizitemnm(bizitemnm)
+							.zipcd(postno)
+							.cltadres(fullAddress)
+							.telnum(tel)
+							.hptelnum(phone)
+							.agneremail(email)
+							.id(new TB_XCLIENTId(custcd, newCltcd))
+							.rnumchk("0")
+							.corpperclafi("0")
+							.prtcltnm(cltnm)
+							.foreyn("0")
+							.relyn("X")
+							.nation("KR")
+							.clttype("2")
+							.build();
+				}
+
+			tbXClientService.save(tbXClient);
+//			System.out.println("TB_XCLIENT 저장 완료");
+			} else {
+				log.info("TB_XCLIENT는 이미 존재하고, User는 새로 등록되므로 TB_XCLIENT 저장은 생략됨.");
+			}
 			result.success = true;
 			result.message = isNewUser ? "사용자가 성공적으로 등록되었습니다." : "사용자 정보가 성공적으로 업데이트되었습니다.";
 		} catch (Exception e) {

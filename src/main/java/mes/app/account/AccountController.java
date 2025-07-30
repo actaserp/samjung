@@ -6,6 +6,8 @@ import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -324,16 +326,7 @@ public class AccountController {
 				);
 				jdbcTemplate.execute("SET IDENTITY_INSERT user_profile OFF");
 
-				/*// TB_XA012에서 custcd와 spjangcd로 조회
-				String custcd = "SWSPANEL";
-				List<String> spjangcds = Arrays.asList("ZZ", "YY");
 
-				List<TB_XA012> tbX_A012List = tbXA012Repository.findByCustcdAndSpjangcds(custcd, spjangcds);
-				if (tbX_A012List.isEmpty()) {
-					result.success = false;
-					result.message = "custcd 및 spjangcd에 해당하는 데이터를 찾을 수 없습니다.";
-					return result;
-				}*/
 				Optional<TB_XA012> xa012Opt = tbXA012Repository.findById_Spjangcd(spjangcd);
 
 				if (xa012Opt.isEmpty()) {
@@ -343,39 +336,49 @@ public class AccountController {
 				}
 
 				String custcd = xa012Opt.get().getId().getCustcd();
-
+				// address1에 괄호 포함된 전체 주소가 들어오는 경우 자동 분리
+				if ((address2 == null || address2.isBlank()) && address1 != null && address1.contains("(")) {
+					Pattern pattern = Pattern.compile("^(.*?)\\s*\\((.*)\\)$");
+					Matcher matcher = pattern.matcher(address1.trim());
+					if (matcher.matches()) {
+						address1 = matcher.group(1).trim();              // 괄호 앞 주소
+						address2 = "(" + matcher.group(2).trim() + ")";  // 괄호 포함 뒤 주소
+					}
+				}
 				String fullAddress = address1 + (address2 != null && !address2.isEmpty() ? " " + address2 : "");
 
-				// TB_XCLIENT 저장
+
+				// TB_XCLIENT 저장 전에 중복 체크
+				Optional<TB_XCLIENT> existClient = tbXClientRepository.findBySaupnum(id);
 				String newCltcd = generateNewCltcd();
+				if (existClient.isEmpty()) {
+					TB_XCLIENT tbXClient = TB_XCLIENT.builder()
+							.saupnum(id)
+							.prenm(prenm)
+							.cltnm(cltnm)
+							.biztypenm(biztypenm)
+							.bizitemnm(bizitemnm)
+							.zipcd(postno)
+							.cltadres(fullAddress)
+							.telnum(tel)
+							.hptelnum(phone)
+							.agneremail(email)
+							.id(new TB_XCLIENTId(custcd, newCltcd))
+							.rnumchk("0")
+							.corpperclafi("0")
+							.prtcltnm(cltnm)
+							.foreyn("0")
+							.relyn("X")
+							.nation("KR")
+							.clttype("2")
+							.build();
 
-				TB_XCLIENT tbXClient = TB_XCLIENT.builder()
-						.saupnum(id) // 사업자번호
-						.prenm(prenm) // 대표자명
-						.cltnm(cltnm)	//업체명
-						.biztypenm(biztypenm) // 업태명
-						.bizitemnm(bizitemnm) // 종목명
-						.zipcd(postno) // 우편번호
-						.cltadres(fullAddress) // 주소
-						.telnum(tel) // 전화번호
-						.hptelnum(phone) // 핸드폰번호
-						.agneremail(email) // 담당자 email
-						.id(new TB_XCLIENTId(custcd, newCltcd))
+					tbXClientService.save(tbXClient); // ❗ 중복 없을 때만 저장
 
-						// 기본값 설정된 필드들
-						.rnumchk(String.valueOf(0))                 // rnumchk = 0
-						.corpperclafi(String.valueOf(0))            // corpperclafi = 0 (법인구분, 기본 = 법인)
-						//.cltdv(String.valueOf(1))                   // cltdv = 1 (거래처구분)
-						.prtcltnm(cltnm) 							   // prtcltnm = "인쇄 거래처명 - 거래처명"
-						.foreyn(String.valueOf(0))                  // foreyn = 0
-						.relyn("O")                   									// relyn = O (영문 )
-						//.bonddv(String.valueOf(0))                  // bonddv = 0
-						.nation("KR")               									// nation = "KR"
-						.clttype(String.valueOf(2))                 // clttype = 2 (거래구분)
-						//.cltynm(String.valueOf(0))                  // cltynm = 0 (약명)
-						.build();
-
-				tbXClientService.save(tbXClient); // TB_XCLIENT 저장
+					System.out.println("TB_XCLIENT 저장 완료");
+				} else {
+					System.out.println("TB_XCLIENT 중복 saupnum 존재 → 저장 생략");
+				}
 
 				result.success = true;
 				result.message = "등록이 완료되었습니다." +

@@ -32,13 +32,14 @@ public class BaljuOrderService {
     param.addValue("end", end);
 
     String sql = """
-WITH main_data AS (
+    WITH main_data AS (
         SELECT
             h.BALJUNUM,
             h.CUSTCD,
             h.SPJANGCD,
             STUFF(STUFF(h.BALJUDATE, 5, 0, '-'), 8, 0, '-') AS BALJUDATE,
             h.CLTCD,
+             tx.cltnm ,
             h.PROCD as project_no,
             STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-') as ichdate,
             h.PERNM,
@@ -76,6 +77,7 @@ WITH main_data AS (
         FROM TB_CA660 h
         JOIN TB_CA661 d ON h.BALJUNUM = d.BALJUNUM
         JOIN TB_CA664 p ON p.PROJECT_NO = h.PROCD
+        join TB_XCLIENT tx  on h.CLTCD = tx.cltcd 
         WHERE h.SPJANGCD = :spjangcd
     """;
 
@@ -86,7 +88,7 @@ WITH main_data AS (
       sql += " AND h.ICHDATE BETWEEN :start AND :end ";
     }
     if (CompanyName != null && !CompanyName.isEmpty()) {
-      sql += " and h.ACTNM like :CompanyName ";
+      sql += " and tx.cltnm like :CompanyName ";
       param.addValue("CompanyName", "%" + CompanyName + "%");
     }
 
@@ -95,7 +97,7 @@ WITH main_data AS (
                h.BALJUNUM, h.CUSTCD, h.SPJANGCD, h.BALJUDATE, h.CLTCD, h.ICHDATE,
                h.PERNM, h.PERTELNO, h.ACTCD, h.ACTNM, h.ACTADDRESS,
                h.CLTPERNM, h.CLTJIK, h.CLTTELNO, h.CLTEMAIL,
-               h.PROCD, p.PROJECT_NM, h.REMARK01
+               h.PROCD, p.PROJECT_NM, h.REMARK01, tx.cltnm 
        ),
        first_pmapseq AS (
        SELECT d.BALJUNUM, d.PMAPSEQ, d.PNAME, d.punit

@@ -135,6 +135,7 @@ public class UserService {
                 txc.biztypenm,
                 txc.bizitemnm,
                 txc.prenm,
+                txc.relyn,
                 FORMAT(au.date_joined, 'yyyy-MM-dd') AS date_joined,
                 au.spjangcd ,
                 xa.spjangnm AS spjType
@@ -161,8 +162,9 @@ public class UserService {
         sql+= """
             ORDER by au.date_joined DESC;
             """;
-
-        return sqlRunner.getRows(sql.toString(), params);
+    log.info("업체관리 리스트 SQL: {}", sql);
+    log.info("SQL Parameters: {}", params.getValues());
+        return sqlRunner.getRows(sql, params);
     }
 
     // 사용자 상세정보 조회

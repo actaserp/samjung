@@ -113,7 +113,7 @@ public class TB_XCLIENT {
     private String foreyn; // 내외구분
 
     @Column(name = "relyn")
-    private String relyn; // 거래중지구분
+    private String relyn; // 거래중지구분  영문 대문자(O, X) O: 거래중지, X: 거래중
 
     @Column(name = "hptelnum")
     private String hptelnum; // 핸드폰번호(담당자)

@@ -8,7 +8,7 @@
     <!-- Page Title -->
     <div class="page-title-wrap">
       <div class="left">
-        <h2>사용자 관리</h2><a id="toggleButton" onclick="toggleSearchWrap()"><img
+        <h2>업체 관리</h2><a id="toggleButton" onclick="toggleSearchWrap()"><img
           src="/images/icon/ico-down.png"
           alt="알람 아이콘"></a>
         <!--                <a title="북마크" class="bookmark toggle">-->
@@ -18,7 +18,7 @@
       <ul class="page-navi">
         <li><img src="/images/icon/ico-nav-home.svg" alt="홈아이콘"></li>
         <li>시스템 설정</li>
-        <li>사용자 관리</li>
+        <li>업체 관리</li>
       </ul>
     </div>
     <!-- Select -->
@@ -654,13 +654,17 @@
 
       // 체크박스 초기화 (체크 해제)
       const isActiveCheckbox = document.getElementById('is_active');
+      const RelynCheckbox = document.getElementById('relyn');
       if (isActiveCheckbox) {
         isActiveCheckbox.checked = true;
+      }
+      if (RelynCheckbox) {
+        RelynCheckbox.checked = true;
       }
 
       const selectAuthType = document.getElementById('authType');
       if (selectAuthType) {
-        selectAuthType.value = '1'; //시스템관리자
+        selectAuthType.value = '35'; //발주처
       }
 
       const selectSpjType = document.getElementById('spjType');
@@ -747,6 +751,16 @@
         // 체크박스 값 추가
         const isActiveCheckbox = document.getElementById("is_active");
         formData.append("is_active", isActiveCheckbox ? isActiveCheckbox.checked : false);
+
+        // 사업자 번호 입력값 가져오기
+        const saupnumInput = document.getElementById('userid');
+        const saupnumValue = saupnumInput.value.trim();
+
+        // 사업자 번호가 5자리 이상인지 확인
+        if (saupnumValue.length < 5) {
+          Alert.alert('', '사업자 번호는 최소 5자리 이상이어야 합니다.');
+          return false;
+        }
 
         const userid = $('#userid').val().trim(); // 사용자 아이디 가져오기
         let password;

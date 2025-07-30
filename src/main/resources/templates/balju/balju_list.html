@@ -4,7 +4,7 @@
   <div class="layout-contents">
     <div class="page-title-wrap">
       <div class="left">
-        <h2>외주발주등록</h2>
+        <h2>외주발주현황</h2>
         <a title="북마크" class="bookmark toggle">
           내 메뉴
         </a>
@@ -12,7 +12,7 @@
       <ul class="page-navi">
         <li><img src="/images/icon/ico-nav-home.svg" alt="홈아이콘"></li>
         <li>발주관리</li>
-        <li>외주발주등록</li>
+        <li>외주발주현황</li>
       </ul>
     </div>
 
@@ -278,15 +278,13 @@
 
       searchMainData() {
         let _this = this;
-        let date_kind = $('#cboDateKind').val();  //발주구분
-        let start = $('#srchStartDt').val();  //시작일
-        let end = $('#srchEndDt').val();      //종료일
-        let txtClt = $('#txtClt').val(); //발주처
-        let txtActnm = $('#txtActnm').val(); //현잔 명
         let url = this.url + '/read';
 
-        const sessionDate = sessionStorage.getItem("sessionDate");
+        console.log('searchMainData');
+        const sessionDate = sessionStorage.getItem("sessionIchDate");
         const sessionAN = sessionStorage.getItem("sessionAN");
+        const tabAction = sessionStorage.getItem("tabAction");
+
         if (sessionDate && /^\d{8}$/.test(sessionDate)) {
           const formattedDate = sessionDate.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');
           $("#srchStartDt").val(formattedDate);
@@ -295,6 +293,16 @@
         if (sessionAN) {
           $("#txtActnm").val(sessionAN);
         }
+
+        if (tabAction === "toggle") {
+          $("#cboDateKind").val("delivery").trigger("change"); // 필요 시 change 이벤트
+        }
+
+        let date_kind = $('#cboDateKind').val();  //발주구분
+        let start = $('#srchStartDt').val();  //시작일
+        let end = $('#srchEndDt').val();      //종료일
+        let txtClt = $('#txtClt').val(); //발주처
+        let txtActnm = $('#txtActnm').val(); //현잔 명
 
         let data = {
           'clt': txtClt,
@@ -328,6 +336,7 @@
         sessionStorage.removeItem("sessionDate");
         sessionStorage.removeItem("sessionPN");
         sessionStorage.removeItem("sessionAN");
+        sessionStorage.removeItem("sessionIchDate");
       }
     }
 

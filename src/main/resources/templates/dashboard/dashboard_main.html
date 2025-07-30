@@ -508,6 +508,8 @@
                         sessionStorage.setItem("tabAction", "toggle");
                         sessionStorage.setItem("sessionDate", rowData.reqdate);
                         sessionStorage.setItem("sessionPN", rowData.project_nm);
+
+                        sessionStorage.setItem("sessionIchDate", rowData.ichdate);
                         sessionStorage.setItem("sessionAN", rowData.actnm);
 
                         window.parent.postMessage({

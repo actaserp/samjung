@@ -327,7 +327,7 @@
 
                 // 공휴일 데이터 가져오기
                 fetchHolidays().then(holidays => {
-                    console.log("holidays : ", holidays)
+                    // console.log("holidays : ", holidays);
                     holidays.forEach(holiday => {
                         calendar.addEvent({
                             title: holiday.name, // 공휴일 이름

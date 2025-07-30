@@ -111,20 +111,12 @@ public class UserController {
 	@GetMapping("/detail")
 	public AjaxResult getUserDetail(@RequestParam(value = "id", required = false) String id) {
 		AjaxResult result = new AjaxResult();
-		//log.info("id: {}", id);
+//		log.info("id: {}", id);
 
 		try {
 			if (id != null && !id.isEmpty()) {
 				// ID로 특정 사용자 정보 조회
 				Map<String, Object> userDetail = userService.getUserDetailById(id);
-
-				// fullAddress 분리하여 address1과 address2로 추가
-				if (userDetail.containsKey("fullAddress")) {
-					String fullAddress = (String) userDetail.get("fullAddress");
-					Map<String, String> addressParts = splitAddress(fullAddress);
-					userDetail.put("address1", addressParts.get("address1"));
-					userDetail.put("address2", addressParts.get("address2"));
-				}
 
 				result.success = true;
 				result.data = userDetail;

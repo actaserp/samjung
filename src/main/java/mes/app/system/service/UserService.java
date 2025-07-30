@@ -119,34 +119,31 @@ public class UserService {
         params.addValue("username", username);
         String sql = """
             SELECT
-            au.id,
-            au.last_name,
-            txc.cltnm,
-            au.username AS userid,
-            ug.id AS group_id,
-            au.email,
-            au.tel,
-            au.agencycd,
-            ug.Name AS group_name,
-            au.last_login,
-            up.lang_code,
-            au.is_active,
-            au.Phone,
-            txc.biztypenm,
-            txc.bizitemnm,
-            txc.prenm,
-            FORMAT(au.date_joined, 'yyyy-MM-dd') AS date_joined,
-            au.spjangcd ,
-            xa.spjangnm AS spjType
-            FROM
-                auth_user au
-            LEFT JOIN
-                user_profile up ON up.User_id = au.id
-            LEFT JOIN
-                user_group ug ON ug.id = up.UserGroup_id
-            LEFT JOIN TB_XCLIENT txc
-                ON au.username = txc.saupnum
-            left join tb_xa012 xa on xa.spjangcd = au.spjangcd
+                au.id,
+                au.last_name,
+                txc.cltnm,
+                au.username AS userid,
+                ug.id AS group_id,
+                au.email,
+                au.tel,
+                au.agencycd,
+                ug.Name AS group_name,
+                au.last_login,
+                up.lang_code,
+                au.is_active,
+                au.phone,
+                txc.biztypenm,
+                txc.bizitemnm,
+                txc.prenm,
+                FORMAT(au.date_joined, 'yyyy-MM-dd') AS date_joined,
+                au.spjangcd ,
+                xa.spjangnm AS spjType
+                FROM
+                    TB_XCLIENT txc
+                left join auth_user au on au.username = txc.saupnum 
+                LEFT JOIN user_profile up ON up.User_id = au.id
+                LEFT JOIN user_group ug ON ug.id = up.UserGroup_id
+                left join tb_xa012 xa on xa.spjangcd = au.spjangcd
             WHERE
                 1 = 1  AND au.spjangcd = :spjangcd
             """;
@@ -324,7 +321,7 @@ public class UserService {
         String sql = """
         SELECT 
             au.id ,
-            au.last_name,
+            au.last_name as prenm,
             au.username AS userid,
             au.email,
             au.tel,
@@ -355,7 +352,7 @@ public class UserService {
         LEFT JOIN 
             user_group ug ON ug.id = up.UserGroup_id
         LEFT JOIN 
-            TB_XCLIENT txc ON au.first_name = txc.cltnm 
+          TB_XCLIENT txc ON au.username  = txc.saupnum 
         WHERE 
             au.id = :id
             """;

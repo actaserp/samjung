@@ -6,6 +6,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import lombok.extern.slf4j.Slf4j;
 import mes.app._mes.definition.service.CompanyService;
 import org.apache.groovy.parser.antlr4.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ import mes.domain.entity.User;
 import mes.domain.model.AjaxResult;
 import mes.domain.repository.CompanyRepository;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/definition/company")
 public class CompanyController {

@@ -58,7 +58,9 @@ public class CompanyService {
 		sql += "order by cltcd desc";
 		
 		List<Map<String,Object>> items = this.sqlRunner.getRows(sql, paramMap);
-		
+
+		log.info("업체정보 l;ist 데이터 SQL: {}", sql);
+    log.info("SQL Parameters: {}", paramMap.getValues());
 		return items;
 	}
 	
@@ -69,43 +71,23 @@ public class CompanyService {
 		paramMap.addValue("company_id", companyId);
 		
 		String sql = """
-			select id as id
-            , "Name" as name
-            , "EngName" as eng_name
-            , "Code" as comp_code
-            , "Code2" as comp_code2
-            , "CompanyType"  as company_type
-            , "BusinessNumber" as business_number
-            , "CEOName"  as ceo_name
-            , "ZipCode"  as zip_code
-            , "Address" as address
-            , "TelNumber" as tel_number
-            , "FaxNumber" as fax_number
-            , "BusinessType" as business_type
-            , "BusinessItem" as business_item
-            , "Email" as email
-            , "PurchaseSalesDeadline" as purchase_sales_deadline
-            , "LastTradingDay" as last_trading_day
-            , "OurManager" as our_manager
-            , "SalesManager" as sales_manager
-            , "SalesManagerPhone" as sales_manager_phone
-            , "AccountManager" as account_manager
-            , "AccountManagerPhone" as account_manager_phone
-            --, "CreditSalesLimitAmount" as credit_sales_limit_amount
-            , "TrandingBank" as tranding_bank
-            , "AccountHolder" as account_holder
-            , "AccountNumber" as account_number
-            , "CreditLimitAmount" as credit_limit_amount
-            , "PaymentCondition" as payment_condition
-            , "Description" as description
-            , "Homepage" as homepage
-            , "FirstTradingDay" as first_trading_day
-            , "ReceivableAmount" as receivable_amount
-            , "UnpaidAmount" as unpaid_amount
-            , "ManageRemark" as manage_remark
-            , "GroupName" as group_name
-            from company c 
-            Where id = :company_id
+				select 
+				cltcd as comp_code,
+				cltnm as name,
+				prenm as ceo_name,
+				saupnum,
+				biztypenm  as business_type,
+				bizitemnm as business_item,
+				prenum as comp_code2,
+				telnum as tel_number,
+				faxnum as fax_number,
+				agneremail as email,
+				zipcd as zip_code,
+				cltadres as placeAddress,
+				relyn ,
+				remarks as description 
+				from TB_XCLIENT
+				where cltcd = :company_id
 			""";
 		
 		Map<String, Object> item = this.sqlRunner.getRow(sql, paramMap);

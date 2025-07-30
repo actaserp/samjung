@@ -500,7 +500,7 @@
             {binding: 'biztypenm', header: '업태', width: '*', align: 'center', isReadOnly: true},
             {binding: 'bizitemnm', header: '종목', width: '*', align: 'center', isReadOnly: true},
             {binding: 'tel', header: '전화번호', width: '*', align: 'center', visible: false},
-            {binding: 'Phone', header: '핸드폰', width: '*', align: 'center', visible: true},
+            {binding: 'phone', header: '핸드폰', width: '*', align: 'center', visible: true},
             {binding: 'email', header: '이메일', width: '*', align: 'center', visible: false},
             {binding: 'is_active', header: '활성화', width: '*', align: 'center', isReadOnly: false,},
             {binding: 'spjangcd', header: '사업체명', width: '*', align: 'center',visible: false},
@@ -567,7 +567,7 @@
     function showUserInfo(rowData) {
       // 필드 중 하나라도 비어있는지 확인하여 추가 데이터를 가져올지 결정
       const hasMissingFields = !rowData || !rowData.cltnm || !rowData.prenm || !rowData.biztypenm ||
-        !rowData.bizitemnm || !rowData.userid || !rowData.email || !rowData.spjType;
+        !rowData.bizitemnm || !rowData.userid || !rowData.email || !rowData.spjType || !rowData.address1;
 
       if (hasMissingFields) {
         // 데이터가 불완전하거나 비어 있을 때
@@ -609,7 +609,7 @@
       document.getElementById("biztypenm").value = data.biztypenm || '';
       document.getElementById("bizitemnm").value = data.bizitemnm || '';
       document.getElementById("tel").value = data.tel || '';
-      document.getElementById("Phone").value = data.Phone || '';
+      document.getElementById("Phone").value = data.phone || '';
       document.getElementById("email").value = data.email || '';
 
       // authType(사용자 그룹) 설정
@@ -620,10 +620,9 @@
       document.getElementById("is_active").checked = data.is_active || false;
 
       // 주소 관련 필드 설정
-      const addressParts = splitAddress(data.cltadres || '');
-      document.getElementById("postno").value = data.zipcd || '';
-      document.getElementById("address1").value = addressParts.address1 || '';
-      document.getElementById("address2").value = addressParts.address2 || '';
+      document.getElementById("postno").value = data.postno || '';
+      document.getElementById("address1").value = data.cltadres || '';
+      document.getElementById("address2").value = data.address2 || '';
 
       $('#userid').prop('readonly', true);
     }

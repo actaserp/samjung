@@ -393,129 +393,86 @@
       pdfBlobList = [];
       lastZipBlob = null;
 
-      if(excelType === 'delivery') {
-        // ✅ 이전 PDF 제거
-        container.querySelectorAll("canvas").forEach(canvas => canvas.remove());
+      // ✅ 이전 PDF 제거
+      container.querySelectorAll("canvas").forEach(canvas => canvas.remove());
 
-        // ✅ 스피너 표시 (PDF 전에)
-        spinner.style.display = "flex";
-        const url = `/api/request/request/readVacFile`
-                + `?search_Date=${encodeURIComponent(searchDate)}`
-                + `&search_actnm=${encodeURIComponent(searchActnm)}`;
-        //&spjangcd=${encodeURIComponent(spjangcd)}
-        spinner.style.display = "flex"; // 스피너 보이기
-
-        fetch(url)
-          .then(res => {
-            if (!res.ok) throw new Error("서버 응답 실패!");
-            lastZipBlob = null;  // 초기화
-            return res.blob(); // <- 이거 하나면 됨!
-          })
-          .then(blob => {
-            lastZipBlob = blob;  // zip blob 저장
-            return JSZip.loadAsync(blob);
-          })
-          .then(zip => {
-            const pdfFiles = Object.keys(zip.files).filter(filename => filename.endsWith('.pdf'));
-            if (pdfFiles.length === 0) throw new Error('ZIP 안에 PDF 없음');
-            // N개든, 순서대로 전부 렌더
-            pdfBlobList = [];  // 초기화
-            pdfFiles.forEach(async (filename) => {
-              const pdfData = await zip.files[filename].async('blob');
-              pdfBlobList.push(pdfData);
-              const url = URL.createObjectURL(pdfData);
-              renderPdf(url);
-            });
-          })
-          .catch(() => {
-            spinner.style.display = "none";
-            // 기존 canvas, 에러 메시지(p) 모두 삭제
-            container.querySelectorAll("canvas, .pdf-error-msg").forEach(el => el.remove());
-            // 에러 메시지 추가
-            let errorElem = document.createElement("p");
-            errorElem.className = "pdf-error-msg";
-            errorElem.style.color = "red";
-            errorElem.textContent = '휴가서 양식을 불러올 수 없습니다.';
-            container.appendChild(errorElem);
-          });
-      }else if(excelType === 'prov'){
-        // ✅ 이전 PDF 제거
-        container.querySelectorAll("canvas").forEach(canvas => canvas.remove());
-
-        // ✅ 스피너 표시 (PDF 전에)
-        spinner.style.display = "flex";
-        const url = `/api/request/request/readVacFile2`
-                + `?search_Date=${encodeURIComponent(searchDate)}`
-                + `&search_actnm=${encodeURIComponent(searchActnm)}`;
-        //&spjangcd=${encodeURIComponent(spjangcd)}
-        spinner.style.display = "flex"; // 스피너 보이기
-
-        fetch(url)
-                .then(res => {
-                  if (!res.ok) throw new Error("서버 응답 실패!");
-                  lastZipBlob = null;  // 초기화
-                  return res.blob(); // <- 이거 하나면 됨!
-                })
-                .then(blob => {
-                  lastZipBlob = blob;  // zip blob 저장
-                  return JSZip.loadAsync(blob);
-                })
-                .then(zip => {
-                  const pdfFiles = Object.keys(zip.files).filter(filename => filename.endsWith('.pdf'));
-                  if (pdfFiles.length === 0) throw new Error('ZIP 안에 PDF 없음');
-                  // N개든, 순서대로 전부 렌더
-                  pdfBlobList = [];  // 초기화
-                  pdfFiles.forEach(async (filename) => {
-                    const pdfData = await zip.files[filename].async('blob');
-                    pdfBlobList.push(pdfData);
-                    const url = URL.createObjectURL(pdfData);
-                    renderPdf(url);
-                  });
-                })
-                .catch(() => {
-                  spinner.style.display = "none";
-                  // 기존 canvas, 에러 메시지(p) 모두 삭제
-                  container.querySelectorAll("canvas, .pdf-error-msg").forEach(el => el.remove());
-                  // 에러 메시지 추가
-                  let errorElem = document.createElement("p");
-                  errorElem.className = "pdf-error-msg";
-                  errorElem.style.color = "red";
-                  errorElem.textContent = '휴가서 양식을 불러올 수 없습니다.';
-                  container.appendChild(errorElem);
-                });
-      }
-    }
-    function renderPdf(url) {
-      const container = document.getElementById("pdfContainer");
-      const spinner = document.getElementById("loadingSpinner");
-      // 기존 canvas, 에러 메시지(p) 모두 삭제
-      container.querySelectorAll("canvas, .pdf-error-msg").forEach(el => el.remove());
-
+      // ✅ 스피너 표시 (PDF 전에)
       spinner.style.display = "flex";
 
-      pdfjsLib.getDocument({ url }).promise.then(pdf => {
+      if(excelType === 'delivery') {
+        url = `/api/request/request/readVacFile?search_Date=${encodeURIComponent(searchDate)}&search_actnm=${encodeURIComponent(searchActnm)}`;
+      } else if(excelType === 'prov') {
+        url = `/api/request/request/readVacFile2?search_Date=${encodeURIComponent(searchDate)}&search_actnm=${encodeURIComponent(searchActnm)}`;
+      } else {
         spinner.style.display = "none";
-        console.log("PDF 페이지 개수:", pdf.numPages);
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          pdf.getPage(pageNum).then(page => {
-            const viewport = page.getViewport({ scale: 1.3 });
-            const canvas = document.createElement("canvas");
-            const context = canvas.getContext("2d");
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            container.appendChild(canvas);
-            page.render({
-              canvasContext: context,
-              viewport: viewport
-            });
-          }).catch(err => {
-            console.error("PDF 페이지 렌더링 실패:", err);
-          });
-        }
-      }).catch(error => {
-        spinner.style.display = "none";
-        console.error("❌ PDFjs getDocument 오류:", error);
-        alert("PDF를 표시할 수 없습니다: " + error.message);
+        return;
+      }
+
+      fetch(url)
+              .then(res => {
+                if (!res.ok) throw new Error("서버 응답 실패!");
+                lastZipBlob = null;
+                return res.blob();
+              })
+              .then(blob => {
+                lastZipBlob = blob;
+                return JSZip.loadAsync(blob);
+              })
+              .then(async zip => {
+                const pdfFiles = Object.keys(zip.files)
+                        .filter(filename => filename.endsWith('.pdf'))
+                        .sort((a, b) => { // 파일명에 숫자만 있을 경우 순서 꼬임 방지
+                          const getNum = s => parseInt(s.replace(/\D/g, ''), 10) || 0;
+                          return getNum(a) - getNum(b);
+                        });
+                if (pdfFiles.length === 0) throw new Error('ZIP 안에 PDF 없음');
+                pdfBlobList = [];
+                // 순차적으로 append (비동기 순서 보장)
+                for (const filename of pdfFiles) {
+                  const pdfData = await zip.files[filename].async('blob');
+                  pdfBlobList.push(pdfData);
+                  const url = URL.createObjectURL(pdfData);
+                  await renderPdf(url); // 순서보장!
+                }
+                spinner.style.display = "none";
+              })
+              .catch(() => {
+                spinner.style.display = "none";
+                container.querySelectorAll("canvas, .pdf-error-msg").forEach(el => el.remove());
+                let errorElem = document.createElement("p");
+                errorElem.className = "pdf-error-msg";
+                errorElem.style.color = "red";
+                errorElem.textContent = '휴가서 양식을 불러올 수 없습니다.';
+                container.appendChild(errorElem);
+              });
+    }
+    function renderPdf(url) {
+      return new Promise((resolve, reject) => {
+        const container = document.getElementById("pdfContainer");
+        pdfjsLib.getDocument({ url }).promise.then(pdf => {
+          let pagePromises = [];
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            pagePromises.push(
+                    pdf.getPage(pageNum).then(page => {
+                      const viewport = page.getViewport({ scale: 1.3 });
+                      const canvas = document.createElement("canvas");
+                      const context = canvas.getContext("2d");
+                      canvas.width = viewport.width;
+                      canvas.height = viewport.height;
+                      container.appendChild(canvas); // 하단에 순서대로 append
+                      page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                      });
+                    })
+            );
+          }
+          Promise.all(pagePromises).then(resolve).catch(reject);
+        }).catch(error => {
+          console.error("❌ PDFjs getDocument 오류:", error);
+          alert("PDF를 표시할 수 없습니다: " + error.message);
+          reject(error);
+        });
       });
     }
     // 자재출고 update 메서드

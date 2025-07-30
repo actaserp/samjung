@@ -45,6 +45,7 @@ public class HyunController {
     public AjaxResult getOrderList2(@RequestParam(value = "search_startDate", required = false) String searchStartDate,
                                     @RequestParam(value = "search_endDate", required = false) String searchEndDate,
                                     @RequestParam(value = "searchText", required = false) String searchActnm,
+                                    @RequestParam(value = "search_flag", required = false) String searchFlag,
                                     Authentication auth) {
         User user = (User) auth.getPrincipal();
         String username = user.getUsername();
@@ -55,7 +56,7 @@ public class HyunController {
         String search_startDate = (searchStartDate).replaceAll("-","");
         String search_endDate = (searchEndDate).replaceAll("-","");
         List<Map<String, Object>> items = this.requestService.getOrderList2(
-                search_startDate, search_endDate, searchActnm);
+                search_startDate, search_endDate, searchActnm, searchFlag);
 //        Map<String, Object> headitem = this.requestService.getHeadList(tbDa006WPk);
 //        items.add(headitem);
         if(items != null){

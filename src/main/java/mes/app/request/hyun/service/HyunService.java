@@ -601,12 +601,15 @@ public class HyunService {
     public List<Map<String, Object>> getOrderList2(
             String searchStartDate,
             String searchEndDate,
-            String searchActnm) {
+            String searchActnm,
+            String searchFlag
+    ) {
 
         MapSqlParameterSource dicParam = new MapSqlParameterSource();
         dicParam.addValue("searchStartDate", searchStartDate);
         dicParam.addValue("searchEndDate", searchEndDate);
         dicParam.addValue("searchActnm",  "%" + searchActnm + "%");
+
 
         StringBuilder sql = new StringBuilder("""
                 SELECT
@@ -626,7 +629,6 @@ public class HyunService {
         if (searchStartDate != null && !searchStartDate.isEmpty()) {
             sql.append(" AND hd.BALJUDATE >= :searchStartDate");
         }
-        //
         if (searchEndDate != null && !searchEndDate.isEmpty()) {
             sql.append(" AND hd.BALJUDATE <= :searchEndDate");
         }
@@ -636,6 +638,16 @@ public class HyunService {
         }else{
             return null;
         }
+        // 출고/미출고 구분 필터
+        if (searchFlag != null && !searchFlag.isEmpty()) {
+            if (searchFlag.equals("shipment")) {
+                dicParam.addValue("searchFlag",  "1");
+            }else{
+                dicParam.addValue("searchFlag",  "0");
+            }
+            sql.append(" AND dt.HYUNFLAG = :searchFlag");
+        }
+
         // 정렬 조건 추가
         sql.append(" ORDER BY hd.BALJUDATE ASC");
 

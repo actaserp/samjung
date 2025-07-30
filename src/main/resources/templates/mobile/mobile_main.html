@@ -194,7 +194,7 @@
         </div>
         <div class="srch-cont aco-cont">
           <dl>
-            <dt>조회일자</dt>
+            <dt>발주일자</dt>
             <dd>
               <div style="display: flex; gap: 10px">
                 <div style="width: 45%">
@@ -213,6 +213,16 @@
               <div style="display: flex; gap: 10px">
                 <div style="width: 100%">
                   <input type="text" id="searchActnm">
+                </div>
+              </div>
+            </dd>
+          </dl>
+          <dl>
+            <dt>구분</dt>
+            <dd>
+              <div style="display: flex; gap: 10px">
+                <div style="width: 100%">
+                  <select id="searchFlag"></select>
                 </div>
               </div>
             </dd>
@@ -261,6 +271,11 @@
   $(document).ready(function () {
     document.getElementById('searchFromDate').value = `${year}-${month}-01`;
     document.getElementById('searchToDate').value = `${year}-${month}-${date}`;
+    AjaxUtil.fillSelectOptions($('#searchFlag'), 'system_code', 'all', false, 'delivery_type');
+    const buttons = document.querySelectorAll('.btn-aco');
+    buttons.forEach(button => {
+      button.click();
+    });
   });
   // yy.mm.dd 형식 포멧함수
   function formatDateToYYMMDD(dateStr) {
@@ -272,7 +287,8 @@
     let data = {
       'searchText': document.getElementById('searchActnm').value,
       'search_startDate': document.getElementById('searchFromDate').value,
-      'search_endDate': document.getElementById('searchToDate').value
+      'search_endDate': document.getElementById('searchToDate').value,
+      'search_flag': document.getElementById('searchFlag').value
     };
     let fnsuccess = function (result) {
       console.log('result : ', result);
@@ -287,7 +303,9 @@
         let tableHtml = `
           <table>
               <tr>
-                <th>확인</th>
+                <th>
+                  <input type="checkbox" id="selectAllChk" style="transform: scale(1.2); vertical-align: middle;">
+                </th>
                 <th>현장</th>
                 <th>품명</th>
                 <th>규격</th>
@@ -325,6 +343,7 @@
         // ✅ 기존 내용 제거하고 새롭게 바인딩
         const tableBody = document.querySelector('#theGrid');
         tableBody.innerHTML = tableHtml;
+        setTimeout(syncSelectAllCheckbox, 50);
       } else {
         const tableBody = document.querySelector('#theGrid');
         tableBody.innerHTML = `
@@ -336,16 +355,49 @@
     };
     AjaxUtil.getAsyncData(url, data, fnsuccess);
   }
-  // 체크박스 이벤트 위임 등록
+  // 전체선택 체크박스 이벤트
   document.addEventListener('change', function(e) {
+    // (1) 전체선택 클릭 시
+    if (e.target.id === 'selectAllChk') {
+      const isChecked = e.target.checked;
+      document.querySelectorAll('.chul-checkbox').forEach((chk, idx) => {
+        chk.checked = isChecked;
+        checkItems[idx].HYUNFLAG = isChecked ? 1 : 0;
+        // "발주처확인" 칸 즉시 반영
+        const tr = chk.closest('tr');
+        tr.querySelectorAll('td')[6].innerText = isChecked ? '확인' : '-';
+      });
+    }
+
+    // (2) 각 행 체크박스 클릭 시
     if (e.target.classList.contains('chul-checkbox')) {
       const tr = e.target.closest('tr');
       const idx = parseInt(tr.getAttribute('data-idx'));
       checkItems[idx].HYUNFLAG = e.target.checked ? 1 : 0;
-      // 즉시 테이블의 "발주처확인" 셀 업데이트
       tr.querySelectorAll('td')[6].innerText = e.target.checked ? '확인' : '-';
+
+      // 만약 모든 행 체크박스가 체크됐으면 전체선택도 체크, 아니면 해제
+      const allCheckboxes = document.querySelectorAll('.chul-checkbox');
+      const checkedCount = Array.from(allCheckboxes).filter(chk => chk.checked).length;
+      const selectAll = document.getElementById('selectAllChk');
+      if (checkedCount === allCheckboxes.length) {
+        selectAll.checked = true;
+      } else {
+        selectAll.checked = false;
+      }
     }
   });
+  // 전체확인 checkbox list 데이터 동기화
+  function syncSelectAllCheckbox() {
+    const allCheckboxes = document.querySelectorAll('.chul-checkbox');
+    const selectAll = document.getElementById('selectAllChk');
+    if (!selectAll) return;
+    if (allCheckboxes.length > 0 && Array.from(allCheckboxes).every(chk => chk.checked)) {
+      selectAll.checked = true;
+    } else {
+      selectAll.checked = false;
+    }
+  }
   // 검색버튼 클릭
   function handleSearch() {
     let requiredFields = [

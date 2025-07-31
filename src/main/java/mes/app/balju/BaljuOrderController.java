@@ -580,6 +580,12 @@ public class BaljuOrderController {
     setCell(sheet, offset + 15, 7, String.valueOf(baljuData.get("cltjik")));    //수급자 직위
     setCell(sheet, offset + 15, 8, String.valueOf(baljuData.get("cltpernm")));  //구급자 이름
     setCell(sheet, offset + 15, 13, String.valueOf(baljuData.get("clttelno"))); //연락처
+
+    //특기 사항
+    setCell(sheet, 101, 1, String.valueOf(baljuData.get("remark01")));
+    setCell(sheet, 102, 1, String.valueOf(baljuData.get("remark02")));
+    setCell(sheet, 103, 1, String.valueOf(baljuData.get("remark03")));
+
   }
 
 
@@ -834,8 +840,13 @@ public class BaljuOrderController {
       totalPamt += bindItemRows(sheet, itemsPage2, 76,true);   // B77
 
       // 발주일자 표시 (1, 2페이지 모두)
-      setCell(sheet, 51, 5, formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
-      setCell(sheet, 108, 5, formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
+      setCell(sheet, 51, 6, formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
+      setCell(sheet, 109, 6, formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
+
+      //특기 사항
+      setCell(sheet, 102, 1, String.valueOf(baljuData.get("remark01")));
+      setCell(sheet, 103, 1, String.valueOf(baljuData.get("remark02")));
+      setCell(sheet, 104, 1, String.valueOf(baljuData.get("remark03")));
 
       // 합계 금액 표시 (J101 = row 100, col 9)
       Row totalRow = sheet.getRow(100);

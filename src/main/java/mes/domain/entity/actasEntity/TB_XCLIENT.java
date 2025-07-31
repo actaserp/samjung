@@ -137,7 +137,7 @@ public class TB_XCLIENT {
     private String remarks; // 비고
 
     @Column(name = "clttype")
-    private String clttype; // 거래구분
+    private String clttype; // 거래구분 -->1: 매입, 2: 매출, 3: 공통
 
     @Column(name = "bankcd")
     private String bankcd; // 은행코드

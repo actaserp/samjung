@@ -234,7 +234,7 @@ public class SubRequestController {
                 setCell(sheet, 29, 5, remarkAll.trim()); // F30
 
                 setCell(sheet, 34, 15, (String) head.get("last_name"));              // P35
-                setCell(sheet, 34, 6, (String) head.get("cltnm"));               // G35
+                setCell(sheet, 34, 6, (String) head.get("divinm"));               // G35
                 setCell(sheet, 34, 12, (String) head.get("phone"));                 // M35
                 setCell(sheet, 34, 3, formatToDash((String) head.get("FACDATE")));   // D35 yyyy-mm-dd
                 setCell(sheet, 36, 3, formatToDash((String) head.get("FACDATE")));   // D37

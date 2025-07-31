@@ -510,9 +510,8 @@ public class SubRequestService {
                     hd.*,
                     dt.*,
                     au.last_name,
-                    xc.cltnm,
+                    au.divinm,
                     au.phone
-                
                 FROM
                     TB_CA660 hd
                 JOIN
@@ -521,9 +520,6 @@ public class SubRequestService {
                 JOIN
                     auth_user au
                     ON au.username = dt.FACPERNM
-                JOIN
-                    TB_XCLIENT xc
-                    ON au.username = xc.saupnum
                 WHERE
                     1=1
                 AND dt.FACFLAG = '1'

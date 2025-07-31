@@ -294,7 +294,7 @@
                     isReadOnly: false,
                     selectionMode: wijmo.grid.SelectionMode.Row,
                     columns: [
-                        {binding: 'FACFLAG', header: '자재출고', width: '*', align: 'center', dataType: wijmo.DataType.Boolean},
+                        {binding: 'FACFLAG', header: '자재출고', width: 50, align: 'center', dataType: wijmo.DataType.Boolean},
                         {binding: 'FACDATE', header: '출하일자', width: '*', align: 'center'},
                         {binding: 'ACTNM', header: '현장명', width: '*', align: 'left'},
                         {binding: 'PNAME', header: '품명', width: '*', align: 'left'},
@@ -310,6 +310,14 @@
                     // 헤더를 중앙 정렬하는 이벤트 핸들러
                     if (e.panel === s.columnHeaders) {
                         e.cell.style.textAlign = 'center';
+                    }
+                    // 헤더에만 체크박스 표시
+                    if (e.panel === s.columnHeaders) {
+                        var col = s.columns[e.col];
+                        if (col.binding === 'FACFLAG') {
+                            e.cell.innerHTML = ''; // 기존 텍스트 제거
+                            e.cell.appendChild(headerCheckbox);
+                        }
                     }
                     // FACFLAG 컬럼의 셀에서 값이 null일 경우 체크박스 숨김
                     if (e.panel === s.cells) {
@@ -341,6 +349,39 @@
                 // 이미 FlexGrid이 존재하는 경우, 데이터만 업데이트
                 theGrid.itemsSource = viewdata1;
             }
+            // 전체선택용 헤더 체크박스 생성
+            let headerCheckbox = document.createElement('input');
+            headerCheckbox.type = 'checkbox';
+            headerCheckbox.style.margin = "0";
+            headerCheckbox.id = 'chkSelectAllChulflag';
+
+            // 헤더 체크박스 클릭 시, 모든 FACFLAG 값을 변경
+            headerCheckbox.addEventListener('click', function (e) {
+                let checked = e.target.checked;
+                viewdata1.items.forEach(item => {
+                    if (item.FACFLAG !== null) {
+                        item.FACFLAG = checked;
+                    }
+                });
+                theGrid.refresh(); // 그리드 갱신
+            });
+            // 개별 체크박스 변경 시, 헤더 체크박스 상태 동기화
+            theGrid.cellEditEnded.addHandler(function (s, e) {
+                if (s.columns[e.col].binding === 'FACFLAG') {
+                    // 전체 체크 상태 확인
+                    let data = viewdata1.items.filter(i => i.FACFLAG !== null);
+                    let allChecked = data.length > 0 && data.every(i => i.FACFLAG === true);
+                    let someChecked = data.some(i => i.FACFLAG === true);
+                    headerCheckbox.checked = allChecked;
+                    headerCheckbox.indeterminate = !allChecked && someChecked;
+                }
+            });
+
+            // 그리드 데이터 갱신 시 헤더 체크박스 상태 초기화
+            theGrid.itemsSourceChanged.addHandler(function () {
+                headerCheckbox.checked = false;
+                headerCheckbox.indeterminate = false;
+            });
         }
         // 출하 및 인수확인서 클릭 메서드
         function deliveryDoc(){
@@ -364,7 +405,7 @@
         function modifyData() {
             // 필수 요소 안내 alert
             let requiredFields = [
-                {id: '#popupDate', label: '시작일을 선택해주세요'},
+                {id: '#popupDate', label: '출고일을 선택해주세요'},
             ];
             for (let i = 0; i < requiredFields.length; i++) {
                 let field = requiredFields[i];
@@ -393,7 +434,7 @@
             if(excelType === 'delivery') {
                 url = `/api/request/subRequest/readVacFile?search_Date=${encodeURIComponent(searchDate)}&search_actnm=${encodeURIComponent(searchActnm)}`;
             } else if(excelType === 'prov'){
-                url = `/api/request/request/readVacFile2?search_Date=${encodeURIComponent(searchDate)}&search_actnm=${encodeURIComponent(searchActnm)}`;
+                url = `/api/request/subRequest/readVacFile2?search_Date=${encodeURIComponent(searchDate)}&search_actnm=${encodeURIComponent(searchActnm)}`;
             } else {
                 spinner.style.display = "none";
                 return;

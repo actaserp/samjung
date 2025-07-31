@@ -329,6 +329,7 @@ public class PopupController {
 				agneremail,	--담당자 이메일
 				agnerdivinm	--담당자부서
 				from TB_XCLIENT where relyn ='X' -- 영문 대문자(O, X) O: 거래중지, X: 거래중
+				AND clttype IN ('1', '3') 
     """;
 
 		if (cltcd != null && !cltcd.isEmpty()) {

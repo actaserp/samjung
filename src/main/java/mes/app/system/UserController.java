@@ -344,6 +344,7 @@ public class UserController {
 			@RequestParam(value = "password") String password,
 			@RequestParam(value = "UserGroup_id", required = false) Integer UserGroup_id,
 			@RequestParam(value = "spjType", required = false) String spjangcd,
+			@RequestParam(value = "clttype", required = false) String clttype,
 			Authentication auth
 	) {
 		AjaxResult result = new AjaxResult();
@@ -491,7 +492,7 @@ public class UserController {
 							.foreyn("0")
 							.relyn("X")
 							.nation("KR")
-							.clttype("2")
+							.clttype(clttype)
 							.build();
 				}
 

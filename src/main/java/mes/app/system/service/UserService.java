@@ -122,6 +122,13 @@ public class UserService {
                 au.id,
                 au.last_name,
                 txc.cltnm,
+                txc.clttype,
+                CASE txc.clttype
+                    WHEN '1' THEN '매입처'
+                    WHEN '2' THEN '매출처'
+                    WHEN '3' THEN '공통'
+                    ELSE '기타'
+                END AS clttype_name,
                 au.username AS userid,
                 ug.id AS group_id,
                 au.email,
@@ -336,6 +343,13 @@ public class UserService {
             txc.bizitemnm ,
             txc.prenm ,
             txc.cltnm,
+             txc.clttype,
+                CASE txc.clttype
+                    WHEN '1' THEN '매입처'
+                    WHEN '2' THEN '매출처'
+                    WHEN '3' THEN '공통'
+                    ELSE '기타'
+                END AS clttype_name,
             ug.id AS group_id,
             ug.Name AS group_name,
             up.lang_code ,

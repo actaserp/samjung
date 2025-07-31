@@ -30,6 +30,13 @@ public class CompanyService {
 				cltcd ,
 				custcd,
 				cltnm,
+        clttype,
+        CASE clttype
+						WHEN '1' THEN '매입처'
+						WHEN '2' THEN '매출처'
+						WHEN '3' THEN '공통'
+						ELSE '기타'
+				END AS clttype_name,
 				saupnum ,
 				prenm as ceo_name,
 				clttype,

@@ -686,7 +686,7 @@
           autoGenerateColumns: false,
           showMarquee: true,
           isReadOnly: true,
-          frozenColumns: 5,
+          frozenColumns: 7,
           formatItem: (sender, e) => {
             if (e.panel.cellType === wijmo.grid.CellType.Cell) {
               if (e.col < sender.frozenColumns) {
@@ -702,7 +702,8 @@
           columns: [
             {binding: 'cltcd', header: '업체코드', width: 150, align: 'center', visible: false},
             {binding: 'cltnm', header: '업체명', width: 250, align: 'left'},
-            // {binding: 'company_type_name', header: '업체구분', width: 130, align: 'center',},
+            {binding: 'clttype_name', header: '거래구분', width: 100, align: 'center', isReadOnly: true},
+            {binding: 'clttype', header: '거래구분', width: '*', align: 'center', visible: false},
             {binding: 'saupnum', header: '사업자번호', width: 150, align: 'left',},
             {binding: 'ceo_name', header: '대표자', width: 150, align: 'left',},
             {binding: 'telnum', header: '연락처', width: 150, align: 'left',},

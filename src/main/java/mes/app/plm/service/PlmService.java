@@ -40,7 +40,8 @@ public class PlmService {
             String oracleSql = """
                         SELECT ECO_NO, PROJECT_NO, PROJECT_NM, ERP_YN
                         FROM SJ_DEFAULT.ERP_PROJECT_BUFFER
-                        WHERE ERP_YN = 'N'
+                        WHERE ERP_YN IS NULL
+                           OR ERP_YN IN ('', 'N')
                     """;
 
             if (StringUtils.hasText(txtDescription)) {
@@ -60,7 +61,7 @@ public class PlmService {
             String oracleSql = """
                         SELECT ECO_NO, PROJECT_NO, PROJECT_NM, ERP_YN
                         FROM SJ_DEFAULT.ERP_PROJECT_BUFFER
-                        WHERE ERP_YN = 'N'
+                        WHERE (ERP_YN IS NULL OR ERP_YN IN ('','N'))
                     """;
 
             if (StringUtils.hasText(txtDescription)) {
@@ -554,151 +555,176 @@ public class PlmService {
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
         for (Map<String, Object> project : itemList) {
-            String ecoNo = project.get("eco_no").toString();
-            String projectNo = project.get("project_no").toString();
-            String projectNm = project.get("project_nm").toString();
+            String ecoNo = project.get("ECO_NO").toString();
+            String projectNo = project.get("PROJECT_NO").toString();
+            String projectNm = project.get("PROJECT_NM").toString();
 
-            // 1. 프로젝트 저장 (TB_CA664)
+            // 하나라도 실패하면 예외 발생 → 전체 롤백
             saveProjectToMs(ecoNo, projectNo, projectNm, today, username);
 
-            MapSqlParameterSource param = new MapSqlParameterSource()
-                    .addValue("ecoNo", ecoNo)
-                    .addValue("projectNo", projectNo);
-
-            // 2. 오라클 BOM 리스트 조회
+            // BOM, PART 저장도 동일
             List<Map<String, Object>> oracleBoms = oracleSqlRunner.getRows(
-                    "SELECT * FROM erp_bom_buffer WHERE eco_no = :ecoNo AND project_no = :projectNo", param);
+                    "SELECT * FROM SJ_DEFAULT.ERP_BOM_BUFFER WHERE ECO_NO = :ecoNo AND PROJECT_NO = :projectNo",
+                    new MapSqlParameterSource()
+                            .addValue("ecoNo", ecoNo)
+                            .addValue("projectNo", projectNo));
 
-            // 3. BOM 저장 (TB_CA663)
             for (Map<String, Object> bom : oracleBoms) {
                 saveBomToMs(bom, today, username);
             }
 
-            // 4. PART 조회용 part_no 리스트 구성 (parent + child)
             Set<String> partNos = new HashSet<>();
             for (Map<String, Object> bom : oracleBoms) {
-                partNos.add(Objects.toString(bom.get("PARENT_NO"), ""));
-                partNos.add(Objects.toString(bom.get("CHILD_NO"), ""));
+                partNos.add(String.valueOf(bom.get("PARENT_NO")));
+                partNos.add(String.valueOf(bom.get("CHILD_NO")));
             }
 
-            // 5. 오라클 PART 리스트 조회
             List<Map<String, Object>> oracleParts = new ArrayList<>();
             for (String partNo : partNos) {
-                MapSqlParameterSource partParam = new MapSqlParameterSource()
-                        .addValue("ecoNo", ecoNo)
-                        .addValue("partNo", partNo);
-                List<Map<String, Object>> parts = oracleSqlRunner.getRows(
-                        "SELECT * FROM erp_part_buffer WHERE eco_no = :ecoNo AND part_no = :partNo", partParam);
-                oracleParts.addAll(parts);
+                oracleParts.addAll(oracleSqlRunner.getRows(
+                        "SELECT * FROM SJ_DEFAULT.ERP_PART_BUFFER WHERE ECO_NO = :ecoNo AND PART_NO = :partNo",
+                        new MapSqlParameterSource().addValue("ecoNo", ecoNo).addValue("partNo", partNo)
+                ));
             }
 
-            // 6. PART 저장 (TB_CA662)
             for (Map<String, Object> part : oracleParts) {
                 savePartToMs(part, today, username);
             }
 
-            // 7. 오라클 BOM, PART, PROJECT에 erp_yn = 'Y' 처리
-            MapSqlParameterSource updateParam = new MapSqlParameterSource()
-                    .addValue("ecoNo", ecoNo)
-                    .addValue("projectNo", projectNo);
+            // Oracle ERP_YN 업데이트도 영향건수 체크
+            int bomUpdate = oracleSqlRunner.execute(
+                    "UPDATE SJ_DEFAULT.ERP_BOM_BUFFER SET ERP_YN = 'Y' WHERE ECO_NO = :ecoNo AND PROJECT_NO = :projectNo",
+                    new MapSqlParameterSource().addValue("ecoNo", ecoNo).addValue("projectNo", projectNo));
+            if (bomUpdate <= 0) {
+                throw new RuntimeException("Oracle BOM ERP_YN 업데이트 실패");
+            }
 
-            oracleSqlRunner.execute(
-                    "UPDATE erp_bom_buffer SET erp_yn = 'Y' WHERE eco_no = :ecoNo AND project_no = :projectNo",
-                    updateParam
-            );
-            oracleSqlRunner.execute(
-                    "UPDATE erp_part_buffer SET erp_yn = 'Y' WHERE eco_no = :ecoNo AND part_no IN (:partNos)",
-                    new MapSqlParameterSource()
-                            .addValue("ecoNo", ecoNo)
-                            .addValue("partNos", partNos)
-            );
-            oracleSqlRunner.execute(
-                    "UPDATE erp_project_buffer SET erp_yn = 'Y' WHERE eco_no = :ecoNo AND project_no = :projectNo",
-                    updateParam
-            );
+            int partUpdate = oracleSqlRunner.execute(
+                    "UPDATE SJ_DEFAULT.ERP_PART_BUFFER SET ERP_YN = 'Y' WHERE ECO_NO = :ecoNo AND PART_NO IN (:partNos)",
+                    new MapSqlParameterSource().addValue("ecoNo", ecoNo).addValue("partNos", partNos));
+            if (partUpdate <= 0) {
+                throw new RuntimeException("Oracle PART ERP_YN 업데이트 실패");
+            }
+
+            int projectUpdate = oracleSqlRunner.execute(
+                    "UPDATE SJ_DEFAULT.ERP_PROJECT_BUFFER SET ERP_YN = 'Y' WHERE ECO_NO = :ecoNo AND PROJECT_NO = :projectNo",
+                    new MapSqlParameterSource().addValue("ecoNo", ecoNo).addValue("projectNo", projectNo));
+            if (projectUpdate <= 0) {
+                throw new RuntimeException("Oracle PROJECT ERP_YN 업데이트 실패");
+            }
         }
     }
 
+
     private void saveProjectToMs(String ecoNo, String projectNo, String projectNm, String today, String username) {
         String sql = """
-                    MERGE INTO tb_ca664 AS target
-                    USING (SELECT :ecoNo AS eco_no, :projectNo AS project_no) AS source
-                    ON (target.eco_no = source.eco_no AND target.project_no = source.project_no)
-                    WHEN MATCHED THEN
-                        UPDATE SET project_nm = :projectNm, erp_yn = 'Y', bpdate = :bpdate, bppernm = :bppernm
-                    WHEN NOT MATCHED THEN
-                        INSERT (eco_no, project_no, project_nm, erp_yn, bpdate, bppernm)
-                        VALUES (:ecoNo, :projectNo, :projectNm, 'Y', :bpdate, :bppernm);
-                """;
+        MERGE INTO dbo.TB_CA664 AS target
+        USING (SELECT :ecoNo AS ECO_NO, :projectNo AS PROJECT_NO) AS source
+        ON (target.ECO_NO = source.ECO_NO AND target.PROJECT_NO = source.PROJECT_NO)
+        WHEN MATCHED THEN
+            UPDATE SET PROJECT_NM = :projectNm, BPDATE = :bpdate, BPPERNM = :bppernm
+        WHEN NOT MATCHED THEN
+            INSERT (ECO_NO, PROJECT_NO, PROJECT_NM, BPDATE, BPPERNM)
+            VALUES (:ecoNo, :projectNo, :projectNm, :bpdate, :bppernm);
+    """;
 
-        sqlRunner.execute(sql, new MapSqlParameterSource()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("ecoNo", ecoNo)
                 .addValue("projectNo", projectNo)
                 .addValue("projectNm", projectNm)
                 .addValue("bpdate", today)
-                .addValue("bppernm", username));
+                .addValue("bppernm", username);
+
+        executeOrThrow(sql, params, "프로젝트 저장");
     }
+
 
     private void saveBomToMs(Map<String, Object> item, String today, String username) {
         String sql = """
-                    MERGE INTO tb_ca663 AS target
-                    USING (
-                        SELECT :ecoNo AS eco_no,
-                               :parentNo AS parent_no,
-                               :childNo AS child_no
-                    ) AS source
-                    ON (target.eco_no = source.eco_no AND target.parent_no = source.parent_no AND target.child_no = source.child_no)
-                    WHEN MATCHED THEN
-                        UPDATE SET qty = :qty,
-                                   seq = :seq,
-                                   plm_version = :plmVersion,
-                                   project_no = :projectNo,
-                                   hogi_no = :hogiNo,
-                                   cmt = :cmt,
-                                   bomid = :bomid,
-                                   erp_yn = 'Y',
-                                   bpdate = :bpdate,
-                                   bppernm = :bppernm
-                    WHEN NOT MATCHED THEN
-                        INSERT (eco_no, parent_no, child_no, qty, seq, plm_version, project_no, hogi_no, cmt, bomid, erp_yn, bpdate, bppernm)
-                        VALUES (:ecoNo, :parentNo, :childNo, :qty, :seq, :plmVersion, :projectNo, :hogiNo, :cmt, :bomid, 'Y', :bpdate, :bppernm);
-                """;
+        MERGE INTO dbo.TB_CA663 AS target
+        USING (
+            SELECT :ecoNo AS ECO_NO,
+                   :parentNo AS PARENT_NO,
+                   :childNo AS CHILD_NO
+        ) AS source
+        ON (target.ECO_NO = source.ECO_NO 
+            AND target.PARENT_NO = source.PARENT_NO 
+            AND target.CHILD_NO = source.CHILD_NO)
+        WHEN MATCHED THEN
+            UPDATE SET QTY = :qty,
+                       SEQ = :seq,
+                       PROJECT_NO = :projectNo,
+                       HOGI_NO = :hogiNo,
+                       CMT = :cmt,
+                       BPDATE = :bpdate,
+                       BPPERNM = :bppernm
+        WHEN NOT MATCHED THEN
+            INSERT (ECO_NO, PARENT_NO, CHILD_NO, QTY, SEQ, PROJECT_NO, HOGI_NO, CMT, BPDATE, BPPERNM)
+            VALUES (:ecoNo, :parentNo, :childNo, :qty, :seq, :projectNo, :hogiNo, :cmt, :bpdate, :bppernm);
+    """;
 
-        sqlRunner.execute(sql, new MapSqlParameterSource()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("ecoNo", item.get("ECO_NO"))
                 .addValue("parentNo", item.get("PARENT_NO"))
                 .addValue("childNo", item.get("CHILD_NO"))
                 .addValue("qty", item.get("QTY"))
                 .addValue("seq", item.get("SEQ"))
-                .addValue("plmVersion", item.get("PLM_VERSION"))
                 .addValue("projectNo", item.get("PROJECT_NO"))
                 .addValue("hogiNo", item.get("HOGI_NO"))
                 .addValue("cmt", item.get("CMT"))
-                .addValue("bomid", item.get("BOMID"))
                 .addValue("bpdate", today)
-                .addValue("bppernm", username)
-        );
+                .addValue("bppernm", username);
+
+        executeOrThrow(sql, params, "BOM 저장");
     }
+
 
     private void savePartToMs(Map<String, Object> item, String today, String username) {
         String sql = """
-                    MERGE INTO tb_ca662 AS target
-                    USING (SELECT :ecoNo AS eco_no, :partNo AS part_no) AS source
-                    ON (target.eco_no = source.eco_no AND target.part_no = source.part_no)
-                    WHEN MATCHED THEN
-                        UPDATE SET part_nm = :partNm, spec = :spec, unit = :unit, erp_yn = 'Y', bpdate = :bpdate, bppernm = :bppernm
-                    WHEN NOT MATCHED THEN
-                        INSERT (eco_no, part_no, part_nm, spec, unit, erp_yn, bpdate, bppernm)
-                        VALUES (:ecoNo, :partNo, :partNm, :spec, :unit, 'Y', :bpdate, :bppernm);
-                """;
+        MERGE INTO dbo.TB_CA662 AS target
+        USING (SELECT :ecoNo AS ECO_NO, :partNo AS PART_NO) AS source
+        ON (target.ECO_NO = source.ECO_NO AND target.PART_NO = source.PART_NO)
+        WHEN MATCHED THEN
+            UPDATE SET PART_NM = :partNm,
+                       PLM_VERSION = :plmVersion,
+                       BLOCK_NO = :blockNo,
+                       G_NO = :gNo,
+                       DRAWING_NO = :drawingNo,
+                       GUBUN = :gubun,
+                       PART_SIZE = :partSize,
+                       SPEC = :spec,
+                       UNIT = :unit,
+                       ERP_YN = 'Y',
+                       BPDATE = :bpdate,
+                       BPPERNM = :bppernm
+        WHEN NOT MATCHED THEN
+            INSERT (ECO_NO, PART_NO, PART_NM, PLM_VERSION, BLOCK_NO, G_NO, DRAWING_NO, GUBUN, PART_SIZE, SPEC, UNIT, BPDATE, BPPERNM)
+            VALUES (:ecoNo, :partNo, :partNm, :plmVersion, :blockNo, :gNo, :drawingNo, :gubun, :partSize, :spec, :unit, :bpdate, :bppernm);
+    """;
 
-        sqlRunner.execute(sql, new MapSqlParameterSource()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("ecoNo", item.get("ECO_NO"))
                 .addValue("partNo", item.get("PART_NO"))
                 .addValue("partNm", item.get("PART_NM"))
+                .addValue("plmVersion", item.get("PLM_VERSION"))
+                .addValue("blockNo", item.get("BLOCK_NO"))
+                .addValue("gNo", item.get("G_NO"))
+                .addValue("drawingNo", item.get("DRAWING_NO"))
+                .addValue("gubun", item.get("GUBUN"))
+                .addValue("partSize", item.get("PART_SIZE"))
                 .addValue("spec", item.get("SPEC"))
                 .addValue("unit", item.get("UNIT"))
                 .addValue("bpdate", today)
-                .addValue("bppernm", username));
+                .addValue("bppernm", username);
+
+        executeOrThrow(sql, params, "PART 저장");
+    }
+
+    private void executeOrThrow(String sql, MapSqlParameterSource params, String opName) {
+        try {
+            sqlRunner.execute(sql, params); // 예외 발생 시 그대로 던져짐 → 롤백
+        } catch (Exception e) {
+            throw new RuntimeException(opName + " 실패: " + e.getMessage(), e);
+        }
     }
 }

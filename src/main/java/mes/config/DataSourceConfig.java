@@ -13,6 +13,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -40,7 +41,8 @@ public class DataSourceConfig {
     }	
 	
 	@ConfigurationProperties(prefix="spring.datasource.hikari")
-	@Bean(name="dataSource")	
+	@Bean(name="dataSource")
+	@Primary
 	DataSource dataSource() {
 		/*
 		HikariConfig config = new HikariConfig();		
@@ -86,10 +88,12 @@ public class DataSourceConfig {
 		return emf;
     }
 
-	@ConfigurationProperties(prefix = "oracle.datasource")
+	@ConfigurationProperties(prefix="oracle.datasource.hikari")
 	@Bean(name = "oracleDataSource")
 	public DataSource oracleDataSource() {
-		return DataSourceBuilder.create().build();
+		return DataSourceBuilder.create()
+				.type(com.zaxxer.hikari.HikariDataSource.class)
+				.build();
 	}
 
 	@Bean(name = "oracleJdbcTemplate")

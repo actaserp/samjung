@@ -73,20 +73,15 @@ public class SqlRunQueryOracleImpl implements SqlRunner {
 		}
     	return row;
     }
-    
-    public int execute(String sql, MapSqlParameterSource dicParam) {
-    	
-    	int rowEffected = 0;
-    	// TODO Auto-generated method stub
-    	try {
-    		rowEffected = this.jdbcTemplate.update(sql, dicParam);
+
+	public int execute(String sql, MapSqlParameterSource params) {
+		try {
+			return jdbcTemplate.update(sql, params);
 		} catch (Exception e) {
-			// TODO: handle exception
-			logWriter.addDbLog("error", "SqlRunQueryImpl.excute", e);
+			logWriter.addDbLog("error", "SqlRunQueryOracleImpl.execute", e);
+			throw e; // ★ 던지기
 		}
-    	
-    	return rowEffected;
-    }
+	}
     
     public int queryForCount(String sql,  MapSqlParameterSource dicParam) {
     	//select count(*) from xxx where ~

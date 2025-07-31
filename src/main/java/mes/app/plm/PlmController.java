@@ -2,9 +2,12 @@ package mes.app.plm;
 
 import lombok.extern.slf4j.Slf4j;
 import mes.app.plm.service.PlmService;
+import mes.domain.entity.User;
 import mes.domain.model.AjaxResult;
 import mes.domain.repository.TB_CA664Repository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -83,21 +86,21 @@ public class PlmController {  //프로젝트 관리
     }
 
     @PostMapping("/save_plm")
-    public AjaxResult savePlm(@RequestBody List<Map<String, Object>> itemList, Authentication auth) {
+    public AjaxResult savePlm(@RequestBody List<Map<String,Object>> itemList, Authentication auth) {
         AjaxResult result = new AjaxResult();
+        User user = (User)auth.getPrincipal();
+        String username = user.getUserProfile().getName();
         try {
-
-            String username = auth.getName();
             plmService.syncToMsSql(itemList, username);
             result.success = true;
-
             return result;
         } catch (Exception e) {
-            e.printStackTrace();
             result.success = false;
+            result.message = "저장 중 오류가 발생했습니다: " + e.getMessage();
             return result;
         }
     }
+
 
 
 }

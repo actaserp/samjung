@@ -243,7 +243,7 @@
                         }
                     },
                     columns: [
-                        {binding: 'ECO_NO', header: '번호', width: 120},
+                        {binding: 'ECO_NO', header: '번호', width: 160},
                         {binding: 'HOGI_NO', header: '호기번호', width: 100, align: 'center'},
                         {binding: 'SEQ', header: '시퀀스', width: 80, align: 'center'},
                         {binding: 'PART_NO', header: '품목코드', width: 120, align: 'center'},
@@ -410,21 +410,12 @@
                     return;
                 }
 
-                // DIFF_TYPE이 'UNCHANGED' 또는 'UNCHANGED_PARENT'만 있는지 확인
-                const hasDiff = items.some(item =>
-                    item.DIFF_TYPE && !['UNCHANGED', 'UNCHANGED_PARENT'].includes(item.DIFF_TYPE)
-                );
-
-                if (!hasDiff) {
-                    Alert.alert('', '변경된 내용이 없습니다.');
-                    return;
-                }
-
                 let fnSuccess = function (res) {
-                    if (!res.success) {
-                        Alert.alert('', res.message);
-                    } else {
+                    if (res && res.success === true) {
                         Notify.success('저장되었습니다.');
+
+                    } else {
+                        Alert.alert('', res.message || '저장에 실패했습니다.');
                     }
                 };
 

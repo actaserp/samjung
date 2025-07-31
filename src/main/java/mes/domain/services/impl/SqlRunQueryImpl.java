@@ -65,20 +65,15 @@ public class SqlRunQueryImpl implements SqlRunner {
 		}
     	return row;
     }
-    
-    public int execute(String sql, MapSqlParameterSource dicParam) {
-    	
-    	int rowEffected = 0;
-    	// TODO Auto-generated method stub
-    	try {
-    		rowEffected = this.jdbcTemplate.update(sql, dicParam);
+
+	public int execute(String sql, MapSqlParameterSource dicParam) {
+		try {
+			return this.jdbcTemplate.update(sql, dicParam);
 		} catch (Exception e) {
-			// TODO: handle exception
-			logWriter.addDbLog("error", "SqlRunQueryImpl.excute", e);
+			logWriter.addDbLog("error", "SqlRunQueryImpl.execute", e);
+			throw e; // 반드시 던져야 롤백됨
 		}
-    	
-    	return rowEffected;
-    }
+	}
     
     public int queryForCount(String sql,  MapSqlParameterSource dicParam) {
     	//select count(*) from xxx where ~

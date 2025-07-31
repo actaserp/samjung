@@ -104,8 +104,8 @@ public class UserService {
         sql+= """
             ORDER by au.date_joined DESC;
             """;
-        log.info("사용자 관리 read 데이터 SQL: {}", sql);
-    log.info("SQL Parameters: {}", params.getValues());
+//    log.info("사용자 관리 read 데이터 SQL: {}", sql);
+//    log.info("SQL Parameters: {}", params.getValues());
         return sqlRunner.getRows(sql, params);
     }
 
@@ -146,7 +146,7 @@ public class UserService {
                 LEFT JOIN user_group ug ON ug.id = up.UserGroup_id
                 left join tb_xa012 xa on xa.spjangcd = au.spjangcd
             WHERE
-                1 = 1  AND au.spjangcd = :spjangcd
+                1 = 1  AND au.spjangcd = :spjangcd and  txc.relyn ='X'
             """;
 
         if (userGroup != null && !userGroup.isEmpty()) {
@@ -162,8 +162,8 @@ public class UserService {
         sql+= """
             ORDER by au.date_joined DESC;
             """;
-    log.info("업체관리 리스트 SQL: {}", sql);
-    log.info("SQL Parameters: {}", params.getValues());
+//    log.info("업체관리 리스트 SQL: {}", sql);
+//    log.info("SQL Parameters: {}", params.getValues());
         return sqlRunner.getRows(sql, params);
     }
 
@@ -356,7 +356,7 @@ public class UserService {
         LEFT JOIN 
           TB_XCLIENT txc ON au.username  = txc.saupnum 
         WHERE 
-            au.id = :id
+            au.id = :id and txc.relyn ='X'
             """;
 //            System.out.println(sql);
         return sqlRunner.getRow(sql, params);
@@ -505,5 +505,20 @@ public class UserService {
     }
 
 
+    public Map<String, Object> getActiveClientBySaupnumAndPrenm(String userid, String prenm) {
 
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+        dicParam.addValue("userid", userid);
+        dicParam.addValue("prenm", prenm);
+
+        String sql = """
+        		SELECT * from TB_XCLIENT 
+        		where saupnum = :userid
+        		and prenm= :prenm
+        		and relyn='X'
+        		""";
+        log.info("업체 여부 검색TB_XCLIENT SQL: {}", sql);
+        log.info("SQL Parameters: {}", dicParam.getValues());
+        return sqlRunner.getRow(sql, dicParam);
+    }
 }

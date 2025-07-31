@@ -109,7 +109,7 @@ public class UserController {
 		return result;
 	}
 
-	//사용자 관리 (더블 클릭) 사용
+	//업체 관리 (더블 클릭) 사용
 	@GetMapping("/detail")
 	public AjaxResult getUserDetail(@RequestParam(value = "id", required = false) String id) {
 		AjaxResult result = new AjaxResult();
@@ -442,15 +442,26 @@ public class UserController {
 			String fullAddress = address1 + (address2 != null && !address2.isEmpty() ? " " + address2 : "");
 			String newCltcd = generateNewCltcd();
 
-			Optional<TB_XCLIENT> existingClientOpt = tbXClientRepository.findBySaupnum(userid);
-			boolean clientExists = existingClientOpt.isPresent();
+			Map<String, Object> clientMap = userService.getActiveClientBySaupnumAndPrenm(userid, prenm);
+			boolean clientExists = (clientMap != null && !clientMap.isEmpty());
 			boolean userExists = userRepository.findByUsername(userid).isPresent();
 
 			if (!(clientExists && !userExists)) {
 				TB_XCLIENT tbXClient;
+
 				if (clientExists) {
-					// 수정
-					tbXClient = existingClientOpt.get();
+					// ✅ cltcd와 custcd 추출
+					String cltcd = (String) clientMap.get("cltcd");
+					String custcdFromMap = (String) clientMap.get("custcd");
+
+					if (cltcd == null || custcdFromMap == null) {
+						throw new IllegalStateException("clientMap에서 cltcd 또는 custcd가 누락되었습니다.");
+					}
+
+					tbXClient = tbXClientRepository.findById(new TB_XCLIENTId(custcdFromMap, cltcd))
+							.orElseThrow(() -> new IllegalStateException("해당 cltcd로 TB_XCLIENT 조회 실패"));
+
+
 					tbXClient.setPrenm(prenm);
 					tbXClient.setCltnm(cltnm);
 					tbXClient.setBiztypenm(biztypenm);

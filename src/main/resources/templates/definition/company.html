@@ -281,7 +281,7 @@
 
                   <tr>
                     <th>
-                      <label for="relyn">중지 여부</label>
+                      <label for="relyn">거래중지 여부</label>
                     </th>
                     <td style="text-align: center;">
                       <input type="checkbox" id="relyn" name="relyn" value="X"
@@ -709,7 +709,7 @@
             {binding: 'email', header: '이메일', width: 150, align: 'left',},
             {binding: 'zipcd', header: '우편번호', width: 120, align: 'center',},
             {binding: 'cltadres', header: '주소', width: 300, align: 'left',},
-            {binding: 'relyn', header: '중지 여부', width: 150, align: 'center',},
+            {binding: 'relyn', header: '거래중지 여부', width: 150, align: 'center',},
             {binding: 'agnernm', header: '자사담당자', width: 150, align: 'left',},
             // {binding: 'tranding_bank', header: '거래은행', width: 150, align: 'left',},
             // {binding: 'account_holder', header: '예금주', width: 150, align: 'left',},
@@ -759,11 +759,12 @@
               e.cell.textContent = cc2;
             }
 
-            // 중지 여부 O: 거래중지, X: 거래중
+            // 거래중지 여부 O: 거래중지, X: 거래중
             if (col.binding === "relyn") {
               const relYn = item.relyn;
-              e.cell.textContent = relYn === 'X' ? 'Y' : 'N';
+              e.cell.textContent = relYn === 'X' ? 'Y' : 'N'; // 거래중이면 'Y', 중지면 'N'
             }
+
           }
         });
 
@@ -966,7 +967,7 @@
             result.data.comp_code2 = result.data.comp_code2.replace(/(\d{6})(\d{7})/, "$1-$2");
           }
 
-          // 중지 여부 체크박스 상태 설정 (데이터가 'X'면 체크)
+          // 거래중지 여부 체크박스 상태 설정 (데이터가 'X'면 체크)
           const relYn = String(result.data.relyn || '').toUpperCase();
           $('#relyn').prop('checked', relYn === 'X');
 

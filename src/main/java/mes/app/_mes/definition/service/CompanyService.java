@@ -59,8 +59,8 @@ public class CompanyService {
 		
 		List<Map<String,Object>> items = this.sqlRunner.getRows(sql, paramMap);
 
-		log.info("업체정보 l;ist 데이터 SQL: {}", sql);
-    log.info("SQL Parameters: {}", paramMap.getValues());
+//		log.info("업체정보 l;ist 데이터 SQL: {}", sql);
+//    log.info("SQL Parameters: {}", paramMap.getValues());
 		return items;
 	}
 	

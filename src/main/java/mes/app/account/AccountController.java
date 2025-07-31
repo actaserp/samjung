@@ -283,7 +283,7 @@ public class AccountController {
 			@RequestParam(value = "phone", required = false) String phone,
 			@RequestParam(value = "tel", required = false) String tel,
 			@RequestParam(value = "email", required = false) String email,
-			@RequestParam(value = "id") String id,
+			@RequestParam(value = "id") String userid,
 			@RequestParam(value = "password") String password,
 			@RequestParam(value = "postno") String postno,
 			@RequestParam(value = "address1") String address1,
@@ -298,7 +298,7 @@ public class AccountController {
 			if (flag) {
 				// 사용자 저장
 				User user = User.builder()
-						.username(id)
+						.username(userid)
 						.password(Pbkdf2Sha256.encode(password))
 						.email(email)
 						.first_name(prenm)
@@ -349,35 +349,61 @@ public class AccountController {
 
 
 				// TB_XCLIENT 저장 전에 중복 체크
-				Optional<TB_XCLIENT> existClient = tbXClientRepository.findBySaupnum(id);
+				Map<String, Object> clientMap = userService.getActiveClientBySaupnumAndPrenm(userid, prenm);
+				boolean clientExists = (clientMap != null && !clientMap.isEmpty());
+				boolean userExists = userRepository.findByUsername(userid).isPresent();
 				String newCltcd = generateNewCltcd();
-				if (existClient.isEmpty()) {
-					TB_XCLIENT tbXClient = TB_XCLIENT.builder()
-							.saupnum(id)
-							.prenm(prenm)
-							.cltnm(cltnm)
-							.biztypenm(biztypenm)
-							.bizitemnm(bizitemnm)
-							.zipcd(postno)
-							.cltadres(fullAddress)
-							.telnum(tel)
-							.hptelnum(phone)
-							.agneremail(email)
-							.id(new TB_XCLIENTId(custcd, newCltcd))
-							.rnumchk("0")
-							.corpperclafi("0")
-							.prtcltnm(cltnm)
-							.foreyn("0")
-							.relyn("X")
-							.nation("KR")
-							.clttype("2")
-							.build();
+				if (!(clientExists && !userExists)) {
+					TB_XCLIENT tbXClient;
 
-					tbXClientService.save(tbXClient); // ❗ 중복 없을 때만 저장
+					if (clientExists) {
+						// ✅ 기존 거래처 정보 수정
+						String cltcd = (String) clientMap.get("cltcd");
+						String custcdFromMap = (String) clientMap.get("custcd");
 
-					System.out.println("TB_XCLIENT 저장 완료");
+						if (cltcd == null || custcdFromMap == null) {
+							throw new IllegalStateException("clientMap에서 cltcd 또는 custcd가 누락되었습니다.");
+						}
+
+						tbXClient = tbXClientRepository.findById(new TB_XCLIENTId(custcdFromMap, cltcd))
+								.orElseThrow(() -> new IllegalStateException("해당 cltcd로 TB_XCLIENT 조회 실패"));
+
+						tbXClient.setPrenm(prenm);
+						tbXClient.setCltnm(cltnm);
+						tbXClient.setBiztypenm(biztypenm);
+						tbXClient.setBizitemnm(bizitemnm);
+						tbXClient.setZipcd(postno);
+						tbXClient.setCltadres(fullAddress);
+						tbXClient.setTelnum(tel);
+						tbXClient.setHptelnum(phone);
+						tbXClient.setAgneremail(email);
+					} else {
+						// ✅ 신규 거래처 등록
+						tbXClient = TB_XCLIENT.builder()
+								.saupnum(userid)
+								.prenm(prenm)
+								.cltnm(cltnm)
+								.biztypenm(biztypenm)
+								.bizitemnm(bizitemnm)
+								.zipcd(postno)
+								.cltadres(fullAddress)
+								.telnum(tel)
+								.hptelnum(phone)
+								.agneremail(email)
+								.id(new TB_XCLIENTId(custcd, newCltcd))
+								.rnumchk("0")
+								.corpperclafi("0")
+								.prtcltnm(cltnm)
+								.foreyn("0")
+								.relyn("X")
+								.nation("KR")
+								.clttype("2")
+								.build();
+					}
+
+					tbXClientService.save(tbXClient);
 				} else {
-					System.out.println("TB_XCLIENT 중복 saupnum 존재 → 저장 생략");
+					log.info("TB_XCLIENT는 이미 존재하고, User는 새로 등록되므로 TB_XCLIENT 저장은 생략됨.");
 				}
 
 				result.success = true;

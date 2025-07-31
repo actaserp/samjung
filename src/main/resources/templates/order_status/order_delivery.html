@@ -209,21 +209,26 @@
 
     // document.readyState === 'complete' ? init() : window.onload = init;
 
-    // 오늘 날짜 설정
-    const date = new Date();
-    date.setHours(date.getHours() + 9); // UTC+9로 한국 시간 설정
-    const today = date.toISOString().split('T')[0];
+    // ✅ 한국 시간 기준 오늘 날짜를 YYYY-MM-DD 형식으로 구하는 함수
+    function getKoreaTodayString() {
+      const now = new Date();
+      // 1. 현재 UTC ms + (한국은 UTC+9시간이므로 9*60*60*1000 ms 더함)
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+      const kr = new Date(utc + (9 * 60 * 60 * 1000));
+      const year = kr.getFullYear();
+      const month = (kr.getMonth() + 1).toString().padStart(2, '0');
+      const day = kr.getDate().toString().padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
 
-    // 현재 년도와 월을 가져옵니다
-    const currentYear = date.getFullYear();
-    const currentMonth = (date.getMonth() + 1).toString().padStart(2, '0'); // 1월은 0부터 시작하므로 +1 처리
+    // ✅ 오늘, 이번 달 1일 구하기
+    const today = getKoreaTodayString();
+    const firstDayOfMonth = today.slice(0, 8) + "01"; // ex) 2025-07-01
 
-    // 이번 달 1일을 설정
-    const firstDayOfMonth = `${currentYear}-${currentMonth}-01`;
-
-    // input 값 설정
+    // ✅ input 값 세팅
     document.getElementById('startDate').value = firstDayOfMonth;
     document.getElementById('endDate').value = today;
+
 
     $(document).ready(function () {
       // 출고 진행구분 select option 바인드

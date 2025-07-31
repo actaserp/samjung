@@ -97,7 +97,6 @@ public class RequestService {
         String chulFlag = searchChulflag.equals("shipment") ? "1" : "0" ;
         dicParam.addValue("searchStartDate", searchStartDate);
         dicParam.addValue("searchEndDate", searchEndDate);
-        dicParam.addValue("searchRemark", "%" + searchRemark + "%");
         dicParam.addValue("chulFlag",  chulFlag);
         dicParam.addValue("CLTCD",  cltcd);
         dicParam.addValue("searchActnm",  "%" + searchActnm + "%");
@@ -131,7 +130,7 @@ public class RequestService {
             return null;
         }
         // 진행구분 필터
-        if (searchChulflag != null && !searchChulflag.isEmpty()) {
+        if (!searchChulflag.isEmpty()) {
             sql.append(" AND dt.CHULFLAG = :chulFlag");
         }
         // 정렬 조건 추가

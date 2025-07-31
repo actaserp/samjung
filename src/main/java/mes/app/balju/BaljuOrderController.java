@@ -349,9 +349,6 @@ public class BaljuOrderController {
                                       Map<String, Object> clent,
                                       Map<String, Object> userItem,
                                       Path tempXlsx) {
-//    log.info("✅ userItem 값 확인: {}", userItem); // 전체 Map 내용을 로그로 출력
-//    log.info("✅ userItem 키 목록: {}", userItem != null ? userItem.keySet() : "userItem is null");
-//    log.info("✅ userItem.get(\"handphone\"): {}", userItem != null ? userItem.get("handphone") : "userItem is null");
     String templatePath = "C:/Temp/mes21/문서/외주발주서.xlsx";
 
     try (FileInputStream fis = new FileInputStream(templatePath);
@@ -491,47 +488,69 @@ public class BaljuOrderController {
          Workbook workbook = new XSSFWorkbook(fis);
          FileOutputStream fos = new FileOutputStream(tempXlsx.toFile())) {
 
-      Sheet sheet = workbook.getSheetAt(0); // 시트는 하나
+      Sheet sheet = workbook.getSheetAt(0);
 
-      // 공통 데이터 바인딩 (1페이지와 2페이지 양쪽에)
-      bindCommonData(sheet, baljuData, clent, userItem, 0);    // 1페이지 위치
-      bindCommonData(sheet, baljuData, clent, userItem, 57);   // 2페이지 위치 (A58 기준)
-
-      // 품목 리스트 나누기
       List<Map<String, Object>> items = (List<Map<String, Object>>) baljuData.get("items");
-      int splitIndex = 25;
 
-      List<Map<String, Object>> itemsPage1 = items.subList(0, Math.min(items.size(), splitIndex));
-      List<Map<String, Object>> itemsPage2 = items.size() > splitIndex ? items.subList(splitIndex, items.size()) : Collections.emptyList();
-
-      // 품목 시작 위치 (엑셀 기준 B20, B77)
-      int startRowPage1 = 19; // B20
-      int startRowPage2 = 76; // B77
+      int itemsPerPage = 24;
+      int startRowBase = 19;
+      int pageOffset = 57; // 외주발주서 기준 A58 → A115 → A172 ...
 
       double totalPamt = 0;
 
-      totalPamt += bindItemRows(sheet, itemsPage1, startRowPage1,false);
-      totalPamt += bindItemRows(sheet, itemsPage2, startRowPage2,false);
+      for (int page = 0; page * itemsPerPage < items.size(); page++) {
+        int fromIndex = page * itemsPerPage;
+        int toIndex = Math.min(fromIndex + itemsPerPage, items.size());
+        List<Map<String, Object>> pageItems = items.subList(fromIndex, toIndex);
 
-      // 날짜 및 합계 바인딩
-      setCell(sheet, 51, 5, formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
-      setCell(sheet, 108, 5, formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
+        int startRow = startRowBase + page * pageOffset;
 
-      // 총합을 J101에 표시 (row 100, column 9)
-      Row totalRow = sheet.getRow(100);
-      if (totalRow == null) totalRow = sheet.createRow(100);
-      Cell totalCell = totalRow.getCell(9);
-      if (totalCell == null) totalCell = totalRow.createCell(9);
-      totalCell.setCellValue(totalPamt);
+        // ✅ 공통 데이터 바인딩
+        if (page == 0) {
+          bindCommonData(sheet, baljuData, clent, userItem, 0); // 첫 페이지
+        } else {
+          bindCommonData(sheet, baljuData, clent, userItem, page * pageOffset);
+        }
 
-      // 숫자 포맷 셀 스타일 (#,##0)
-      CellStyle numberStyle = workbook.createCellStyle();
-      DataFormat format = workbook.createDataFormat();
-      numberStyle.setDataFormat(format.getFormat("#,##0"));
+        // ✅ 품목 바인딩
+        totalPamt += bindItemRows(sheet, pageItems, startRow, false);
 
-      // 셀에 스타일 적용
-      totalCell.setCellStyle(numberStyle);
+        // ✅ 발주일자
+        setCell(sheet, startRow + 32, 5, formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
 
+        // ✅ 특기사항 (페이지별)
+        int remarkBaseRow = 102 + (page * pageOffset);
+        setCell(sheet, remarkBaseRow, 1, String.valueOf(baljuData.get("remark01")));
+        setCell(sheet, remarkBaseRow + 1, 1, String.valueOf(baljuData.get("remark02")));
+        setCell(sheet, remarkBaseRow + 2, 1, String.valueOf(baljuData.get("remark03")));
+
+        // ✅ 마지막 페이지에 합계
+        if (toIndex == items.size()) {
+          int totalRowNum = 43 + (page * pageOffset);  // J44, J101, J158 ...
+          Row totalRow = sheet.getRow(totalRowNum);
+          if (totalRow == null) totalRow = sheet.createRow(totalRowNum);
+
+          Cell totalCell = totalRow.getCell(9); // J열
+          if (totalCell == null) totalCell = totalRow.createCell(9);
+
+          totalCell.setCellValue(totalPamt);
+
+          CellStyle numberStyle = workbook.createCellStyle();
+          numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
+          totalCell.setCellStyle(numberStyle);
+        }
+
+      }
+
+      // ✅ 인쇄 영역 제한 (불필요한 빈 페이지 제거)
+      int usedPageCount = (int) Math.ceil((double) items.size() / itemsPerPage);
+      int endRow = (usedPageCount * pageOffset) - 1;
+
+      workbook.setPrintArea(
+          workbook.getSheetIndex(sheet),
+          0, 16, // A~Q
+          0, endRow
+      );
 
       workbook.write(fos);
     } catch (Exception e) {
@@ -569,10 +588,10 @@ public class BaljuOrderController {
     setCell(sheet, offset + 10, 2, String.valueOf(clent.get("emailadres")));
 
     // 로그인 사용자 정보
-    setCell(sheet, offset + 10, 5, String.valueOf(userItem.get("divinm")));
-    setCell(sheet, offset + 10, 7, String.valueOf(userItem.get("RSPNM")));
-    setCell(sheet, offset + 10, 8, String.valueOf(userItem.get("pernm")));
-    setCell(sheet, offset + 10, 13, String.valueOf(userItem.get("handphone")));
+    setCellIfNotBlank(sheet, offset + 10, 5, userItem.get("divinm"));
+    setCellIfNotBlank(sheet, offset + 10, 7, userItem.get("RSPNM"));
+    setCellIfNotBlank(sheet, offset + 10, 8, userItem.get("pernm"));
+    setCellIfNotBlank(sheet, offset + 10, 13, userItem.get("handphone"));
 
     // 수급자
     setCell(sheet, offset + 13, 2, String.valueOf(baljuData.get("CompanyName")));
@@ -672,7 +691,6 @@ public class BaljuOrderController {
         }
       }
 
-
       totalPamt += pamt;
     }
 
@@ -755,61 +773,6 @@ public class BaljuOrderController {
     }
   }
 
-  /*@PostMapping("/print/balJuPrinted")
-  public ResponseEntity<Map<String, Object>> balJuPrinted(@RequestParam(value = "BALJUNUM") Integer baljunum,
-                                                          Authentication auth) {
-    try {
-      User user = (User) auth.getPrincipal();
-      String userId = user.getUsername();
-      Map<String, Object> baljuData = baljuOrderService.getBaljuDetail(baljunum);
-      Map<String, Object> clent = baljuOrderService.getxclent(user.getSpjangcd());
-      Map<String, Object> userItem = baljuOrderService.getUserItem(userId);
-      if (userItem == null || userItem.isEmpty()) {
-//        log.warn("🟠 userItem 조회 결과 없음. 빈 값으로 대체합니다.");
-        userItem = new HashMap<>();
-      }
-
-
-      String project_no = String.valueOf(baljuData.get("project_no")).replaceAll("[\\\\/:*?\"<>|]", "");
-      String fileName = String.format("_%s.xlsx", project_no);
-      Path tempXlsx = Paths.get("C:/Temp/mes21/구매품의서/구매품의서" + fileName);
-      Files.createDirectories(tempXlsx.getParent());
-      Files.deleteIfExists(tempXlsx);
-
-      List<Map<String, Object>> items = (List<Map<String, Object>>) baljuData.get("items");
-
-      if (items.size() > 24) {
-        generatePurchaseTemplate2(baljuData, clent, userItem, tempXlsx);
-      } else {
-        generatePurchaseTemplate1(baljuData, clent, userItem, tempXlsx);
-      }
-
-      String encodedFileName = URLEncoder.encode("구매품의서_" + project_no + ".xlsx", StandardCharsets.UTF_8);
-      String downloadUrl = "/baljuFile/" + encodedFileName;
-
-      Executors.newSingleThreadScheduledExecutor().schedule(() -> {
-        try {
-          Files.deleteIfExists(tempXlsx);
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      }, 5, TimeUnit.MINUTES);
-
-      return ResponseEntity.ok(Map.of(
-          "success", true,
-          "downloadUrl", downloadUrl,
-          "fileName", fileName
-      ));
-
-    } catch (Exception e) {
-      e.printStackTrace();
-      return ResponseEntity.status(500).body(Map.of(
-          "success", false,
-          "message", e.getMessage()
-      ));
-    }
-  }*/
-
   private void generatePurchaseTemplate2(Map<String, Object> baljuData,
                                          Map<String, Object> clent,
                                          Map<String, Object> userItem,
@@ -822,43 +785,66 @@ public class BaljuOrderController {
 
       Sheet sheet = workbook.getSheetAt(0);
 
-      // 페이지1 (기본), 페이지2 (A58 기준) 공통데이터 바인딩
-      bindPurchaseCommonData(sheet, baljuData, clent, userItem);       // 1페이지
-      bindPurchaseCommonDataOffset(sheet, baljuData, clent, userItem, 57); // 2페이지 (A58 → row offset 57)
-
-      // 품목 분할
+      // 품목 리스트 및 페이징 기준
       List<Map<String, Object>> items = (List<Map<String, Object>>) baljuData.get("items");
-      int splitIndex = 25;
-
-      List<Map<String, Object>> itemsPage1 = items.subList(0, Math.min(splitIndex, items.size()));
-      List<Map<String, Object>> itemsPage2 = items.size() > splitIndex
-          ? items.subList(splitIndex, items.size())
-          : Collections.emptyList();
+      int itemsPerPage = 24;
+      int startRowBase = 19;   // 첫 페이지의 품목 시작 행 (B20)
+      int pageOffset = 58;     // 페이지당 오프셋 (A59 → A117 → A175 → A233 -> ...)
 
       double totalPamt = 0;
-      totalPamt += bindItemRows(sheet, itemsPage1, 19,true);   // B20
-      totalPamt += bindItemRows(sheet, itemsPage2, 76,true);   // B77
 
-      // 발주일자 표시 (1, 2페이지 모두)
-      setCell(sheet, 51, 6, formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
-      setCell(sheet, 109, 6, formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
+      for (int page = 0; page * itemsPerPage < items.size(); page++) {
+        int fromIndex = page * itemsPerPage;
+        int toIndex = Math.min(fromIndex + itemsPerPage, items.size());
+        List<Map<String, Object>> pageItems = items.subList(fromIndex, toIndex);
 
-      //특기 사항
-      setCell(sheet, 102, 1, String.valueOf(baljuData.get("remark01")));
-      setCell(sheet, 103, 1, String.valueOf(baljuData.get("remark02")));
-      setCell(sheet, 104, 1, String.valueOf(baljuData.get("remark03")));
+        int startRow = startRowBase + page * pageOffset;
 
-      // 합계 금액 표시 (J101 = row 100, col 9)
-      Row totalRow = sheet.getRow(100);
-      if (totalRow == null) totalRow = sheet.createRow(100);
-      Cell totalCell = totalRow.getCell(9);
-      if (totalCell == null) totalCell = totalRow.createCell(9);
-      totalCell.setCellValue(totalPamt);
+        // 품목 출력
+        totalPamt += bindItemRows(sheet, pageItems, startRow, true);
 
-      // 숫자 포맷 (#,##0) 스타일 적용
-      CellStyle numberStyle = workbook.createCellStyle();
-      numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
-      totalCell.setCellStyle(numberStyle);
+        // 페이지별 공통 데이터 출력
+        if (page == 0) {
+          bindPurchaseCommonData(sheet, baljuData, clent, userItem); // 1페이지
+        } else {
+          bindPurchaseCommonDataOffset(sheet, baljuData, clent, userItem, page * pageOffset);
+        }
+
+        // 발주일자 셀 위치: startRow + 32행 기준 (예: 51행, 109행, 166행 ...)
+        setCell(sheet, startRow + 32, 6, formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
+
+        // ✅ 특기사항 반복 적용 (remark01~03)
+        int remarkBaseRow = 102 + (page * pageOffset);
+        setCell(sheet, remarkBaseRow, 1, String.valueOf(baljuData.get("remark01")));
+        setCell(sheet, remarkBaseRow + 1, 1, String.valueOf(baljuData.get("remark02")));
+        setCell(sheet, remarkBaseRow + 2, 1, String.valueOf(baljuData.get("remark03")));
+
+
+        if (toIndex == items.size()) {
+          int totalRowNum = 43 + (page * pageOffset);  // 예: page=0 → 43 (J44), page=1 → 43+58=101 (J102), page=2 → 43+116=159 (J160)
+          Row totalRow = sheet.getRow(totalRowNum);
+          if (totalRow == null) totalRow = sheet.createRow(totalRowNum);
+
+          Cell totalCell = totalRow.getCell(9); // J열 (인덱스 9)
+          if (totalCell == null) totalCell = totalRow.createCell(9);
+
+          totalCell.setCellValue(totalPamt);
+
+          CellStyle numberStyle = workbook.createCellStyle();
+          numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
+          totalCell.setCellStyle(numberStyle);
+        }
+
+      }
+
+      int usedPageCount = (int) Math.ceil((double) items.size() / itemsPerPage);
+      int endRow = (usedPageCount * pageOffset) - 1;  // A58 기준 구조
+
+      workbook.setPrintArea(
+          workbook.getSheetIndex(sheet),
+          0, 16,     // 열: A ~ Q
+          0, endRow  // 행: A1 ~ A{끝행}
+      );
 
       workbook.write(fos);
     } catch (Exception e) {
@@ -871,11 +857,11 @@ public class BaljuOrderController {
                                             Map<String, Object> clent,
                                             Map<String, Object> userItem,
                                             int offset) {
-    // bindPurchaseCommonData 함수에서 row 번호에 offset만 추가해서 처리
-    // 아래는 1페이지용과 동일 구조이되, 행 번호에 +offset
+    // 행 번호에 offset만 추가해서 처리 (한 줄씩 위로 조정됨)
     String dateStr = String.valueOf(baljuData.get("ichdate"));
     LocalDate date = LocalDate.parse(dateStr);
     String formatted = date.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+
     safeAddMergedRegion(sheet, new CellRangeAddress(offset + 4, offset + 4, 5, 7));
     setCell(sheet, offset + 4, 5, formatted);
 
@@ -892,10 +878,10 @@ public class BaljuOrderController {
     setCell(sheet, offset + 9, 13, String.valueOf(clent.get("fax")));
     setCell(sheet, offset + 10, 2, String.valueOf(clent.get("emailadres")));
 
-    setCell(sheet, offset + 10, 5, String.valueOf(userItem.get("divinm")));
-    setCell(sheet, offset + 10, 7, String.valueOf(userItem.get("RSPNM")));
-    setCell(sheet, offset + 10, 8, String.valueOf(userItem.get("pernm")));
-    setCell(sheet, offset + 10, 13, String.valueOf(userItem.get("handphone")));
+    setCellIfNotBlank(sheet, offset + 10, 5, userItem.get("divinm"));
+    setCellIfNotBlank(sheet, offset + 10, 7, userItem.get("RSPNM"));
+    setCellIfNotBlank(sheet, offset + 10, 8, userItem.get("pernm"));
+    setCellIfNotBlank(sheet, offset + 10, 13, userItem.get("handphone"));
 
     setCell(sheet, offset + 13, 2, String.valueOf(baljuData.get("CompanyName")));
     setCell(sheet, offset + 15, 2, String.valueOf(baljuData.get("cltemail")));
@@ -1006,14 +992,22 @@ public class BaljuOrderController {
     if (cell == null) cell = row.createCell(colIdx);
     cell.setCellValue(value);
   }
+  private void setCellIfNotBlank(Sheet sheet, int rowIdx, int colIdx, Object value) {
+    if (value != null && !String.valueOf(value).isBlank()) {
+      setCell(sheet, rowIdx, colIdx, String.valueOf(value));
+    }
+  }
+
   // 클래스 내부에 정의할 메서드
-  private void safeAddMergedRegion(Sheet sheet, CellRangeAddress region) {
+  private void safeAddMergedRegion(Sheet sheet, CellRangeAddress newRegion) {
     for (int i = 0; i < sheet.getNumMergedRegions(); i++) {
-      if (sheet.getMergedRegion(i).formatAsString().equals(region.formatAsString())) {
-        return; // 이미 병합되어 있음 → 아무것도 안 함
+      CellRangeAddress existing = sheet.getMergedRegion(i);
+      if (existing.intersects(newRegion)) {
+        // 이미 겹치는 병합 영역이 있으면 추가하지 않음
+        return;
       }
     }
-    sheet.addMergedRegion(region); // 병합 수행
+    sheet.addMergedRegion(newRegion);
   }
 
   private String formatYyyyMmDd(String dateStr) {

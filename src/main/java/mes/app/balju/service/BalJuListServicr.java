@@ -36,6 +36,7 @@ public class BalJuListServicr {
           d.pname,
           d.PCODE,
           d.punit,
+          d.psize,
           d.pqty,
           d.puamt,
           d.pamt,
@@ -77,7 +78,8 @@ public class BalJuListServicr {
         LEFT JOIN auth_user au1 ON d.HYUNPERNM = au1.username
         LEFT JOIN auth_user au2 ON d.FACPERNM = au2.username
         LEFT JOIN auth_user au3 ON d.CHULPERNM = au3.username
-        WHERE h.SPJANGCD = :spjangcd""";
+        WHERE h.SPJANGCD = :spjangcd
+        """;
 
     // 날짜 조건
     if ("sales".equalsIgnoreCase(date_kind)) {

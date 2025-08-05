@@ -607,7 +607,6 @@ public class BaljuOrderController {
 
   }
 
-
   private double bindItemRows(Sheet sheet, List<Map<String, Object>> items, int startRow, boolean isPurchaseForm){
     double totalPamt = 0;
 
@@ -676,18 +675,19 @@ public class BaljuOrderController {
         boolean isAddedMaterial = (pcode == null || pcode.isBlank());
 
         if (isAddedMaterial) {
+          // 비고가 비어있으면 자동 문구 추가도 가능
+          if (remark == null || remark.isBlank()) {
+            remarkCell.setCellValue("※ 추가된 자재");
+          }
+        }
+        if ("이중 발주된 제품".equals(remark)) {
           Font redFont = sheet.getWorkbook().createFont();
           redFont.setColor(IndexedColors.RED.getIndex());
 
           CellStyle redStyle = sheet.getWorkbook().createCellStyle();
           redStyle.setFont(redFont);
 
-          remarkCell.setCellStyle(redStyle);
-
-          // 비고가 비어있으면 자동 문구 추가도 가능
-          if (remark == null || remark.isBlank()) {
-            remarkCell.setCellValue("※ 추가된 자재");
-          }
+          remarkCell.setCellStyle(redStyle); // 🔁 덮어쓰기
         }
       }
 
@@ -696,6 +696,7 @@ public class BaljuOrderController {
 
     return totalPamt;
   }
+
 
   // 구매품의서
   @PostMapping("/print/balJuPrinted")

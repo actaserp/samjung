@@ -4,7 +4,7 @@
   <div class="layout-contents">
     <div class="page-title-wrap">
       <div class="left">
-        <h2>외주발주현황</h2>
+        <h2>품목별 현황</h2>
         <a title="북마크" class="bookmark toggle">
           내 메뉴
         </a>
@@ -12,7 +12,7 @@
       <ul class="page-navi">
         <li><img src="/images/icon/ico-nav-home.svg" alt="홈아이콘"></li>
         <li>발주관리</li>
-        <li>외주발주현황</li>
+        <li>품목별 현황</li>
       </ul>
     </div>
 
@@ -228,30 +228,21 @@
             }
           },
           columns: [
-            {binding: 'project_no', header: '프로젝트번호', width: 120},
-            {binding: 'BALJUNUM', header: '주문번호', width: 170, visible: false},
-            {binding: 'BALJUSEQ', header: 'seq', width: 150, visible: false},
-            {binding: 'CLTNM', header: '발주처', width: 170},
-            {binding: 'BALJUDATE', header: '발주일', width: 120, align: 'center'},
-            {binding: 'PERNM', header: '현장 PM', width: 100, align: 'center'},
-            {binding: 'ACTNM', header: '현장명', width: 170, align: 'center'},
-            {binding: 'ichdate', header: '납기일자', width: 120, align: 'center'},
-            {binding: 'pname', header: '품명', width: 170, align: 'center'},
-            {binding: 'psize', header: '규격', width: 170, align: 'center'},
-            {binding: 'pmapseq', header: '도번', width: 120, align: 'center'},
+            {binding: 'project_no', header: '프로젝트번호', visible: false},
+            {binding: 'BALJUNUM', header: '주문번호',  visible: false},
+            {binding: 'BALJUSEQ', header: 'seq', visible: false},
+            {binding: 'ACTNM', header: '현장명', width: '*', align: 'left'},
+            //{binding: 'CLTNM', header: '발주처', width: 170},
+            {binding: 'pname', header: '품명', width: 250, align: 'left'},
             {binding: 'punit', header: '단위', width: 70, align: 'center'},
-            {binding: 'pqty', header: '수량', width: 60, align: 'right', format: 'n0'},
+            {binding: 'psize', header: '규격', width: 170, align: 'left'},
+            {binding: 'pqty', header: '수량', width: 50, align: 'right', format: 'n0'},
             {binding: 'puamt', header: '단가', width: 110, align: 'right', format: 'n0'},
             {binding: 'pamt', header: '금액', width: 110, align: 'right',format: 'n0'},
-            {binding: 'CHULFLAG', header: '발주처 출고여부', width: 120, align: 'center'},
-            {binding: 'CHULDATE', header: '발주처 출고일자', width: 120, align: 'center'},
-            {binding: 'CHULPERNM', header: '발주처 출고자', width: 120, align: 'center'},
-            {binding: 'facflag', header: '공장 출고 여부', width: 120, align: 'center'},
-            {binding: 'FACDATE', header: '공장 출고 일자', width: 120, align: 'center'},
-            {binding: 'FACPERNM', header: '공장 출고자', width: 120, align: 'center'},
-            {binding: 'hyunflag', header: '현장 확인 여부', width: 120, align: 'center'},
-            {binding: 'HYUNDATE', header: '현장 확인 일자', width: 120, align: 'center'},
-            {binding: 'HYUNPERNM', header: '현장 확인자', width: 120, align: 'center'},
+            {binding: 'BALJUDATE', header: '발주일', width: 120, align: 'center'},
+            // {binding: 'PERNM', header: '현장 PM', width: 100, align: 'center'},
+            {binding: 'ichdate', header: '납기일자', width: 120, align: 'center'},
+            // {binding: 'pmapseq', header: '도번', width: 120, align: 'center'},
             {binding: 'remark', header: '비고', width: 150, align: 'center'},
           ],
           itemsSource: this.viewData, // 데이터를 설정할 배열
@@ -274,7 +265,6 @@
             _this.searchMainData();
           }
         });
-
       }//init
 
       searchMainData() {
@@ -318,12 +308,12 @@
           if (result && Array.isArray(result.data)) {
             _this.viewData = new wijmo.collections.CollectionView(result.data, {
               sortDescriptions: [
-                {property: 'BALJUNUM', ascending: true},
-                {property: 'BALJUSEQ', ascending: true}
+                {property: 'ACTNM', ascending: true},
+                //{property: 'pname', ascending: true}
               ],
               groupDescriptions: [
-                new wijmo.collections.PropertyGroupDescription('BALJUNUM', item => {
-                  return `주문번호: ${item.BALJUNUM} / 발주처: ${item.ACTNM} / 총금액: ${item.TOTAL_PAMT?.toLocaleString() ?? 0}원`;
+                new wijmo.collections.PropertyGroupDescription('ACTNM', item => {
+                  return `현장명: ${item.ACTNM} `;
                 })
               ]
             });

@@ -52,14 +52,20 @@ public class CompanyService {
 				bizitem,
 				agnernm,
 				agntel,
+				taxmail,
 				taxpernm,
 				taxtelnum,
 				remarks
 				from TB_XCLIENT
-				where 1 = 1
+				where 1 = 1 
+				
 			""";
-		/*if (StringUtils.isEmpty(compType)==false) sql +="and c.\"CompanyType\" = :comp_type ";
-		if (StringUtils.isEmpty(groupName)==false) sql +="and upper(c.\"GroupName\") like concat('%%',upper(:group_name),'%%')";*/
+		if (compType != null && !compType.isBlank()) {
+			sql += """
+				and clttype = :comp_type
+			""";
+		}
+
 		if (StringUtils.isEmpty(keyword)==false) sql+="and upper(cltnm) like concat('%%',upper(:keyword),'%%')";
 		
 		sql += "order by cltcd desc";
@@ -88,7 +94,7 @@ public class CompanyService {
 				prenum as comp_code2,
 				telnum as tel_number,
 				faxnum as fax_number,
-				agneremail as email,
+				taxmail as email,
 				zipcd as zip_code,
 				cltadres as placeAddress,
 				relyn ,

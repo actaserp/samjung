@@ -60,17 +60,14 @@
               <label>업체구분</label>
             </dt>
             <dd>
-              <select class="form-control2" id="cboCompanyType" name="cboCompanyType"></select>
+              <select class="form-control2" id="cboCompanyType" name="cboCompanyType">
+                <option value="">선택하세요</option>
+                <option value="1">매입처</option>
+                <option value="2">매출처</option>
+                <option value="3">공통</option>
+              </select>
             </dd>
           </dl>
-          <!--<dl>
-              <dt>
-                  <label>분류</label>
-              </dt>
-              <dd>
-                  <select class="form-control2" id="cboGroupName" name="cboGroupName"></select>
-              </dd>
-          </dl>-->
           <dl>
             <dt>
               <label>업체명</label>
@@ -284,7 +281,7 @@
                       <label for="relyn">거래중지 여부</label>
                     </th>
                     <td style="text-align: center;">
-                      <input type="checkbox" id="relyn" name="relyn" value="X"
+                      <input type="checkbox" id="relyn" name="relyn" value="O"
                              style="display: block; margin: auto; height: 26px; width: 26px;">
                     </td>
 
@@ -707,7 +704,7 @@
             {binding: 'saupnum', header: '사업자번호', width: 150, align: 'left',},
             {binding: 'ceo_name', header: '대표자', width: 150, align: 'left',},
             {binding: 'telnum', header: '연락처', width: 150, align: 'left',},
-            {binding: 'email', header: '이메일', width: 150, align: 'left',},
+            {binding: 'taxmail', header: '이메일', width: 150, align: 'left',},
             {binding: 'zipcd', header: '우편번호', width: 120, align: 'center',},
             {binding: 'cltadres', header: '주소', width: 300, align: 'left',},
             {binding: 'relyn', header: '거래중지 여부', width: 150, align: 'center',},
@@ -968,9 +965,9 @@
             result.data.comp_code2 = result.data.comp_code2.replace(/(\d{6})(\d{7})/, "$1-$2");
           }
 
-          // 거래중지 여부 체크박스 상태 설정 (데이터가 'X'면 체크)
+          // 거래중지 여부 체크박스 상태 설정 (데이터가 'O'면 체크)
           const relYn = String(result.data.relyn || '').toUpperCase();
-          $('#relyn').prop('checked', relYn === 'X');
+          $('#relyn').prop('checked', relYn === 'O');
 
 
           // 변환된 데이터 바인딩
@@ -1494,7 +1491,6 @@
     $(document).ready(function (e) {
       page = new CompanyPage();
 
-      AjaxUtil.fillSelectOptions($('#cboCompanyType'), 'system_code', 'choose', false, 'company_type');
       AjaxUtil.fillSelectOptions($('#company_type'), 'system_code', 'choose', false, 'company_type');
 
       $('#MaterialGroup_id').change(function (ex) {

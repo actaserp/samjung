@@ -78,7 +78,7 @@
               <tbody>
               <tr>
                 <th>
-                  <label for="">
+                  <label for=""><span class="eq">*</span>
                     업체명
                   </label>
                 </th>
@@ -89,7 +89,7 @@
                   </div>
                 </td>
                 <th>
-                  <label for="">
+                  <label for=""><span class="eq">*</span>
                     대표자
                   </label>
                 </th>
@@ -103,7 +103,7 @@
               </tr>
               <tr>
                 <th>
-                  <label for="">
+                  <label for=""><span class="eq">*</span>
                     업태
                   </label>
                 </th>
@@ -114,7 +114,7 @@
                   </div>
                 </td>
                 <th>
-                  <label for="">
+                  <label for=""><span class="eq">*</span>
                     종목
                   </label>
                 </th>
@@ -127,7 +127,7 @@
               </tr>
               <tr>
                 <th>
-                  <label for="">
+                  <label for=""><span class="eq">*</span>
                     전화번호
                   </label>
                 </th>
@@ -138,7 +138,7 @@
                   </div>
                 </td>
                 <th>
-                  <label for="">
+                  <label for=""><span class="eq">*</span>
                     핸드폰
                   </label>
                 </th>
@@ -151,14 +151,14 @@
               </tr>
               <tr>
                 <th>
-                  <label for="id">
+                  <label for="id"><span class="eq">*</span>
                     사업자 번호(아이디)
                   </label>
                 </th>
                 <td>
                   <div class="input-clear">
                     <input type="text" id="userid" name="userid" class="wp100" maxlength="50"
-                           placeholder="사업자 번호(아이디)" style="width: 400px !important;" readonly>
+                           placeholder="사업자 번호(아이디) / 특수문자 제외하고 입력해주세요." style="width: 400px !important;">
                     <input type="hidden" id="id" name="id"/>
                     <div style="text-align:left; ">
                       <span id="userid-check-message" style="color: red; display: none; ">중복된 코드입니다.</span>
@@ -166,7 +166,7 @@
                   </div>
                 </td>
                 <th>
-                  <label for="email">
+                  <label for="email"><span class="eq">*</span>
                     이메일
                   </label>
                 </th>
@@ -188,7 +188,7 @@
                 <th><label for="is_active">사용여부</label></th>
                 <td style="text-align: center; vertical-align: middle;">
                   <input type="checkbox" id="is_active" name="is_active"
-                         style="display: block; margin: auto;">
+                         style="display: block; margin: auto;" checked>
                 </td>
               </tr>
               <tr>
@@ -212,14 +212,14 @@
                 </td>
               </tr>
               <tr>
-                <th>
+                <th><span class="eq">*</span>
                   사업체명
                 </th>
                 <td>
                   <select id="spjType" name="spjType" class="wp50">
                   </select>
                 </td>
-                <th>
+                <th><span class="eq">*</span>
                   거래 구분
                 </th>
                 <td>
@@ -560,13 +560,44 @@
       let numbers = val.replace(/[^0-9]/g, '');
       if (numbers.length > 11) numbers = numbers.slice(0, 11);
 
+      // 02 지역번호 (서울) 처리
+      if (numbers.startsWith('02')) {
+        if (numbers.length < 3) return numbers;
+        if (numbers.length < 6) return numbers.slice(0, 2) + '-' + numbers.slice(2);
+        if (numbers.length < 10) return numbers.slice(0, 2) + '-' + numbers.slice(2, 5) + '-' + numbers.slice(5);
+        return numbers.slice(0, 2) + '-' + numbers.slice(2, 6) + '-' + numbers.slice(6);
+      }
+
+      // 그 외 3자리 지역번호 또는 휴대폰 번호
       if (numbers.length < 4) return numbers;
       if (numbers.length < 7) return numbers.slice(0, 3) + '-' + numbers.slice(3);
       if (numbers.length === 10) return numbers.slice(0, 3) + '-' + numbers.slice(3, 6) + '-' + numbers.slice(6);
       if (numbers.length === 11) return numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7);
 
-      return numbers; // fallback
+      return numbers;
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const telInput = document.getElementById('tel');
+      const phoneInput = document.getElementById('Phone');
+
+      const attachFormatter = (input) => {
+        input.addEventListener('input', function (e) {
+          const cursorPos = input.selectionStart;
+          const raw = input.value.replace(/[^0-9]/g, '');
+          const formatted = formatTelNumber(raw);
+          input.value = formatted;
+
+          // 커서 위치 유지 (optional 개선)
+          if (document.activeElement === input) {
+            input.setSelectionRange(formatted.length, formatted.length);
+          }
+        });
+      };
+
+      attachFormatter(telInput);
+      attachFormatter(phoneInput);
+    });
 
     <!-- 초반 페이지 진입시 그리드 바인딩 끝-->
     function showUserInfo(rowData) {
@@ -630,7 +661,6 @@
       document.getElementById("address1").value = data.cltadres || '';
       document.getElementById("address2").value = data.address2 || '';
 
-      $('#userid').prop('readonly', true);
     }
 
     // fullAddress를 address1과 address2로 분리하는 함수
@@ -667,6 +697,10 @@
       if (RelynCheckbox) {
         RelynCheckbox.checked = true;
       }
+      const checkmessage = document.getElementById('userid-check-message');
+      if(checkmessage){
+        checkmessage.style.display = 'none';
+      }
 
       const selectAuthType = document.getElementById('authType');
       if (selectAuthType) {
@@ -681,8 +715,6 @@
       if (selectSpjType) {
         selectSpjType.value = 'ZZ';
       }
-
-      $('#userid').prop('readonly', false);
 
       $('.new-fl-ac').remove();
     }
@@ -733,6 +765,21 @@
         }
       });
     }
+    document.addEventListener('DOMContentLoaded', function () {
+      const useridInput = document.getElementById('userid');
+      const hiddenIdInput = document.getElementById('id');
+      const checkMessage = document.getElementById('userid-check-message');
+
+      if (useridInput) {
+        useridInput.addEventListener('input', function () {
+          if (useridInput.value.trim() === '') {
+            // 입력값이 비었을 때
+            if (hiddenIdInput) hiddenIdInput.value = '';
+            if (checkMessage) checkMessage.style.display = 'none';
+          }
+        });
+      }
+    });
 
     // 저장
     $('#btnSave').click(function (e) {

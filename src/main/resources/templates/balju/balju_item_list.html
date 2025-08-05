@@ -54,13 +54,13 @@
           </dl>
           <dl>
             <dt>
-              <label for="txtClt">
-                발주처
+              <label for="txtPname">
+                품명
               </label>
             </dt>
             <dd>
               <div class="srch-box">
-                <input id="txtClt" name="txtClt" placeholder="발주처"/>
+                <input id="txtPname" name="txtPname" placeholder="품명"/>
               </div>
             </dd>
           </dl>
@@ -108,107 +108,10 @@
   <th:block th:replace="/common/popup_actnm :: popup_actnm"></th:block>
   <th:block th:replace="/common/popup_part :: popup_part"></th:block>
   <script type="text/javascript">
-    const ProductInputHandler = {
-      bind: function ({rowSelector, $content}) {
-        const $row = $(rowSelector);
-
-        // 숫자 포맷 적용 대상 필드들
-        const formatFields = [
-          'input[name^="pqty_"]',   //수량
-          'input[name^="puamt_"]',  //단가
-          'input[name^="pamt_"]'    //금액
-        ];
-
-        formatFields.forEach(selector => {
-          $row.find(selector).off('keyup').on('keyup', function () {
-            formatNumberInput($(this).val(), this);
-          });
-
-          $row.find(selector).each(function () {
-            if ($(this).val()) {
-              formatNumberInput($(this).val(), this);
-            }
-          });
-        });
-
-        // 계산 이벤트 바인딩
-        $row.find('input[name^="pqty_"], input[name^="puamt_"]').off('input change keyup').on('input change keyup', function () {
-          calculateAmount({row: $row});
-        });
-
-        $row.find('input[name^="pamt_"]').off('input').on('input', function () {
-          $row.data('totalEdited', true); // 자동계산 안 되도록 표시
-        });
-
-        // 제품 검색 기능 (기존 그대로 유지)
-        const $input = $row.find('input[name^="txtPname_"]');
-        const $id = $row.find('input[name^="Material_id_"]');
-        const $code = $row.find('input[name^="product_code_"]');
-        const $group = $row.find('input[name^="MaterialGroupName_"]');
-        const $next = $row.find('input[name^="quantity_"]');
-
-        $input.on('input', function () {
-          const value = $(this).val().trim();
-
-          if (value === '') {
-            $id.val('');
-            $code.val('');
-            $group.val('');
-          }
-        });
-
-        function set(item) {
-          $input.val(item.Name);
-          $id.val(item.id);
-          $code.val(item.Code);
-          $group.val(item.group_name);
-          tryShowBaljuPrice($row);
-
-          setTimeout(() => {
-            $next.focus().select();
-          }, 10);
-        }
-
-        $input.off('keydown').on('keydown', function (e) {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            const keyword = $input.val().trim();
-
-            if (!keyword) return showPopup();
-
-            $.get('/api/popup/search_part', {PART_NM: keyword}, function (res) {
-              if (res.data?.length === 1) {
-                set(res.data[0]);
-              } else {
-                showPopup();
-              }
-            });
-
-            function showPopup() {
-              const pop = new PopPart();
-
-              pop.show(set, keyword);
-
-              setTimeout(() => {
-                if (pop.$keyword) {
-                  pop.$keyword.val(keyword);
-                  if (pop.$cboMaterialGrp) pop.$cboMaterialGrp.val('');
-                  pop.searchDataBind();
-                }
-              }, 100);
-            }
-          }
-        });
-      }
-    };
-
-    class BaljuOrderPage {
+    class BalJuItemListPage {
       constructor() {
         this.url = '/api/balju/balju_list';
         this.grid = null;
-        this.$btnEdit = $('#btnEdit');
-        this.$btnAddNew = $('#btnAddNew');
-        this.$btnMail = $('#btnMail');
         this.spjangcd = $('#spjangcdHidden');
         this.viewData = new wijmo.collections.CollectionView();
         this.init();
@@ -228,39 +131,25 @@
             }
           },
           columns: [
-            {binding: 'project_no', header: '프로젝트번호', visible: false},
-            {binding: 'BALJUNUM', header: '주문번호',  visible: false},
-            {binding: 'BALJUSEQ', header: 'seq', visible: false},
-            {binding: 'ACTNM', header: '현장명', width: '*', align: 'left'},
-            //{binding: 'CLTNM', header: '발주처', width: 170},
-            {binding: 'pname', header: '품명', width: 250, align: 'left'},
-            {binding: 'punit', header: '단위', width: 70, align: 'center'},
+            {binding: 'pname', header: '품명', width: 280, align: 'left'},
             {binding: 'psize', header: '규격', width: 170, align: 'left'},
-            {binding: 'pqty', header: '수량', width: 50, align: 'right', format: 'n0'},
+            {binding: 'punit', header: '단위', width: 70, align: 'center'},
+            {binding: 'cltnm', header: '발주처', width: 170},
+            {binding: 'baljudate', header: '발주일', width: 120, align: 'center'},
+            {binding: 'pqty', header: '수량', width: 50, align: 'center', format: 'n0'},
             {binding: 'puamt', header: '단가', width: 110, align: 'right', format: 'n0'},
             {binding: 'pamt', header: '금액', width: 110, align: 'right',format: 'n0'},
-            {binding: 'BALJUDATE', header: '발주일', width: 120, align: 'center'},
-            // {binding: 'PERNM', header: '현장 PM', width: 100, align: 'center'},
             {binding: 'ichdate', header: '납기일자', width: 120, align: 'center'},
-            // {binding: 'pmapseq', header: '도번', width: 120, align: 'center'},
-            {binding: 'remark', header: '비고', width: 150, align: 'center'},
+            {binding: 'actnm', header: '현장명', width: '*', align: 'left'},
           ],
           itemsSource: this.viewData, // 데이터를 설정할 배열
         });
 
         new FlexGridContextMenu(this.grid);
-        this.grid.downloadFileName = '발주 상세 현황';
-
-        this.grid.hostElement.addEventListener('dblclick', function (e) {
-          let items = _this.grid.selectedItems;
-          if (items.length === 0) {
-            return false;
-          }
-          _this.$btnEdit.trigger('click');
-        });
+        this.grid.downloadFileName = '품목별 현황';
 
         // 엔터키 검색
-        $('#txtActnm, #txtClt').on('keypress', function (e) {
+        $('#txtActnm, #txtPname').on('keypress', function (e) {
           if (e.keyCode === 13) {
             _this.searchMainData();
           }
@@ -269,7 +158,7 @@
 
       searchMainData() {
         let _this = this;
-        let url = this.url + '/read';
+        let url = this.url + '/item_read';
 
         console.log('searchMainData');
         const sessionDate = sessionStorage.getItem("sessionIchDate");
@@ -292,11 +181,11 @@
         let date_kind = $('#cboDateKind').val();  //발주구분
         let start = $('#srchStartDt').val();  //시작일
         let end = $('#srchEndDt').val();      //종료일
-        let txtClt = $('#txtClt').val(); //발주처
+        let txtPname = $('#txtPname').val(); //발주처
         let txtActnm = $('#txtActnm').val(); //현잔 명
 
         let data = {
-          'clt': txtClt,
+          'pname': txtPname,
           'actnm': txtActnm,
           'date_kind': date_kind,
           'start': start,
@@ -307,17 +196,16 @@
         let fnsuccess = function (result) {
           if (result && Array.isArray(result.data)) {
             _this.viewData = new wijmo.collections.CollectionView(result.data, {
-              sortDescriptions: [
-                {property: 'ACTNM', ascending: true},
-                //{property: 'pname', ascending: true}
-              ],
+              /*sortDescriptions: [
+                { property: 'pname', ascending: true },
+                { property: 'baljudate', ascending: false },
+              ],*/
               groupDescriptions: [
-                new wijmo.collections.PropertyGroupDescription('ACTNM', item => {
-                  return `현장명: ${item.ACTNM} `;
-                })
+                new wijmo.collections.PropertyGroupDescription(null, item =>
+                  `품명: ${item.pname} / 규격: ${item.psize}`
+                )
               ]
             });
-
             _this.grid.itemsSource = _this.viewData;
           }
         };
@@ -341,7 +229,7 @@
         $('#spjangcdHidden').val(spjangcd);  // hidden input이 있어야 함
       }
 
-      page = new BaljuOrderPage();
+      page = new BalJuItemListPage();
 
       $('#srchStartDt').val(CommonUtil.getYYYYMMDD(-7));
       $('#srchEndDt').val(CommonUtil.getYYYYMMDD());

@@ -47,4 +47,28 @@ public class BalJuListController {
     return result;
   }
 
+  @GetMapping("/item_read")
+  public AjaxResult getBalJuItemList(@RequestParam(value = "pname" ,required = false) String pname,
+                                 @RequestParam(value = "actnm", required = false) String  actnm,
+                                 @RequestParam(value = "date_kind", required = false) String date_kind,
+                                 @RequestParam(value = "start", required = false )String start_date,
+                                 @RequestParam(value = "end", required = false)String end_date,
+                                 Authentication auth){
+    //log.info("발주 상세 list들어옴");
+    User user = (User) auth.getPrincipal();
+    String spjangcd = user.getSpjangcd();
+
+    start_date = start_date + " 00:00:00";
+    end_date = end_date + " 23:59:59";
+
+    Timestamp start = Timestamp.valueOf(start_date);
+    Timestamp end = Timestamp.valueOf(end_date);
+
+    List<Map<String, Object>> items = this.balJuListServicr.getBalJuItemList(pname, actnm, date_kind, start, end, spjangcd);
+
+    AjaxResult result = new AjaxResult();
+    result.data = items;
+    return result;
+  }
+
 }

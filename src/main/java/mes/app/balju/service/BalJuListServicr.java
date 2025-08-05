@@ -104,4 +104,122 @@ public class BalJuListServicr {
 //    log.info("SQL Parameters: {}", paramMap.getValues());
     return sqlRunner.getRows(sql, paramMap);
   }
+
+  public List<Map<String, Object>> getBalJuItemList(String pname, String actnm, String date_kind, Timestamp start, Timestamp end, String spjangcd) {
+    MapSqlParameterSource paramMap = new MapSqlParameterSource();
+    paramMap.addValue("pname", pname);
+    paramMap.addValue("actnm", actnm);
+    paramMap.addValue("date_kind", date_kind);
+    paramMap.addValue("start", start);
+    paramMap.addValue("end", end);
+    paramMap.addValue("spjangcd", spjangcd);
+
+    String sql= """
+        SELECT
+          d.pname,
+          d.psize,
+          d.punit,
+          c.cltnm,
+          STUFF(STUFF( h.baljudate, 5, 0, '-'), 8, 0, '-') AS baljudate,
+          d.pqty,
+          d.puamt,
+          d.pamt,
+          STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-') AS ichdate,
+          h.actnm
+        FROM TB_CA661 d
+        JOIN TB_CA660 h ON d.BALJUNUM = h.BALJUNUM
+        LEFT JOIN TB_XCLIENT c ON c.cltcd = h.cltcd
+         where 1=1
+        """;
+
+    if ("sales".equalsIgnoreCase(date_kind)) {
+      sql += " AND h.BALJUDATE BETWEEN :start AND :end ";
+    } else {
+      sql += " AND h.ICHDATE BETWEEN :start AND :end ";
+    }
+
+    if (pname != null && !pname.isEmpty()) {
+      sql += " and d.pname like :pname ";
+      paramMap.addValue("pname", "%" + pname + "%");
+    }
+
+    if (actnm != null && !actnm.isEmpty()) {
+      sql += " and h.actnm like :actnm ";
+      paramMap.addValue("actnm", "%" + actnm + "%");
+    }
+
+    sql+= """
+        ORDER BY h.baljudate DESC , d.pname ASC;
+        """;
+
+//    log.info("발주 item list read SQL: {}", sql);
+//    log.info("SQL Parameters: {}", paramMap.getValues());
+    return sqlRunner.getRows(sql, paramMap);
+
+  }
+
+  /*public List<Map<String, Object>> getBalJuItemList(String pname, String actnm, String date_kind, Timestamp start, Timestamp end, String spjangcd) {
+    MapSqlParameterSource paramMap = new MapSqlParameterSource();
+    paramMap.addValue("start", start);
+    paramMap.addValue("end", end);
+    paramMap.addValue("spjangcd", spjangcd);
+
+    String sql = """
+        WITH ItemSummary AS (
+          SELECT
+            d.pname,
+            d.psize,
+            d.punit,
+            h.baljudate,
+            SUM(d.pqty) AS total_pqty,
+            AVG(d.puamt) AS avg_puamt,
+            SUM(d.pamt) AS total_pamt
+          FROM TB_CA661 d
+          JOIN TB_CA660 h ON d.BALJUNUM = h.BALJUNUM
+          WHERE 1=1 """;
+
+    if ("sales".equalsIgnoreCase(date_kind)) {
+      sql += " AND h.BALJUDATE BETWEEN :start AND :end ";
+    } else {
+      sql += " AND h.ICHDATE BETWEEN :start AND :end ";
+    }
+    if (pname != null && !pname.isEmpty()) {
+      sql += " AND d.pname LIKE :pname \n";
+      paramMap.addValue("pname", "%" + pname + "%");
+    }
+    sql += """
+          GROUP BY d.pname, d.psize, d.punit, h.baljudate
+        )
+        SELECT
+          s.pname,
+          s.psize,
+          s.punit,
+          STUFF(STUFF(s.baljudate, 5, 0, '-'), 8, 0, '-') AS baljudate,
+          s.total_pqty,
+          s.avg_puamt,
+          s.total_pamt,
+          MAX(c.cltnm) AS cltnm,
+          MAX(STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-')) AS ichdate,
+          MAX(h.actnm) AS actnm
+        FROM ItemSummary s
+        JOIN TB_CA661 d ON d.pname = s.pname AND d.psize = s.psize AND d.punit = s.punit
+        JOIN TB_CA660 h ON h.baljunum = d.baljunum AND h.baljudate = s.baljudate
+        LEFT JOIN TB_XCLIENT c ON c.cltcd = h.cltcd
+        WHERE 1=1
+        """;
+
+    if (actnm != null && !actnm.isEmpty()) {
+      sql += " AND h.actnm LIKE :actnm \n";
+      paramMap.addValue("actnm", "%" + actnm + "%");
+    }
+
+    sql += """
+        GROUP BY s.pname, s.psize, s.punit, s.baljudate, s.total_pqty, s.avg_puamt, s.total_pamt
+        ORDER BY s.baljudate DESC, s.pname ASC
+        """;
+    log.info("발주 item list read SQL: {}", sql);
+    log.info("SQL Parameters: {}", paramMap.getValues());
+    return sqlRunner.getRows(sql, paramMap);
+  }*/
+
 }

@@ -533,6 +533,12 @@ public class RequestService {
         if (cltcd != null && !cltcd.isEmpty()) {
             sql.append(" AND hd.CLTCD = :CLTCD");
         }
+        // 현장명 필터
+        if (searchActnm != null && !searchActnm.isEmpty()) {
+            sql.append(" AND hd.ACTNM LIKE :searchActnm");
+        }else{
+            return null;
+        }
         // 정렬 조건 추가
         sql.append(" ORDER BY hd.BALJUDATE ASC");
 
@@ -589,6 +595,12 @@ public class RequestService {
 //        if (cltcd != null && !cltcd.isEmpty()) {
 //            sql.append(" AND hd.CLTCD = :CLTCD");
 //        }
+        // 현장명 필터
+        if (searchActnm != null && !searchActnm.isEmpty()) {
+            sql.append(" AND hd.ACTNM LIKE :searchActnm");
+        }else{
+            return null;
+        }
         // 정렬 조건 추가
         sql.append(" ORDER BY hd.BALJUDATE ASC");
 

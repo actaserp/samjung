@@ -28,7 +28,7 @@
         <div class="search-wrap">
           <dl>
             <dt>
-              주문일자<span class="eq">*</span>
+              발주일자<span class="eq">*</span>
             </dt>
             <dd>
               <ul class="date-box">
@@ -413,6 +413,7 @@
     function modifyData() {
       // 필수 요소 안내 alert
       let requiredFields = [
+        {id: '#searchActnm', label: '현장명을 작성해주세요'},
         {id: '#popupDate', label: '출고일을 선택해주세요'},
       ];
       for (let i = 0; i < requiredFields.length; i++) {

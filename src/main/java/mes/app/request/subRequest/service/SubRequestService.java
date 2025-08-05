@@ -525,6 +525,12 @@ public class SubRequestService {
                 AND dt.FACFLAG = '1'
                 AND dt.FACDATE = :searchDate
                 """);
+        // 현장명 필터
+        if (searchActnm != null && !searchActnm.isEmpty()) {
+            sql.append(" AND hd.ACTNM LIKE :searchActnm");
+        }else{
+            return null;
+        }
         // 정렬 조건 추가
         sql.append(" ORDER BY hd.BALJUDATE ASC");
 

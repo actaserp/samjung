@@ -100,9 +100,9 @@ public class BaljuOrderService {
                h.PROCD, p.PROJECT_NM, h.REMARK01, tx.cltnm 
        ),
        first_pmapseq AS (
-       SELECT d.BALJUNUM, d.PMAPSEQ, d.PNAME, d.punit
+       SELECT d.BALJUNUM, d.PMAPSEQ, d.PNAME, d.punit,d.psize
        FROM (
-           SELECT BALJUNUM, PMAPSEQ, PNAME, punit,
+           SELECT BALJUNUM, PMAPSEQ, PNAME, punit,psize,
                   ROW_NUMBER() OVER (PARTITION BY BALJUNUM ORDER BY BALJUSEQ ASC) AS rn
            FROM TB_CA661
        ) d
@@ -110,6 +110,7 @@ public class BaljuOrderService {
    )
        SELECT
            m.*,
+           f.psize ,
            f.PMAPSEQ AS pmapseq,
            f.PNAME AS pname,
            f.punit as punit
@@ -334,5 +335,95 @@ public class BaljuOrderService {
     return sqlRunner.getRow(sql, dicParam);
   }
 
+
+  public List<Map<String, Object>> getUnitPrice(String partName, String partSize) {
+    MapSqlParameterSource param = new MapSqlParameterSource();
+    param.addValue("pname", partName);
+    param.addValue("psize", partSize);
+
+    String sql= """
+         SELECT TOP 1 PUAMT
+                FROM TB_CA665
+                WHERE PNAME = :pname
+                  AND PSIZE = :psize
+                ORDER BY BALJUDATE DESC
+        """;
+//    log.info("단가 조회 데이터 SQL: {}", sql);
+//    log.info("SQL Parameters: {}", param.getValues());
+    return sqlRunner.getRows(sql, param);
+  }
+
+
+  public int SaveUnitPrice(Map<String, Object> data) {
+    MapSqlParameterSource param = new MapSqlParameterSource();
+
+    String pname = (String) data.get("PNAME");
+    String psize = (String) data.get("PSIZE");
+    Object puamt = data.get("PUAMT");
+    String baljudate = (String) data.get("BALJUDATE");
+    String pcode = (String) data.get("PCODE"); // null일 수 있음
+
+    param.addValue("pname", pname);
+    param.addValue("psize", psize);
+    param.addValue("puamt", puamt);
+    param.addValue("baljudate", baljudate);
+
+    StringBuilder sql = new StringBuilder();
+    sql.append("""
+        MERGE INTO TB_CA665 AS target
+        USING (
+            SELECT :pname AS PNAME,
+                   :psize AS PSIZE,
+                   :puamt AS PUAMT,
+                   :baljudate AS BALJUDATE
+    """);
+
+    // ✅ PCODE 있는 경우만 추가
+    if (pcode != null && !pcode.isBlank()) {
+      sql.append(", :pcode AS PCODE\n");
+      param.addValue("pcode", pcode);
+    }
+
+    sql.append("""
+        ) AS source
+        ON target.PNAME = source.PNAME AND target.PSIZE = source.PSIZE
+        WHEN MATCHED AND (
+            (target.PUAMT IS NULL AND source.PUAMT IS NOT NULL) OR
+            (target.PUAMT IS NOT NULL AND source.PUAMT IS NULL) OR
+            (target.PUAMT <> source.PUAMT)
+    """);
+
+    // ✅ PCODE 비교 조건도 동적으로 추가
+    if (pcode != null && !pcode.isBlank()) {
+      sql.append(" OR ISNULL(target.PCODE, '') <> ISNULL(source.PCODE, '')\n");
+    }
+
+    sql.append("""
+        )
+        THEN UPDATE SET
+            PUAMT = source.PUAMT,
+            BALJUDATE = source.BALJUDATE
+    """);
+
+    if (pcode != null && !pcode.isBlank()) {
+      sql.append(", PCODE = source.PCODE\n");
+    }
+
+    sql.append("WHEN NOT MATCHED THEN\n  INSERT (PNAME, PSIZE, PUAMT, BALJUDATE");
+
+    if (pcode != null && !pcode.isBlank()) {
+      sql.append(", PCODE");
+    }
+
+    sql.append(")\n  VALUES (source.PNAME, source.PSIZE, source.PUAMT, source.BALJUDATE");
+
+    if (pcode != null && !pcode.isBlank()) {
+      sql.append(", source.PCODE");
+    }
+
+    sql.append(");");
+
+    return sqlRunner.execute(sql.toString(), param);
+  }
 
 }

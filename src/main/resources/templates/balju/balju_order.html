@@ -484,7 +484,10 @@
               <td><input type="text" name="psize" placeholder="규격" /></td>
               <td><input type="text" name="punit" placeholder="단위" /></td>
               <td><input type="text" name="pqty" placeholder="수량" /></td>
-              <td><input type="text" name="puamt" min="0" placeholder="단가"/></td>
+              <td>
+                <input type="text" name="puamt" min="0" placeholder="단가"/>
+                <input type="hidden" name="former_price" min="0"/>
+              </td>
               <td><input type="text" name="pamt" placeholder="금액"/></td>
               <td><input type="text" name="pmapseq" placeholder="도번"/></td>
               <td><input type="text" name="remark" placeholder="비고"/></td>
@@ -624,7 +627,7 @@
           $id.val(item.id);
           $code.val(item.Code);
           $group.val(item.group_name);
-          tryShowBaljuPrice($row);
+          //tryShowBaljuPrice($row);
 
           setTimeout(() => {
             $next.focus().select();
@@ -667,10 +670,8 @@
       constructor() {
         this.url = '/api/balju/balju_order';
         this.grid = null;
-        this.baljuResponse = null;
         this.$btnEdit = $('#btnEdit');
         this.$btnAddNew = $('#btnAddNew');
-        this.$btnMail = $('#btnMail');
         this.spjangcd = $('#spjangcdHidden');
         this.viewData = new wijmo.collections.CollectionView();
         this.init();
@@ -698,7 +699,8 @@
             {binding: 'ACTNM', header: '현장명', width: 170, align: 'center'},
             {binding: 'ichdate', header: '납기일자', width: 120, align: 'right'},
             {binding: 'pname', header: '품명', width: 120, align: 'left'},
-            {binding: 'punit', header: '단위', width: 70, align: 'right', format: 'n0'},
+            {binding: 'psize', header: '규격', width: 120, align: 'left'},
+            {binding: 'punit', header: '단위', width: 70, align: 'center', format: 'n0'},
             {binding: 'pqty', header: '수량', width: 80, align: 'right', format: 'n0'},
             {binding: 'puamt', header: '단가', width: 100, align: 'right',format: 'n0'},
             {binding: 'pamt', header: '금액', width: 100, align: 'right'},
@@ -1332,6 +1334,10 @@
           $content.find('.item-table tbody tr:not(.item-template-row)').each(function () {
             const $row = $(this);
 
+            const unitPrice = $row.find('input[name^="puamt_"]').val().replace(/,/g, '');
+            const formerUnitPrice = $row.find('input[name^="former_price_"]').val()?.replace(/,/g, ''); // 이전 단가 (숨겨진 input 필요)
+
+
             const item = {
               bpid: $row.find('input[name^="bpid_"]').val(),              // 품목ID (hidden)
               pcode: $row.find('input[name^="pcode_"]').val(),            // 품목코드
@@ -1346,15 +1352,23 @@
             };
 
             itemRows.push(item);
-            console.log("📦 저장할 itemRows:", itemRows);
+            // console.log("📦 저장할 itemRows:", itemRows);
 
+            if (unitPrice && unitPrice !== formerUnitPrice) {
+              priceSaveList.push({
+                PNAME: item.pname,
+                PSIZE: item.psize,
+                PUAMT: unitPrice,
+                PCODE: item.pcode || null
+              });
+            }
           });
 
           let payload = {
             ...formData,
             items: itemRows
           };
-          console.log("📦 저장할 payload:", payload);
+          // console.log("📦 저장할 payload:", payload);
 
           Alert.confirm('', '저장하시겠습니까?', function () {
             if (priceSaveList.length > 0) {
@@ -1587,10 +1601,10 @@
 
             // ✅ 선택된 품목을 행에 채우는 함수
             function fillRowWithItem($targetRow, item) {
-              $targetRow.find('input[name^="txtPname"]').val(item.PART_NM);
+              $targetRow.find('input[name^="txtPname"]').val(item.PART_NM); //품명
               $targetRow.find('input[name^="bpid"]').val(item.bpid);
               $targetRow.find('input[name^="pcode"]').val(item.PART_NO);
-              $targetRow.find('input[name^="psize"]').val(item.PART_SIZE);
+              $targetRow.find('input[name^="psize"]').val(item.PART_SIZE);  //규격
               $targetRow.find('input[name^="punit"]').val(item.unit);
               $targetRow.find('input[name^="pmapseq"]').val(item.DRAWING_NO);
 
@@ -1598,6 +1612,26 @@
               if (existingPartNos.includes(item.PART_NO)) {
                 $targetRow.find('input[name^="remark"]').val('이중 발주된 제품');
               }
+              $.ajax({
+                url: '/api/balju/balju_order/getUnitPrice',
+                method: 'GET',
+                data: {
+                  partName: item.PART_NM,
+                  partSize: item.PART_SIZE
+                },
+                success: function (res) {
+                  const unitPrice = res?.data?.[0]?.PUAMT ?? null;
+
+                  if (unitPrice != null) {
+                    $targetRow.find('input[name^="puamt_"]').val(unitPrice.toLocaleString());
+                  } else {
+                    console.warn('단가 정보 없음:', item.PART_NM, item.PART_SIZE);
+                  }
+                },
+                error: function (err) {
+                  console.error('단가 조회 실패:', err);
+                }
+              });
             }
           }, ecoNo);
         });

@@ -576,7 +576,7 @@ public class PopupController {
 		paramMap.addValue("PART_NM", PART_NM);
 		paramMap.addValue("PART_NO", PART_NO);
 		paramMap.addValue("eco_no", eco_no);
-		log.info("PART_NM:{},PART_NO:{},eco_no:{}", PART_NM, PART_NO, eco_no);
+//		log.info("PART_NM:{},PART_NO:{},eco_no:{}", PART_NM, PART_NO, eco_no);
 		AjaxResult result = new AjaxResult();
 
 		String sql = """

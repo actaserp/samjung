@@ -15,6 +15,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -76,8 +77,8 @@ public class BaljuOrderController {
   @PostMapping("/multi_save")
   @Transactional
   public AjaxResult saveBaljuMulti(@RequestBody Map<String, Object> payload, Authentication auth) {
-//    log.info("💾 [발주등록 시작] payload keys: {}", payload.keySet());
-//    log.info("🧾 items 내용: {}", payload.get("items"));
+    log.info("💾 [발주등록 시작] payload keys: {}", payload.keySet());
+    log.info("🧾 items 내용: {}", payload.get("items"));
 
     User user = (User) auth.getPrincipal();
 
@@ -1021,6 +1022,44 @@ public class BaljuOrderController {
     }
   }
 
+  @PostMapping("savePrice")
+  public AjaxResult SaveUnitPrice(@RequestBody Map<String, Object> data){
+    AjaxResult result = new AjaxResult();
+
+    try {
+      Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+      String baljuDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+      User user = (User) auth.getPrincipal();
+      data.put("user_id", user.getId());
+      data.put("BALJUDATE", baljuDate);
+
+      int saveCount = this.baljuOrderService.SaveUnitPrice(data);
+
+      if (saveCount > 0) {
+        result.success = true;
+      } else {
+        result.success = false;
+        result.message = "저장 실패: 중복된 데이터이거나 입력값이 올바르지 않습니다.";
+      }
+    }catch (Exception e) {
+      result.success = false;
+      result.message = "서버 오류: " + e.getMessage();
+    }
+
+    return result;
+  }
+
+  @GetMapping("/getUnitPrice")
+  public AjaxResult getUnitPrice(@RequestParam(value = "partName") String partName,
+                                 @RequestParam(value = "partSize") String partSize) {
+//    log.info("단가 조회 :partName:{},partSize:{}",partName, partSize);
+    List<Map<String, Object>> items = this.baljuOrderService.getUnitPrice(partName, partSize);
+
+    AjaxResult result = new AjaxResult();
+
+    result.data = items;
+    return result;
+  }
 
 }
 

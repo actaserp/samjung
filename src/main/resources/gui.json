@@ -21,6 +21,8 @@
   "wm_code":                { "name": "공통코드 등록", "templates": { "default": "definition/code.html" } },
   "wm_auth_list" :          { "name": "사용자 권한 신청 조회", "templates": { "default": "system/auth_list.html" } },
   "wm_company_management" :    { "name": "업게 관리", "templates": { "default": "system/company_management.html" } },
+  "wm_api_service":         { "name": "더존 API 연동 서비스", "templates": { "default": "system/api_service.html" } },
+
 
   "wm_dashboard_plc":       { "name": "계통도",        "templates": { "default": "dashboard/dashboard_plc_main.html" }},
   "wm_dashboard_cctv":      { "name": "CCTV 모니터링",      "templates": { "default": "dashboard/dashboard_cctv_main.html" }},

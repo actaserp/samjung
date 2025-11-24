@@ -229,7 +229,7 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 	@GetMapping("/sales_DouZone_list")
 	public AjaxResult getDouZoneSalesRead(@RequestParam("start")   String start,
 																				@RequestParam("end")     String end,
-																				@RequestParam("company") String company,
+																				@RequestParam(value = "company",required = false) String company,
 																				@RequestParam("docuTy")  String docuTy) {
 
 		AjaxResult result = new AjaxResult();

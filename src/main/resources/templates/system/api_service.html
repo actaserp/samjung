@@ -677,7 +677,7 @@
           { property: 'menuDt', ascending: true },
          ],
          groupDescriptions: [
-          new wijmo.collections.PropertyGroupDescription('doozenNo', item => {
+          new wijmo.collections.PropertyGroupDescription('IN_DT_SEQ', item => {
            // 그룹 헤더에 보여줄 텍스트
            const no   = item.IN_DT_SEQ ?? '';
            const cust = item.CUSTOMER_NAME ?? '';   // 거래처명 등
@@ -688,7 +688,27 @@
         }); // 비용
         _this.grid3.itemsSource = _this.viewData3;
         break; // 수금
-       case '5': _this.viewData4.sourceCollection = result.data; break; // 지급
+
+       case '5':
+        _this.viewData4 = new wijmo.collections.CollectionView(result.data, {
+         sortDescriptions: [
+          // 전표번호(doozenNo) 오름차순 정렬
+          { property: 'IN_DT_SEQ', ascending: true },
+          // (필요하면 날짜 등 추가)
+          { property: 'menuDt', ascending: true },
+         ],
+         groupDescriptions: [
+          new wijmo.collections.PropertyGroupDescription('IN_DT_SEQ', item => {
+           // 그룹 헤더에 보여줄 텍스트
+           const no   = item.IN_DT_SEQ ?? '';
+           const cust = item.CUSTOMER_NAME ?? '';   // 거래처명 등
+
+           return `더존번호: ${no} / 거래처: ${cust}`;
+          })
+         ]
+        }); // 비용
+        _this.grid3.itemsSource = _this.viewData4;
+        break; // 지급
       }
      };
 

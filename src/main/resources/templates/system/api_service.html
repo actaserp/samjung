@@ -420,6 +420,7 @@
        {binding: 'menuDt', header: '더존작성일자', visible: false},
        {binding: 'menuSq', header: '더존작성번호', visible: false},
        {binding: 'DATASEND_DIVISION', header: '더존 발핼여부', align: 'center', width: 80, visible: false},
+       {binding: 'misdate', header: '발행일자',visible: false},
        {binding: 'saleDate', header: '일자-순번', align: 'center', width: 140},
        {binding: 'saleType', header: '매출구분', align: 'center', width: 100},
        {binding: 'custCode', header: '거래처코드', align: 'center', width: 100},
@@ -460,6 +461,7 @@
        {binding: 'menuDt', header: '더존작성일자', visible: false},
        {binding: 'menuSq', header: '더존작성번호', visible: false},
        {binding: 'DATASEND_DIVISION', header: '더존 발핼여부', align: 'center', width: 80, visible: false},
+       {binding: 'mijdate', header: '발행일자',visible: false},
        { binding: 'mijDate',   header: '일자-순번',  align: 'center', width: 140 },
        { binding: 'cltcd',     header: '거래처코드', align: 'center', width: 110 },
        { binding: 'actcd',     header: 'ACTS 코드',  align: 'center', width: 110 },
@@ -505,6 +507,7 @@
       columns: [
        {binding: 'menuDt', header: '더존작성일자', visible: false},
        {binding: 'menuSq', header: '더존작성번호', visible: false},
+       {binding: 'rcvdate', header: '발행일자',visible: false},
        {binding: 'relation_no', header: '일자 - 순번', align: 'center', width: 140},
        {binding: 'DATASEND_DIVISION', header: '더존 발핼여부', align: 'center', width: 80, visible: false},
        {binding: '', header: '거래처코드', align: 'center', width: 110},
@@ -548,6 +551,7 @@
       columns: [
        {binding: 'menuDt', header: '더존작성일자', visible: false},
        {binding: 'menuSq', header: '더존작성번호', visible: false},
+       {binding: 'mijdate', header: '발행일자',visible: false},
        {binding: 'relation_no', header: '일자-순번', align: 'center', width: 140},
        {binding: 'DATASEND_DIVISION', header: '더존 발핼여부', align: 'center', width: 80, visible: false},
        {binding: 'CUSTOMER_CD', header: '거래처코드', align: 'center', width: 110},
@@ -820,22 +824,41 @@
       let   lineNo = 1;
 
       selectedRows.forEach(row => {
+       // ✅ 1) docuTy별 발행일자 컬럼 → menuDt 로 사용
+       let rawDate = null;
 
-       // 1) 작성일자(menuDt)
-       const issueDateRaw = (row.issueDate || '').toString();
-       let menuDt = issueDateRaw.replace(/[^0-9]/g, '');
+       switch (dty) {
+        case '3': // 매출(grid)
+         rawDate = row.misdate;
+         break;
+        case '2': // 비용(grid2)
+         rawDate = row.mijdate;
+         break;
+        case '4': // 수금(grid3)
+         rawDate = row.rcvdate;
+         break;
+        case '5': // 지급(grid4)
+         rawDate = row.mijdate;
+         break;
+       }
 
-       const misdate  = (row.MISDATE  || row.RELATION_DATE || '').toString().replace(/[^0-9]/g, '');
-       const misnum   = (row.MISNUM   || row.RELATION_SEQ  || '').toString();
-       const spjangcd =  row.SPJANGCD || row.spjangcd || '';
+       // yyyyMMdd 형태로 숫자만 추출
+       let menuDt = (rawDate || '').toString().replace(/[^0-9]/g, '');
 
+       // 발행일자가 비어 있으면 fallback 으로 오늘 날짜 사용
        if (!menuDt) {
         menuDt = defaultMenuDt;
        }
+       // 그래도 없으면(이론상 거의 없음) 해당 행은 스킵
        if (!menuDt) {
         console.warn('메뉴일자(menuDt)가 없어 전표에서 제외된 행:', row);
         return;
        }
+
+       // 🔹 더존 원본 전표키 (MISDATE / MISNUM / SPJANGCD)
+       const misdate  = (row.MISDATE       || row.RELATION_DATE || '').toString().replace(/[^0-9]/g, '');
+       const misnum   = (row.MISNUM        || row.RELATION_SEQ  || '').toString();
+       const spjangcd =  row.SPJANGCD      || row.spjangcd      || '';
 
        // 2) docuTy별 계정/차대/계정명 가져오기
        let acctInfo;
@@ -878,7 +901,7 @@
         trCd:     row.custCode || row.cltcd || '',
         trNm:     row.custName || row.CUSTOMER_NAME || '',
         attrCd:   '1',
-        rmkDc:    subject || defaultRmk,
+        rmkDc:    subject || defaultRmk,  //적요
         regNb:    row.saupnum || row.REGISTRATION_NO || '',
         vatDivCd: '',
         issDt:    '',

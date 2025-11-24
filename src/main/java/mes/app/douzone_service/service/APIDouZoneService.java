@@ -46,6 +46,7 @@ public class APIDouZoneService {
 			                ORDER BY TB_DA023.misdate, TB_DA023.misnum
 			            ) AS varchar(4)
 			      ), 4) AS saleDate,
+			   TB_DA023.misdate,
 			   TB_DA023.misdate + TB_DA023.misnum as relation_no,
 				 TB_DA023.misnum as RELATION_SEQ,
 				 CASE WHEN TB_DA023.gubun = '11' THEN 'MT' ELSE 'OD' END as relation_division,
@@ -134,7 +135,7 @@ public class APIDouZoneService {
 			SELECT
 			     -- 전체 순번
 			ROW_NUMBER() OVER (ORDER BY TB_CA640.mijdate, TB_CA640.mijnum) AS rownum,
-			
+			TB_CA640.mijdate,
 			-- 날짜별 순번
 			ROW_NUMBER() OVER (
 			    PARTITION BY TB_CA640.mijdate
@@ -259,6 +260,7 @@ public class APIDouZoneService {
 
 		String sql = """
 			SELECT '' as DEL_CHK,
+					TB_DA026h.rcvdate,
 					TB_DA026h.spjangcd as WORKAREA_CD,
 						'T' as RELATION_DIVISION,
 					FORMAT(CONVERT(date, TB_DA026h.rcvdate, 112), 'yy.MM.dd')
@@ -361,6 +363,7 @@ public class APIDouZoneService {
 		String sql = """
         SELECT '' as DEL_CHK,
                TB_CA642.spjangcd as WORKAREA_CD,
+               TB_CA642.mijdate, 
                 FORMAT(CONVERT(date, TB_CA642.mijdate, 112), 'yy.MM.dd')
 			       					 + ' - '
 			       					 + TB_CA642.mijnum AS relation_no,

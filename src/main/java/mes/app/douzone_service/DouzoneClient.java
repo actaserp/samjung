@@ -129,8 +129,8 @@ public class DouzoneClient {
 				String json = om.writeValueAsString(payload);
 //				log.info("[Douzone] 자동전표등록 payload(JSON) = {}", json);
 			} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-				log.warn("[Douzone] payload JSON 직렬화 실패, map.toString()으로 대신 로깅", e);
-				log.info("[Douzone] 자동전표등록 payload(Map) = {}", payload);
+//				log.warn("[Douzone] payload JSON 직렬화 실패, map.toString()으로 대신 로깅", e);
+//				log.info("[Douzone] 자동전표등록 payload(Map) = {}", payload);
 			}
 
 //			log.info("[Douzone] 자동전표등록 URL   : {}", url);
@@ -184,7 +184,7 @@ public class DouzoneClient {
 			ResponseEntity<String> response =
 				restTemplate.postForEntity(url, entity, String.class);
 
-//   log.info("[Douzone] 계정과목조회 응답: {}", response.getBody());
+//			log.info("[Douzone] 계정과목조회 응답: {}", response.getBody());
 
 			ObjectMapper mapper = new ObjectMapper();
 			return mapper.readValue(response.getBody(), Map.class);

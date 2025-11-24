@@ -1325,32 +1325,32 @@
     // ① 매출 계정 (라인1)
     if (relationDiv === 'MT') {
      // 유지보수
-     acctCd[1] = '40402';
-     acctNm[1] = '유지보수매출';   // 🔹 11A02에서 LIKE 검색할 때 쓸 키워드 (추측: 실제 더존 계정명에 맞게 조정)
+     acctCd[1] = '4040200';
+     acctNm[1] = '보수료';   // 🔹 11A02에서 LIKE 검색할 때 쓸 키워드
     } else if (relationDiv === '14') {
      // 신규설치
      if (gubun === '12') {          // 공사
-      acctCd[1] = '40700';
-      acctNm[1] = '공사수익';     // 🔹 예시
-     } else if (gubun === '15') {   // 매출기타
-      acctCd[1] = '40403';
-      acctNm[1] = '매출기타';     // 🔹 예시
-     } else {                       // 일반
-      acctCd[1] = '40401';
-      acctNm[1] = '상품매출';     // 🔹 예시
+      acctCd[1] = '4070000';
+      acctNm[1] = '공사수익';
+     } else if (gubun === '15') {
+      acctCd[1] = '4040300';
+      acctNm[1] = '매출기타';
+     } else {
+      acctCd[1] = '4040100';
+      acctNm[1] = '수리부품';
      }
     } else {
      // relation_division 컬럼이 없거나 기타일 때 기본
-     acctCd[1] = '40401';
-     acctNm[1] = '상품매출';       // 🔹 예시
+     acctCd[1] = '4040100';
+     acctNm[1] = '수리부품';
     }
 
     // ② 부가세 (라인2)
-    acctCd[2] = '25500';
+    acctCd[2] = '2550000';
     acctNm[2] = '부가세예수';        // 🔹 더존 부가세 계정명 일부
 
     // ③ 외상매출금 (라인3)
-    acctCd[3] = '10800';
+    acctCd[3] = '1080000';
     acctNm[3] = '외상매출금';        // 🔹 더존 외상매출금 계정명 일부
 
     return { acctCd, drcrFg, acctNm };
@@ -1369,14 +1369,15 @@
     acctCd[1] = rawAcctCd;
 
     // ★ 여기 고정값으로 변경 (row.accnm 사용 X)
+    acctCd[2] = '1490000';
     acctNm[1] = '원재료';
 
     // ② 부가세 대급금 (라인2)
-    acctCd[2] = '13500';
+    acctCd[2] = '1350000';
     acctNm[2] = '부가세대급금';
 
     // ③ 외상매입금 (라인3)
-    acctCd[3] = '25100';
+    acctCd[3] = '2510000';
     acctNm[3] = '외상매입금';
 
     // 차대구분
@@ -1389,47 +1390,37 @@
 
    // 🔹 수금 계정/차대 정보 반환
    function getReceiptAccountInfo(row) {
-    // 👉 계좌번호 컬럼 이름은 실제 그리드 컬럼명에 맞게 조정하세요.
-    //    (예: accountNo, ACCOUNT_NO, bankAccount 등)
     const accountNo =
-     (row.accountNo   ||
-      row.ACCOUNT_NO  ||
+     (row.accountNo ||
+      row.ACCOUNT_NO ||
       row.bankAccount ||
       '').toString().trim();
 
     const hasAccount = accountNo.length > 0;
 
-    const acctCd  = {}; // 계정코드
-    const drcrFg  = {}; // 차대구분
-    const acctNm  = {}; // 계정명(표시용)
+    const acctCd = {};
+    const drcrFg = {};
+    const acctNm = {};
 
-    // 공통 차대 구분 (문서에서 주어진 값)
-    // is_drcr_fg[1] = '3'
-    // is_drcr_fg[2] = '3'
-    // is_drcr_fg[3] = '4'
-    drcrFg[1] = '3';
-    drcrFg[2] = '3';
-    drcrFg[3] = '4';
+    // 차대구분
+    drcrFg[1] = '3';   // 차변: 보통예금
+    drcrFg[2] = '3';   // 차변: 지급수수료
+    drcrFg[3] = '4';   // 대변: 외상매출
 
     if (hasAccount) {
-     // 🔹 계좌코드가 있는 경우
-     // ls_acct_cd[1] = '10301'  // 보통예금
-     // ls_acct_cd[2] = '83100'  // 지급수수료
-     // ls_acct_cd[3] = '10800'  // 외상매출
-     acctCd[1] = '10301';
+     // 💰 계좌 수금 (입금)
+     acctCd[1] = '10300001'; // 보통예금(더존코드)
      acctNm[1] = '보통예금';
 
-     acctCd[2] = '83100';
+     acctCd[2] = '8310000';  // 지급수수료(더존코드)
      acctNm[2] = '지급수수료';
 
-     acctCd[3] = '10800';
+     acctCd[3] = '1080000';  // 외상매출금(더존코드)
      acctNm[3] = '외상매출금';
+
     } else {
-     // 🔹 계좌코드가 없는 경우
-     // ls_acct_cd[1] = '10800'  // 외상매출
-     // ls_acct_cd[2] = ''
-     // ls_acct_cd[3] = ''
-     acctCd[1] = '10800';
+     // 💸 무계좌 수금 → 외상매출만 대체
+     acctCd[1] = '1080000';
      acctNm[1] = '외상매출금';
 
      acctCd[2] = '';
@@ -1441,6 +1432,7 @@
 
     return { acctCd, drcrFg, acctNm };
    }
+
 
    function getPaymentAccountInfo(row){
 
@@ -1518,6 +1510,11 @@
     }); //수금 검색
     $('#btnSearch4').click(function (e) {
      page.searchPaymentDate();
+    }); //지급 검색
+
+
+    $('#accountListExcel').click(function (e) {
+     page.accountListExcel();
     }); //지급 검색
 
     $('#cboCompany').on('keydown', function (e) {

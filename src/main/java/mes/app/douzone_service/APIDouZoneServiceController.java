@@ -322,7 +322,7 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 					v.put("cltcd",     trCd);
 					v.put("actcd",     "");
 					v.put("cltnm",     trNm);
-					v.put("PriceDate", isuDt);
+					v.put("PriceDate", menuDt);
 					v.put("djacccd",   acctCd);
 					v.put("accnm",     isuDoc);
 					v.put("amt",       acctAm);
@@ -360,7 +360,7 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 			}
 
 			if (!rows.isEmpty()) {
-				log.info("[API] 더존 11A16 첫 로우 컬럼들: {}", rows.get(0).keySet());
+//				log.info("[API] 더존 11A16 첫 로우 컬럼들: {}", rows.get(0).keySet());
 			}
 
 			result.success = true;

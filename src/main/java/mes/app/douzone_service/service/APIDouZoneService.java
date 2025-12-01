@@ -135,7 +135,6 @@ public class APIDouZoneService {
 			SELECT
 			     -- 전체 순번
 			ROW_NUMBER() OVER (ORDER BY TB_CA640.mijdate, TB_CA640.mijnum) AS rownum,
-			TB_CA640.mijdate,
 			-- 날짜별 순번
 			ROW_NUMBER() OVER (
 			    PARTITION BY TB_CA640.mijdate
@@ -301,6 +300,31 @@ public class APIDouZoneService {
 										 THEN   (select reference_cd from STD_REFERENCE_ICUBE where STD_REFERENCE_ICUBE.bankcd = TB_DA026h.cbankcd ) 
 							 ELSE	  (select reference_cd from STD_REFERENCE_ICUBE where STD_REFERENCE_ICUBE.bankcd = TB_DA026h.jbankcd )
 						END	as ACCOUNT_NO,
+						CASE
+							WHEN LEN(TB_DA026h.bankcd)  > 0 AND TB_DA026h.bankcd  IS NOT NULL
+								THEN (SELECT reference_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.bankcd)
+							WHEN LEN(TB_DA026h.cbankcd) > 0 AND TB_DA026h.cbankcd IS NOT NULL
+								THEN (SELECT reference_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.cbankcd)
+							ELSE
+								(SELECT reference_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.jbankcd)
+						END AS BANK_TR_CD,   -- 🔹 은행 거래처코드(A1)
+						-- 계좌코드 (더존 bank_cd)
+						CASE
+							WHEN LEN(TB_DA026h.bankcd)  > 0 AND TB_DA026h.bankcd  IS NOT NULL
+								THEN (SELECT bank_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.bankcd)
+							WHEN LEN(TB_DA026h.cbankcd) > 0 AND TB_DA026h.cbankcd IS NOT NULL
+								THEN (SELECT bank_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.cbankcd)
+							ELSE
+								(SELECT bank_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.jbankcd)
+						END AS BANK_ACCT_CD,  -- 🔹 더존 계좌코드(bank_cd)
+						CASE
+			       WHEN LEN(TB_DA026h.bankcd)  > 0 AND TB_DA026h.bankcd IS NOT NULL
+			         THEN (SELECT bank_name FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.bankcd)
+			       WHEN LEN(TB_DA026h.cbankcd) > 0 AND TB_DA026h.cbankcd IS NOT NULL
+			         THEN (SELECT bank_name FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.cbankcd)
+			       ELSE
+			         (SELECT bank_name FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.jbankcd)
+			     END AS BANK_NAME,
 					TB_DA023.acccd as djacccd  ,
 					TB_AC001.accnm     AS accnm, 
 					TB_DA026h.IN_DT ,

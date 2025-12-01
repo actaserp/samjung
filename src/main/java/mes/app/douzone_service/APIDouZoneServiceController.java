@@ -51,7 +51,7 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 		AjaxResult result = new AjaxResult();
 
 		try {
-			log.info("sales_DouZoneSave req: {}", body);
+//			log.info("sales_DouZoneSave req: {}", body);
 
 			String coCd   = (String) body.getOrDefault("coCd", "1000");
 			Object docuTyObj = body.get("docuTy");
@@ -324,8 +324,8 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 					v.put("cltnm",     trNm);
 					v.put("PriceDate", menuDt);
 					v.put("djacccd",   acctCd);
-					v.put("accnm",     isuDoc);
-					v.put("amt",       acctAm);
+					v.put("accnm",     acctCd);
+					v.put("amt",       0);
 					v.put("addamt",    0);
 					v.put("totalAmt",  acctAm);
 					v.put("dzIssueNo",  menuSq);
@@ -338,7 +338,7 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 					v.put("CUSTOMER_NAME", trNm);
 					v.put("RELATION_DATE", yymmdd);
 					v.put("djacccd",       acctCd);
-					v.put("accnm",         isuDoc);
+					v.put("accnm",         acctCd);
 					v.put("SUPPLY_PRICE",  0);
 					v.put("SURTAX",        0);
 					v.put("TOTAL_AMOUNT",  acctAm);

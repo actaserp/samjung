@@ -461,7 +461,7 @@
        {binding: 'menuDt', header: '더존작성일자', visible: false},
        {binding: 'menuSq', header: '더존작성번호', visible: false},
        {binding: 'DATASEND_DIVISION', header: '더존 발핼여부', align: 'center', width: 80, visible: false},
-       {binding: 'mijdate', header: '발행일자',visible: false},
+       {binding: 'PriceDate', header: '발행일자',visible: false},
        { binding: 'mijDate',   header: '일자-순번',  align: 'center', width: 140 },
        { binding: 'cltcd',     header: '거래처코드', align: 'center', width: 110 },
        { binding: 'actcd',     header: 'ACTS 코드',  align: 'center', width: 110 },
@@ -520,6 +520,8 @@
        {binding: 'SURTAX', header: '수수료', align: 'right', width: 150},
        {binding: 'TOTAL_AMOUNT', header: '합계', align: 'right', width: 150},
        {binding: 'IN_DT_SEQ', header: '더존발행번호', align: 'center', width: 150},
+       { binding: 'BANK_TR_CD',   header: '은행거래처', visible: false },
+       { binding: 'BANK_ACCT_CD', header: '계좌코드', visible: false },
        { binding: 'MISDATE',  header: 'MISDATE', align: 'center', width: 130 , visible: false},
        { binding: 'MISNUM',   header: 'MISNUM',  align: 'center', width: 130 , visible: false},
        { binding: 'SPJANGCD', header: 'SPJANGCD',align: 'center', width: 130 , visible: false},
@@ -672,6 +674,7 @@
         }); // 비용
         _this.grid2.itemsSource = _this.viewData2;
         break;
+
        case '4':
         _this.viewData3 = new wijmo.collections.CollectionView(result.data, {
          sortDescriptions: [
@@ -686,7 +689,7 @@
            const no   = item.IN_DT_SEQ ?? '';
            const cust = item.CUSTOMER_NAME ?? '';   // 거래처명 등
 
-           return `더존번호: ${no} / 거래처: ${cust}`;
+           return `더존번호: ${no}`;
           })
          ]
         }); // 비용
@@ -832,7 +835,7 @@
          rawDate = row.misdate;
          break;
         case '2': // 비용(grid2)
-         rawDate = row.mijdate;
+         rawDate = row.PriceDate;
          break;
         case '4': // 수금(grid3)
          rawDate = row.rcvdate;
@@ -845,10 +848,10 @@
        // yyyyMMdd 형태로 숫자만 추출
        let menuDt = (rawDate || '').toString().replace(/[^0-9]/g, '');
 
-       // 발행일자가 비어 있으면 fallback 으로 오늘 날짜 사용
-       if (!menuDt) {
-        menuDt = defaultMenuDt;
-       }
+       // // 발행일자가 비어 있으면 fallback 으로 오늘 날짜 사용
+       // if (!menuDt) {
+       //  menuDt = defaultMenuDt;
+       // }
        // 그래도 없으면(이론상 거의 없음) 해당 행은 스킵
        if (!menuDt) {
         console.warn('메뉴일자(menuDt)가 없어 전표에서 제외된 행:', row);
@@ -871,15 +874,17 @@
          break;
         case '4': acctInfo = getReceiptAccountInfo(row);
          break; // 수금
-        case '5': acctInfo = getPaymentAccountInfo(row); // 지급
+        case '5': acctInfo = getPaymentAccountInfo(row);
+         break;  // 지급
         default:
          acctInfo = getSalesAccountInfo(row); // 임시 fallback
        }
        const { acctCd, drcrFg, acctNm } = acctInfo;
 
        // 3) 품의내역 / 적요
-       const fieldName = row.ACTNM || row.actnm || '';
-       const subject   = row.remark || '';
+       const rowSubject = row.SUBJECT || row.subject || '';
+       const remark     = row.remark || '';   // TB_CA640.remark 원본문구
+
        const defaultRmk = (function () {
         switch (dty) {
          case '3': return '매출';
@@ -889,19 +894,34 @@
          default:  return '전표';
         }
        })();
-       const isuDoc = (fieldName + ' ' + subject).trim() || defaultRmk;
+
+       let isuDoc; // 더존 품의내역
+       let rmkDc;  // 더존 적요
+
+       if (dty === '2') {
+        // ✅ 비용(매입) : “(거래처명 + 품명 + 자재입고)” 그대로 사용
+        isuDoc = (rowSubject || remark || defaultRmk).trim();
+        rmkDc  = isuDoc;  // 적요도 동일하게
+       } else {
+        // ✅ 나머지(docuTy 3,4,5)는 기존 방식 유지
+        const fieldName = row.ACTNM || row.actnm || '';
+        const subject   = remark || rowSubject || '';
+        isuDoc = (fieldName + ' ' + subject).trim() || defaultRmk;
+        rmkDc  = subject || defaultRmk;
+       }
+
 
        // 4) 공통 필드
        const common = {
         inDivCd:  inDivCd,
         menuDt:   menuDt,
-        menuSq:   null,             // 서버에서 채번
-        isuDoc:   isuDoc,
+        menuSq:   null,     // 서버에서 채번
+        isuDoc:   isuDoc,   //품의내역
         docuTy:   dty,
         trCd:     row.custCode || row.cltcd || '',
         trNm:     row.custName || row.CUSTOMER_NAME || '',
         attrCd:   '1',
-        rmkDc:    subject || defaultRmk,  //적요
+        rmkDc:    rmkDc,   //적요
         regNb:    row.saupnum || row.REGISTRATION_NO || '',
         vatDivCd: '',
         issDt:    '',
@@ -1085,13 +1105,25 @@
         // 실입금액(통장에 찍히는 금액) = 총 수금액 - 수수료
         const netAmt = receiptAmt - feeAmt;
 
-        // 계좌 존재 여부
-        const accountNo =
-         (row.accountNo   ||
-          row.ACCOUNT_NO  ||
-          row.bankAccount ||
-          '').toString().trim();
+        // 계좌 존재 여부 (더존 bank_cd)
+        const accountNo = (row.BANK_ACCT_CD || '').toString().trim();
         const hasAccount = accountNo.length > 0;
+
+        // 🔹 ① 고객 거래처 (외상매출 라인에서 사용)
+        const custTrCd = (
+         row.CUSTOMER_CD ||
+         row.cltcd       ||
+         ''
+        );
+        const custTrNm = (
+         row.CUSTOMER_NAME ||
+         row.cltnm         ||
+         ''
+        );
+
+          // 🔹 ② 은행 거래처 (보통예금/지급수수료 라인 A1)
+        const bankTrCd = row.BANK_TR_CD || '';   // 쿼리에서 만든 reference_cd
+        const bankTrNm = row.BANK_NAME  || '';   // 쿼리에서 bank_name 같이 select
 
         // 계정/차대 정보 (위에서 만든 getReceiptAccountInfo 사용)
         const acctInfo = getReceiptAccountInfo(row);
@@ -1109,7 +1141,11 @@
            drcrFg:   drcrFg[1],      // '3' (차변)
            acctCd:   dzAcctCd1,      // 10301
            acctNm:   acctNm[1] || '보통예금',
-           acctAm:   netAmt
+           acctAm:   netAmt,
+
+           // 🔹 A1 : 계좌(은행) 거래처
+           trCd:     bankTrCd,
+           trNm:     bankTrNm
           });
          }
 
@@ -1122,7 +1158,11 @@
            drcrFg:   drcrFg[2],      // '3' (차변)
            acctCd:   dzAcctCd2,      // 83100
            acctNm:   acctNm[2] || '지급수수료',
-           acctAm:   feeAmt
+           acctAm:   feeAmt,
+
+           // 🔹 A1 : 계좌(은행) 거래처
+           trCd:     bankTrCd,
+           trNm:     bankTrNm
           });
          }
 
@@ -1135,7 +1175,11 @@
            drcrFg:   drcrFg[3],      // '4' (대변)
            acctCd:   dzAcctCd3,      // 10800
            acctNm:   acctNm[3] || '외상매출',
-           acctAm:   receiptAmt
+           acctAm:   receiptAmt,
+
+           // 🔹 A1 : 고객 거래처
+           trCd:     custTrCd,
+           trNm:     custTrNm
           });
          }
 
@@ -1143,9 +1187,6 @@
         }
 
         // ── 3-2) 계좌코드가 없는 경우 (무계좌 수금) ──
-        // 👉 여기는 회사 쪽 회계정책에 따라 분개가 다를 수 있어서
-        //    일단 "외상매출만 대체" 형태로 최소 로직만 작성해 둡니다.
-        //    필요하면 회계 담당자랑 논의해서 보완하는 게 안전합니다.
         if (receiptAmt !== 0) {
          const dzAcctCd1 = _this.getDzAcctCd(row, acctCd[1], 1); // 10800(외상매출)
          lines.push({
@@ -1154,7 +1195,11 @@
           drcrFg:   drcrFg[1],       // 현재 규칙상 '3'
           acctCd:   dzAcctCd1,
           acctNm:   acctNm[1] || '외상매출',
-          acctAm:   receiptAmt
+          acctAm:   receiptAmt,
+
+          // 🔹 A1 : 고객 거래처
+          trCd:     custTrCd,
+          trNm:     custTrNm
          });
         }
 

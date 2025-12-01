@@ -315,7 +315,7 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 					v.put("vatAmt",    null);
 					v.put("totalAmt",  acctAm);
 					v.put("doozenNo",  menuSq);
-					v.put("saleType",  rmkDc);
+					//v.put("saleType",  rmkDc);
 
 				} else if ("2".equals(docuTyFilter)) {  // 비용 탭 (매입)
 					v.put("mijDate",   dateSeq);
@@ -329,7 +329,6 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 					v.put("addamt",    0);
 					v.put("totalAmt",  acctAm);
 					v.put("dzIssueNo",  menuSq);
-					v.put("accnm",  rmkDc);
 
 				} else if ("4".equals(docuTyFilter)) {  // 수금 탭
 					v.put("relation_no",   dateSeq);

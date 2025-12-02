@@ -286,7 +286,7 @@ public class APIDouZoneService {
 					ISNULL(TB_DA026h.hamt,0) + ISNULL(TB_DA026h.bamt,0) + ISNULL(TB_DA026h.jamt,0) + ISNULL(TB_DA026h.eamt,0) +  ISNULL(TB_DA026h.samt,0) +  ISNULL(TB_DA026h.damt,0) + ISNULL(TB_DA026h.csamt,0) +   ISNULL(TB_DA026h.dcamt,0)  as SUPPLY_PRICE,
 						ISNULL(TB_DA026h.jmar,0) + ISNULL(TB_DA026h.bmar,0) + ISNULL(TB_DA026h.gamt,0)  + ISNULL(TB_DA026h.cmar,0) + ISNULL(TB_DA026h.cdmar,0) as SURTAX,
 						ISNULL(TB_DA026h.hamt,0) + ISNULL(TB_DA026h.bamt,0) + ISNULL(TB_DA026h.jamt,0) + ISNULL(TB_DA026h.jmar,0) +  ISNULL(TB_DA026h.csamt,0) +ISNULL(TB_DA026h.cmar,0) +  ISNULL(TB_DA026h.eamt,0) +  ISNULL(TB_DA026h.samt,0) + ISNULL(TB_DA026h.cdmar,0) +  ISNULL(TB_DA026h.damt,0) +  ISNULL(TB_DA026h.gamt,0) +  ISNULL(TB_DA026h.dcamt,0) +  ISNULL(TB_DA026h.bmar,0) as TOTAL_AMOUNT,
-							TB_DA026h.remark as SUBJECT,
+							TB_DA026.remark as SUBJECT,
 							TB_DA026h.DATASEND_DIVISION,
 							TB_XCLIENT.prenum as COPORATE_NO,
 							TB_XCLIENT.prenm as REPRESENTATIVE_NAME,
@@ -340,6 +340,7 @@ public class APIDouZoneService {
 				 LEFT OUTER JOIN TB_XCLIENT WITH(NOLOCK) ON (TB_DA026h.custcd = TB_XCLIENT.custcd AND TB_DA026h.cltcd = TB_XCLIENT.cltcd)
 				 LEFT OUTER JOIN TB_DA023 WITH(NOLOCK) ON (TB_DA026h.custcd = TB_DA023.custcd AND TB_DA026h.spjangcd = TB_DA023.spjangcd AND TB_DA026h.misdate = TB_DA023.misdate AND TB_DA026h.misnum = TB_DA023.misnum  AND TB_DA026h.cltcd=tb_da023.cltcd)
 				LEFT OUTER JOIN TB_AC001 WITH (NOLOCK) ON (TB_DA026h.custcd = TB_AC001.custcd AND TB_DA023.acccd  = TB_AC001.acccd)
+				LEFT OUTER JOIN tb_da026 WITH(NOLOCK) ON (TB_DA026h.custcd = tb_da026.custcd AND TB_DA026h.cltcd = tb_da026.cltcd AND TB_DA026h.rcvdate = tb_da026.rcvdate AND TB_DA026h.rcvnum = tb_da026.rcvnum)
 				WHERE TB_DA026h.custcd = :as_custcd
 					AND TB_DA026h.spjangcd = :spjangcd
 					AND TB_DA026h.rcvdate BETWEEN :as_stdate AND :as_enddate
@@ -807,6 +808,17 @@ public class APIDouZoneService {
 			for (Map<String, Object> c : candidates) {
 				String cd = String.valueOf(c.get("acctCd"));
 				if ("2510000".equals(cd)) {
+					return c;
+				}
+			}
+			return candidates.get(0);
+		}
+
+		// 원재료
+		if ("원재료".equals(acctNm)) {
+			for (Map<String, Object> c : candidates) {
+				String cd = String.valueOf(c.get("acctCd"));
+				if ("1490000".equals(cd)) {
 					return c;
 				}
 			}

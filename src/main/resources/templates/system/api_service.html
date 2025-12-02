@@ -520,8 +520,8 @@
        {binding: 'SURTAX', header: '수수료', align: 'right', width: 150},
        {binding: 'TOTAL_AMOUNT', header: '합계', align: 'right', width: 150},
        {binding: 'IN_DT_SEQ', header: '더존발행번호', align: 'center', width: 150},
-       { binding: 'BANK_TR_CD',   header: '은행거래처', visible: false },
        { binding: 'BANK_ACCT_CD', header: '계좌코드', visible: false },
+       { binding: 'SUBJECT', header: '적요', visible: false },
        { binding: 'MISDATE',  header: 'MISDATE', align: 'center', width: 130 , visible: false},
        { binding: 'MISNUM',   header: 'MISNUM',  align: 'center', width: 130 , visible: false},
        { binding: 'SPJANGCD', header: 'SPJANGCD',align: 'center', width: 130 , visible: false},
@@ -883,8 +883,12 @@
 
        // 3) 품의내역 / 적요
        const rowSubject = row.SUBJECT || row.subject || '';
-       const remark     = row.remark || '';   // TB_CA640.remark 원본문구
+       let   remark     = row.remark || '';   // TB_CA640.remark 원본문구
 
+    // ✅ 수금(docuTy = '4')일 때는 remark 에 SUBJECT를 그대로 넣기
+       if (dty === '4' && rowSubject) {
+        remark = rowSubject;
+       }
        const defaultRmk = (function () {
         switch (dty) {
          case '3': return '매출';
@@ -905,11 +909,10 @@
        } else {
         // ✅ 나머지(docuTy 3,4,5)는 기존 방식 유지
         const fieldName = row.ACTNM || row.actnm || '';
-        const subject   = remark || rowSubject || '';
+        const subject   = remark || '';
         isuDoc = (fieldName + ' ' + subject).trim() || defaultRmk;
         rmkDc  = subject || defaultRmk;
        }
-
 
        // 4) 공통 필드
        const common = {
@@ -1082,8 +1085,140 @@
 
         return;
        }
-
        if (dty === '4') {
+
+        // 👉 실제 컬럼명에 맞게 수정하세요.
+        const receiptAmt = _this.toNumber(
+         row.receiptAmt ??
+         row.RECEIPT_AMOUNT ??
+         row.totalAmt ??
+         row.TOTAL_AMOUNT,
+         0
+        );
+        const feeAmt = _this.toNumber(
+         row.feeAmt ??
+         row.FEE_AMOUNT ??
+         0,
+         0
+        );
+
+        // 실입금액(통장에 찍히는 금액) = 총 수금액 - 수수료
+        const netAmt = receiptAmt - feeAmt;
+
+        // 계좌 존재 여부 (더존 bank_cd)
+        const accountNo = (row.BANK_ACCT_CD || '').toString().trim();
+        const hasAccount = accountNo.length > 0;
+
+        // 🔹 ① 고객 거래처 (외상매출 라인에서 사용)
+        const custTrCd = (
+         row.CUSTOMER_CD ||
+         row.cltcd       ||
+         ''
+        );
+        const custTrNm = (
+         row.CUSTOMER_NAME ||
+         row.cltnm         ||
+         ''
+        );
+
+        // 🔹 ② 은행 거래처 (보통예금/지급수수료 라인 A1)
+        const bankTrCd = row.BANK_ACCT_CD || '';   // 쿼리에서 만든 reference_cd
+        const bankTrNm = row.BANK_NAME    || '';   // 쿼리에서 bank_name 같이 select
+
+        // 계정/차대 정보
+        const acctInfo = getReceiptAccountInfo(row);
+        const { acctCd, drcrFg, acctNm } = acctInfo;
+
+        // ── 3-1) 계좌 수금(보통예금 + 지급수수료 + 외상매출) ──
+        if (hasAccount) {
+
+         // ① 보통예금 (실입금액, 차변 10300001)
+         if (netAmt !== 0) {
+          const dzAcctCd1 = _this.getDzAcctCd(row, acctCd[1], 1);
+
+          // ✅ 이 라인이 보통예금인지 체크
+          const isNormalDeposit =
+           dzAcctCd1 === '10300001' ||                    // 계정코드 기준
+           (acctNm[1] && acctNm[1].includes('보통예금')); // 계정명에 '보통예금'
+
+          lines.push({
+           ...common,
+           menuLnSq: lineNo++,
+           drcrFg:   drcrFg[1],      // '3' (차변)
+           acctCd:   dzAcctCd1,      // 10300001
+           acctNm:   acctNm[1] || '보통예금',
+           acctAm:   netAmt,
+
+           // 🔹 A1 : 계좌(은행) 거래처
+           trCd:     bankTrCd,
+           trNm:     bankTrNm,
+
+           // ✅ 보통예금 라인은 적요를 '외상매출금 입금'으로 고정
+           rmkDc:    isNormalDeposit ? '외상매출금 입금' : common.rmkDc
+          });
+         }
+
+         // ② 지급수수료 (수수료 금액, 차변 8310000)
+         if (feeAmt !== 0) {
+          const dzAcctCd2 = _this.getDzAcctCd(row, acctCd[2], 2);
+          lines.push({
+           ...common,
+           menuLnSq: lineNo++,
+           drcrFg:   drcrFg[2],      // '3' (차변)
+           acctCd:   dzAcctCd2,      // 8310000
+           acctNm:   acctNm[2] || '지급수수료',
+           acctAm:   feeAmt,
+
+           // 🔹 A1 : 계좌(은행) 거래처
+           trCd:     bankTrCd,
+           trNm:     bankTrNm
+           // rmkDc는 common.rmkDc 그대로
+          });
+         }
+
+         // ③ 외상매출 (총 수금액, 대변 1080000)
+         if (receiptAmt !== 0) {
+          const dzAcctCd3 = _this.getDzAcctCd(row, acctCd[3], 3);
+          lines.push({
+           ...common,
+           menuLnSq: lineNo++,
+           drcrFg:   drcrFg[3],      // '4' (대변)
+           acctCd:   dzAcctCd3,      // 1080000
+           acctNm:   acctNm[3] || '외상매출금',
+           acctAm:   receiptAmt,
+
+           // 🔹 A1 : 고객 거래처
+           trCd:     custTrCd,
+           trNm:     custTrNm
+           // rmkDc도 common.rmkDc 사용
+          });
+         }
+
+         return;
+        }
+
+        // ── 3-2) 계좌코드가 없는 경우 (무계좌 수금) ──
+        if (receiptAmt !== 0) {
+         const dzAcctCd1 = _this.getDzAcctCd(row, acctCd[1], 1); // 1080000(외상매출금)
+         lines.push({
+          ...common,
+          menuLnSq: lineNo++,
+          drcrFg:   drcrFg[1],       // 현재 규칙상 '3'
+          acctCd:   dzAcctCd1,
+          acctNm:   acctNm[1] || '외상매출금',
+          acctAm:   receiptAmt,
+
+          // 🔹 A1 : 고객 거래처
+          trCd:     custTrCd,
+          trNm:     custTrNm
+          // rmkDc는 common.rmkDc
+         });
+        }
+
+        return;
+       }
+
+       /*if (dty === '4') {
 
         // 👉 실제 컬럼명에 맞게 수정하세요.
         // 예) RECEIPT_AMOUNT   : 총 수금액(외상매출 상계 금액)
@@ -1122,7 +1257,7 @@
         );
 
           // 🔹 ② 은행 거래처 (보통예금/지급수수료 라인 A1)
-        const bankTrCd = row.BANK_TR_CD || '';   // 쿼리에서 만든 reference_cd
+        const bankTrCd = row.BANK_ACCT_CD || '';   // 쿼리에서 만든 reference_cd
         const bankTrNm = row.BANK_NAME  || '';   // 쿼리에서 bank_name 같이 select
 
         // 계정/차대 정보 (위에서 만든 getReceiptAccountInfo 사용)
@@ -1204,7 +1339,7 @@
         }
 
         return;
-       }
+       }*/
 
        // ⚠️ dty === '5'(지급) 는 로직 정해지면 여기에 추가
 
@@ -1436,8 +1571,8 @@
     const rawAcctCd = row.djacccd || row.acctCd || row.acccd || '';
     acctCd[1] = rawAcctCd;
 
-    // ★ 여기 고정값으로 변경 (row.accnm 사용 X)
-    acctCd[2] = '1490000';
+    // ★ 여기 고정값으로 변경
+    acctCd[1] = '1490000';
     acctNm[1] = '원재료';
 
     // ② 부가세 대급금 (라인2)

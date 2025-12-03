@@ -27,10 +27,11 @@ public class APIDouZoneService {
 																								String spjangcd) {
 
 		MapSqlParameterSource param = new MapSqlParameterSource();
-
+		String frDt = start != null ? start.replaceAll("-", "") : "";
+		String toDt = end   != null ? end.replaceAll("-", "")   : "";
 		param.addValue("as_cltcd", company);
-		param.addValue("as_stdate", start);
-		param.addValue("as_enddate",end);
+		param.addValue("as_stdate", frDt);
+		param.addValue("as_enddate",toDt);
 		param.addValue("spjangcd", spjangcd);
 		param.addValue("as_custcd","samjung");
 		param.addValue("as_spjangcd", spjangcd);
@@ -124,8 +125,10 @@ public class APIDouZoneService {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 
 		// 날짜 파라미터
-		param.addValue("as_stdate", start);
-		param.addValue("as_enddate", end);
+		String frDt = start != null ? start.replaceAll("-", "") : "";
+		String toDt = end   != null ? end.replaceAll("-", "")   : "";
+		param.addValue("as_stdate", frDt);
+		param.addValue("as_enddate", toDt);
 		param.addValue("SendDiv", price_type);
 		param.addValue("as_cltcd", company);
 		param.addValue("spjangcd", spjangcd);
@@ -191,12 +194,18 @@ public class APIDouZoneService {
 			     TB_CA640.IN_SQ,
 			     TB_CA640.divicd            AS divicd,           
 			     TB_CA640.actcd             AS actcd_org,
-			     TB_E601.actnm              AS actnm,
+			     TB_E601.actcd              AS pjcd, -- 현장코드
+			     TB_E601.actnm              AS pjnm, -- 현장명
 			     TB_CA640.mijdate AS MISDATE,
 					 TB_CA640.mijnum  AS MISNUM,
 			     TB_CA640.divicd as divicd ,
 			     		(select dzdivicd from tb_jc002 where custcd=:as_custcd and spjangcd=:spjangcd and divicd=TB_CA640.divicd) as dzdivicd,
-			     		(select divinm from tb_jc002 where custcd=:as_custcd and spjangcd=:spjangcd and divicd=TB_CA640.divicd) as divinm
+			     		(select divinm from tb_jc002 where custcd=:as_custcd and spjangcd=:spjangcd and divicd=TB_CA640.divicd) as divinm,
+							(SELECT top 1 max(pname) as pname from TB_CA641_PCODE where custcd=:as_custcd and spjangcd=:spjangcd and mijdate=TB_CA640.mijdate and mijnum=TB_CA640.mijnum) as pname, -- 제품명
+							(SELECT top 1 max(psize) as pname from TB_CA641_PCODE where custcd=:as_custcd and spjangcd=:spjangcd and mijdate=TB_CA640.mijdate and mijnum=TB_CA640.mijnum) as psize,
+							(SELECT top 1 max(punit) as pname from TB_CA641_PCODE where custcd=:as_custcd and spjangcd=:spjangcd and mijdate=TB_CA640.mijdate and mijnum=TB_CA640.mijnum) as punit,
+							(SELECT top 1 max(uamt) as pname from TB_CA641_PCODE where custcd=:as_custcd and spjangcd=:spjangcd and mijdate=TB_CA640.mijdate and mijnum=TB_CA640.mijnum) as puamt, -- 단가
+							(SELECT top 1 max(qty) as pname from TB_CA641_PCODE where custcd=:as_custcd and spjangcd=:spjangcd and mijdate=TB_CA640.mijdate and mijnum=TB_CA640.mijnum) as pqty -- 수량
 			 FROM TB_CA640 WITH (NOLOCK)
 			 LEFT OUTER JOIN TB_AC001 WITH (NOLOCK)
 			     ON (TB_CA640.custcd = TB_AC001.custcd AND TB_CA640.acccd = TB_AC001.acccd)
@@ -207,9 +216,10 @@ public class APIDouZoneService {
 			 LEFT OUTER JOIN (
 			     SELECT custcd, spjangcd, cltcd, mijdate, mijnum,
 			            SUM(samt) AS amt,
-			            SUM(tamt) AS addamt
+			            SUM(tamt) AS addamt,
+			            remark
 			     FROM TB_CA641 WITH (NOLOCK)
-			     GROUP BY custcd, spjangcd, cltcd, mijdate, mijnum
+			     GROUP BY custcd, spjangcd, cltcd, mijdate, mijnum, remark
 			 ) a
 			     ON (TB_CA640.custcd = a.custcd
 			     AND TB_CA640.spjangcd = a.spjangcd
@@ -251,8 +261,10 @@ public class APIDouZoneService {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 
 		// 날짜 파라미터
-		param.addValue("as_stdate", start);
-		param.addValue("as_enddate", end);
+		String frDt = start != null ? start.replaceAll("-", "") : "";
+		String toDt = end   != null ? end.replaceAll("-", "")   : "";
+		param.addValue("as_stdate", frDt);
+		param.addValue("as_enddate", toDt);
 		param.addValue("spjangcd", spjangcd);
 		param.addValue("as_custcd","samjung" );
 		param.addValue("receiptType", receiptType);
@@ -286,7 +298,8 @@ public class APIDouZoneService {
 					ISNULL(TB_DA026h.hamt,0) + ISNULL(TB_DA026h.bamt,0) + ISNULL(TB_DA026h.jamt,0) + ISNULL(TB_DA026h.eamt,0) +  ISNULL(TB_DA026h.samt,0) +  ISNULL(TB_DA026h.damt,0) + ISNULL(TB_DA026h.csamt,0) +   ISNULL(TB_DA026h.dcamt,0)  as SUPPLY_PRICE,
 						ISNULL(TB_DA026h.jmar,0) + ISNULL(TB_DA026h.bmar,0) + ISNULL(TB_DA026h.gamt,0)  + ISNULL(TB_DA026h.cmar,0) + ISNULL(TB_DA026h.cdmar,0) as SURTAX,
 						ISNULL(TB_DA026h.hamt,0) + ISNULL(TB_DA026h.bamt,0) + ISNULL(TB_DA026h.jamt,0) + ISNULL(TB_DA026h.jmar,0) +  ISNULL(TB_DA026h.csamt,0) +ISNULL(TB_DA026h.cmar,0) +  ISNULL(TB_DA026h.eamt,0) +  ISNULL(TB_DA026h.samt,0) + ISNULL(TB_DA026h.cdmar,0) +  ISNULL(TB_DA026h.damt,0) +  ISNULL(TB_DA026h.gamt,0) +  ISNULL(TB_DA026h.dcamt,0) +  ISNULL(TB_DA026h.bmar,0) as TOTAL_AMOUNT,
-							TB_DA026.remark as SUBJECT,
+						(SELECT TOP 1 d.remark FROM TB_DA026 d WITH (NOLOCK) WHERE d.custcd = TB_DA026h.custcd AND d.spjangcd = TB_DA026h.spjangcd AND d.cltcd = TB_DA026h.cltcd AND d.rcvdate = TB_DA026h.rcvdate
+			        AND d.rcvnum = TB_DA026h.rcvnum ORDER BY LEN(ISNULL(d.remark, '')) DESC, d.remark DESC ) AS SUBJECT,
 							TB_DA026h.DATASEND_DIVISION,
 							TB_XCLIENT.prenum as COPORATE_NO,
 							TB_XCLIENT.prenm as REPRESENTATIVE_NAME,
@@ -340,7 +353,6 @@ public class APIDouZoneService {
 				 LEFT OUTER JOIN TB_XCLIENT WITH(NOLOCK) ON (TB_DA026h.custcd = TB_XCLIENT.custcd AND TB_DA026h.cltcd = TB_XCLIENT.cltcd)
 				 LEFT OUTER JOIN TB_DA023 WITH(NOLOCK) ON (TB_DA026h.custcd = TB_DA023.custcd AND TB_DA026h.spjangcd = TB_DA023.spjangcd AND TB_DA026h.misdate = TB_DA023.misdate AND TB_DA026h.misnum = TB_DA023.misnum  AND TB_DA026h.cltcd=tb_da023.cltcd)
 				LEFT OUTER JOIN TB_AC001 WITH (NOLOCK) ON (TB_DA026h.custcd = TB_AC001.custcd AND TB_DA023.acccd  = TB_AC001.acccd)
-				LEFT OUTER JOIN tb_da026 WITH(NOLOCK) ON (TB_DA026h.custcd = tb_da026.custcd AND TB_DA026h.cltcd = tb_da026.cltcd AND TB_DA026h.rcvdate = tb_da026.rcvdate AND TB_DA026h.rcvnum = tb_da026.rcvnum)
 				WHERE TB_DA026h.custcd = :as_custcd
 					AND TB_DA026h.spjangcd = :spjangcd
 					AND TB_DA026h.rcvdate BETWEEN :as_stdate AND :as_enddate
@@ -366,7 +378,8 @@ public class APIDouZoneService {
                 """;
 			}
 		}
-
+//		log.info("수금 read SQL: {}", sql);
+//    log.info("SQL Parameters: {}", param.getValues());
 		return sqlRunner.getRows(sql, param);
 	}
 
@@ -379,8 +392,10 @@ public class APIDouZoneService {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 
 		// 날짜/기본 파라미터
-		param.addValue("as_stdate", start);
-		param.addValue("as_enddate", end);
+		String frDt = start != null ? start.replaceAll("-", "") : "";
+		String toDt = end   != null ? end.replaceAll("-", "")   : "";
+		param.addValue("as_stdate", frDt);
+		param.addValue("as_enddate", toDt);
 		param.addValue("as_spjangcd", spjangcd);
 		param.addValue("as_custcd", "samjung");
 		 param.addValue("payment_type", payment_type);
@@ -945,7 +960,7 @@ public class APIDouZoneService {
 				Map<String, Object> m = new HashMap<>();
 				m.put("misdate",  misdate);    // TB_CA640.MIJDATE 와 매핑
 				m.put("misnum",   misnum);     // TB_CA640.MIJNUM  와 매핑
-				m.put("spjangcd", spjangcd);
+				m.put("spjangcd", "ZZ");
 				targets.add(m);
 			}
 		}
@@ -978,8 +993,8 @@ public class APIDouZoneService {
 
 			int updated = sqlRunner.execute(sql, params);
 
-			// log.info("TB_CA640 업데이트: MIJDATE={}, MIJNUM={}, SPJANGCD={}, IN_DT={}, IN_SQ={}, updated={}",
-			//          t.get("misdate"), t.get("misnum"), spjangcd, inDt, menuSq, updated);
+//			 log.info("TB_CA640 업데이트: MIJDATE={}, MIJNUM={}, SPJANGCD={}, IN_DT={}, IN_SQ={}, updated={}",
+//			          t.get("misdate"), t.get("misnum"), spjangcd, inDt, menuSq, updated);
 		}
 	}
 
@@ -1000,8 +1015,6 @@ public class APIDouZoneService {
 		List<Map<String, Object>> targets = new ArrayList<>();
 
 		for (Map<String, Object> line : lines) {
-			if (line == null) continue;
-
 			String misdate  = asString(line.get("misdate"),  line.get("MISDATE"));
 			String misnum   = asString(line.get("misnum"),   line.get("MISNUM"));
 			String spjangcd = asString(line.get("spjangcd"), line.get("SPJANGCD"));

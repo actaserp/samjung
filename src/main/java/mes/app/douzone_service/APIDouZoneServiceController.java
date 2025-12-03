@@ -12,10 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @RestController
@@ -400,6 +397,223 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 				int failCnt    = 0;
 				List<Map<String, Object>> dzResponses = new ArrayList<>();
 
+				Set<String> processedKeys = new HashSet<>();
+				// 👉 "이미 전표처리된 내역" 목록을 따로 모아두기
+				StringBuilder alreadyProcessedMsg = new StringBuilder();
+
+				for (Map<String, Object> item : items) {
+					String menuDt = String.valueOf(item.get("menuDt"));
+					Object menuSqObj = item.get("menuSq");
+					Integer menuSq = (menuSqObj instanceof Number)
+														 ? ((Number) menuSqObj).intValue()
+														 : Integer.parseInt(String.valueOf(menuSqObj));
+
+					// 🔑 (menuDt, menuSq) 조합으로 키 생성
+					String key = menuDt + "|" + menuSq;
+
+					// ✅ 이미 처리한 전표라면 스킵
+					if (!processedKeys.add(key)) {
+						continue;
+					}
+
+					Map<String, Object> payload = new HashMap<>();
+					payload.put("coCd",   coCd);
+					payload.put("menuDt", menuDt);
+					payload.put("menuSq", menuSq);
+
+					Map<String, Object> dzRes = douzoneClient.callAutoDocuDelete(payload);
+					dzResponses.add(dzRes);
+
+					Object rcObj = dzRes.get("resultCode");
+					int resultCode = (rcObj instanceof Number)
+														 ? ((Number) rcObj).intValue()
+														 : Integer.parseInt(String.valueOf(rcObj));
+					String resultMsg = (String) dzRes.get("resultMsg");
+
+					if (resultCode == 0) {
+						successCnt++;
+
+						// 🔹 더존 전표 삭제 성공 → 우리 쪽 플래그 원복
+						try {
+							switch (docuTy) {
+								case "3": // 매출
+									apidouZoneService.resetSalesSendFlag(menuDt, menuSq);
+									break;
+								case "2": // 비용(매입)
+									apidouZoneService.resetPriceSendFlag(menuDt, menuSq);
+									break;
+								case "4": // 수금
+									apidouZoneService.resetReceiptSendFlag(menuDt, menuSq);
+									break;
+								case "5": // 지급
+									apidouZoneService.resetPaymentSendFlag(menuDt, menuSq);
+									break;
+								default:
+									log.warn("지원하지 않는 docuTy 삭제 플래그 원복 요청: {}", docuTy);
+							}
+						} catch (Exception e) {
+							log.warn("전송플래그 원복 실패 (docuTy={}, menuDt={}, menuSq={})",
+								docuTy, menuDt, menuSq, e);
+						}
+
+					} else {
+						failCnt++;
+
+						if (resultMsg != null && resultMsg.contains("이미 전표처리된 내역입니다")) {
+							String saleDate = item.get("saleDate") != null
+																	? String.valueOf(item.get("saleDate")) : "";
+							String dzIssueNo = item.get("dzIssueNo") != null
+																	 ? String.valueOf(item.get("dzIssueNo")) : "";
+							String custName = item.get("custName") != null
+																	? String.valueOf(item.get("custName")) : "";
+
+							if (alreadyProcessedMsg.length() == 0) {
+								alreadyProcessedMsg.append("이미 전표 처리된 내역이 있어 삭제할 수 없습니다.\n\n");
+								alreadyProcessedMsg.append("[대상 전표]\n");
+							}
+							alreadyProcessedMsg.append(
+								String.format("- 일자-순번: %s, 더존번호: %s, 거래처: %s%n",
+									saleDate, dzIssueNo, custName)
+							);
+						}
+
+						log.warn("더존 삭제 오류 (menuDt={}, menuSq={}): {}",
+							menuDt, menuSq,
+							resultMsg != null ? resultMsg : "알 수 없는 오류");
+					}
+				}
+
+				// 🔚 결과 메시지 구성
+				if (failCnt == 0) {
+					result.success = true;
+					result.message = String.format("더존 자동전표 삭제 완료 (%d건)", successCnt);
+				} else if (successCnt == 0) {
+					result.success = false;
+
+					// 모두 실패인데, 그 중에 '이미 전표처리된 내역'이 있으면 그걸 우선 노출
+					if (alreadyProcessedMsg.length() > 0) {
+						result.message = alreadyProcessedMsg.toString();
+					} else {
+						result.message = "모든 더존 전표 삭제에 실패했습니다.";
+					}
+				} else {
+					result.success = false;
+					String baseMsg =
+						String.format("일부 삭제 실패: 성공 %d건 / 실패 %d건", successCnt, failCnt);
+
+					// 일부 성공 + 일부 '이미 전표처리'인 케이스
+					if (alreadyProcessedMsg.length() > 0) {
+						result.message = baseMsg + "\n\n" + alreadyProcessedMsg;
+					} else {
+						result.message = baseMsg;
+					}
+				}
+
+				result.data = dzResponses;
+				return result;
+			}
+
+			// 🔹 2) 기존 단건 삭제 (menuDt, menuSq 단일 값으로 들어온 경우 - 백워드 호환용)
+			String menuDt = (String) body.get("menuDt");
+			Object menuSqObj = body.get("menuSq");
+
+			if (menuDt == null || menuSqObj == null) {
+				result.success = false;
+				result.message = "삭제할 전표 정보가 없습니다.(menuDt/menuSq)";
+				return result;
+			}
+
+			Integer menuSq = (menuSqObj instanceof Number)
+												 ? ((Number) menuSqObj).intValue()
+												 : Integer.parseInt(String.valueOf(menuSqObj));
+
+			Map<String, Object> payload = new HashMap<>();
+			payload.put("coCd",   coCd);
+			payload.put("menuDt", menuDt);
+			payload.put("menuSq", menuSq);
+
+			Map<String, Object> dzRes = douzoneClient.callAutoDocuDelete(payload);
+
+			Object rcObj = dzRes.get("resultCode");
+			int resultCode = (rcObj instanceof Number)
+												 ? ((Number) rcObj).intValue()
+												 : Integer.parseInt(String.valueOf(rcObj));
+			String resultMsg = (String) dzRes.get("resultMsg");
+
+			if (resultCode == 0) {
+				try {
+					switch (docuTy) {
+						case "3": // 매출
+							apidouZoneService.resetSalesSendFlag(menuDt, menuSq);
+							break;
+						case "2": // 비용(매입)
+							apidouZoneService.resetPriceSendFlag(menuDt, menuSq);
+							break;
+						case "4": // 수금
+							apidouZoneService.resetReceiptSendFlag(menuDt, menuSq);
+							break;
+						case "5": // 지급
+							apidouZoneService.resetPaymentSendFlag(menuDt, menuSq);
+							break;
+						default:
+							log.warn("지원하지 않는 docuTy 삭제 플래그 원복 요청: {}", docuTy);
+					}
+				} catch (Exception e) {
+					log.warn("전송플래그 원복 실패 (docuTy={}, menuDt={}, menuSq={})",
+						docuTy, menuDt, menuSq, e);
+				}
+
+				result.success = true;
+				result.message = "더존 자동전표 삭제 완료";
+				result.data    = dzRes;
+			} else {
+				result.success = false;
+
+				if (resultMsg != null && resultMsg.contains("이미 전표처리된 내역입니다")) {
+					result.message = "이미 전표 처리된 내역입니다.\n더존에서 전표를 취소/삭제한 후 다시 시도해 주세요.";
+				} else {
+					result.message = "더존 삭제 오류: " + (resultMsg != null ? resultMsg : "알 수 없는 오류");
+				}
+
+				result.data = dzRes;
+			}
+
+		} catch (Exception e) {
+			log.error("sales_DouZoneDelete error", e);
+			result.success = false;
+			result.message = "삭제 중 오류: " + e.getMessage();
+		}
+
+		return result;
+	}
+
+
+	/*@PostMapping("/sales_DouZoneDelete")
+	public AjaxResult deleteDouZoneSales(@RequestBody Map<String, Object> body) {
+		AjaxResult result = new AjaxResult();
+
+		try {
+			String coCd = (String) body.getOrDefault("coCd", "1000");
+
+			// 🔹 docuTy (2: 비용, 3: 매출, 4: 수금, 5: 지급)
+			Object docuTyObj = body.get("docuTy");
+			String docuTy = (docuTyObj != null) ? docuTyObj.toString().trim() : null;
+
+			if (docuTy == null || docuTy.isEmpty()) {
+				result.success = false;
+				result.message = "전표유형(docuTy)이 없습니다. (2: 매입, 3: 매출, 4: 수금, 5: 지급)";
+				return result;
+			}
+
+			// 🔹 1) 다건 삭제(items 배열로 들어온 경우)
+			@SuppressWarnings("unchecked")
+			List<Map<String, Object>> items = (List<Map<String, Object>>) body.get("items");
+
+			if (items != null && !items.isEmpty()) {
+				int successCnt = 0;
+				int failCnt    = 0;
+				List<Map<String, Object>> dzResponses = new ArrayList<>();
+
 				for (Map<String, Object> item : items) {
 					String menuDt = String.valueOf(item.get("menuDt"));
 					Object menuSqObj = item.get("menuSq");
@@ -536,7 +750,7 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 		}
 
 		return result;
-	}
+	}*/
 
 
 }

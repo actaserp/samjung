@@ -1060,7 +1060,9 @@
           drcrFg:   drcrFg[1],
           acctCd:   dzAcctCd1,
           acctNm:   acctNm[1],
-          acctAm:   supplyAmt
+          acctAm:   supplyAmt,
+          ctDept : row.dzdivicd, //부서
+          pjtCd : row.pjcd //프로젝트 코드(현장)
          });
         }
 
@@ -1091,7 +1093,10 @@
           drcrFg:   drcrFg[3],
           acctCd:   dzAcctCd3,
           acctNm:   acctNm[3],
-          acctAm:   totalAmt
+          acctAm:   totalAmt,
+          ctDept : row.dzdivicd, //부서
+          pjtCd : row.pjcd
+
          });
         }
 
@@ -1593,7 +1598,7 @@
           vatDivCd: '',
           issDt:    common.menuDt,
           jeonjaYn: '1',
-          supAm:    grp.totalSum - grp.vatSum, // 공급가 합
+          supAm:    grp.vatSum, // 공급가 합
           taxFg:    '21',
 
           trCd:     grp.trCd,

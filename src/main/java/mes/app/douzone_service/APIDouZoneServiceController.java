@@ -239,7 +239,7 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 			String coCd   = "1000";
 			String divCd  = "1000";
 			int viewPage  = 1;
-			int viewCount = 50;
+			int viewCount = 500;
 
 			// 🔹 여기서는 docuTy를 더존에 안 보내고, 우리 쪽에서 필터
 			String douzoneResponse =

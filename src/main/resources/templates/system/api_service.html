@@ -432,6 +432,7 @@
        {binding: 'vatAmt', header: '부가세', align: 'right', width: 150},
        {binding: 'totalAmt', header: '합계', align: 'right', width: 150},
        {binding: 'doozenNo', header: '더존발행번호', align: 'center', width: 150},
+       { binding: 'SUBJECT', header: '적요', align: 'left',width: 150, visible: false},
       ],
       itemsSource: _this.viewData,
      });
@@ -482,6 +483,7 @@
       ],
       itemsSource: _this.viewData2,
      });
+     _this.grid2.groupHeaderFormat = '일자-순번: {value} (건수: {count:n0})';
 
      new FlexGridContextMenu(_this.grid2);
      _this.grid2.downloadFileName = '비용 목록';
@@ -713,8 +715,8 @@
            return `더존번호: ${no} / 거래처: ${cust}`;
           })
          ]
-        }); // 비용
-        _this.grid3.itemsSource = _this.viewData4;
+        });
+        _this.grid4.itemsSource = _this.viewData4;
         break; // 지급
       }
      };
@@ -803,9 +805,70 @@
        return;
      }
 
-     const selectedRows = grid.selectedItems;
-     if (!selectedRows || selectedRows.length === 0) {
+     // 1) 그리드에서 선택된 항목들
+     let rawSelected = grid.selectedItems || [];
+     if (!rawSelected || rawSelected.length === 0) {
       Alert.alert('', '전송할 데이터를 선택하세요.');
+      return;
+     }
+
+     let selectedRows = [];
+
+// 🔹 비용(docuTy = '2')일 때만 "그룹 단위" 규칙 적용
+     if (docuTy === '2') {
+      const cv = grid.collectionView;
+
+      // 그리드가 실제로 그룹핑되어 있을 때만 검사
+      if (cv && cv.groups && cv.groups.length > 0) {
+       const selectedSet = new Set(rawSelected);
+
+       cv.groups.forEach(group => {
+        const headerSelected = selectedSet.has(group);      // 그룹 헤더 선택 여부
+        const items         = group.items || [];            // 이 그룹의 실제 데이터 행들
+        const selectedItems = items.filter(it => selectedSet.has(it));
+        const selectedCount = selectedItems.length;
+        const totalCount    = items.length;
+
+        const anyChildSelected = selectedCount > 0;
+
+        // ⚠️ 부분 선택 체크
+        //  - 그룹 헤더는 안 찍고, 자식만 일부 선택한 경우
+        //  - 또는 헤더+자식 섞어서 찍었는데 전체가 아닌 경우
+        if (!headerSelected && anyChildSelected && selectedCount < totalCount) {
+         Alert.alert('', '비용 전표는 그룹 단위로만 전송할 수 있습니다.\n(해당 일자-순번 그룹 전체를 선택해 주세요.)');
+         selectedRows = [];
+         return;
+        }
+        if (headerSelected && anyChildSelected && selectedCount < totalCount) {
+         Alert.alert('', '비용 전표는 그룹 단위로만 전송할 수 있습니다.\n(해당 일자-순번 그룹 전체를 선택해 주세요.)');
+         selectedRows = [];
+         return;
+        }
+
+        // ✅ 이 그룹이 선택된 경우(헤더 또는 자식 하나 이상)
+        if (headerSelected || anyChildSelected) {
+         // → 그룹 전체 행을 전송 대상으로 추가
+         selectedRows.push(...items);
+        }
+       });
+
+       if (selectedRows.length === 0) {
+        Alert.alert('', '전송할 유효한 비용 전표 데이터가 없습니다.');
+        return;
+       }
+
+      } else {
+       // 혹시나 그룹이 없는 경우에는 그냥 기존처럼 처리
+       selectedRows = rawSelected.slice();
+      }
+
+     } else {
+      // 🔹 매출/수금/지급(docuTy 3,4,5)은 기존 방식 유지
+      selectedRows = rawSelected;
+     }
+
+     if (!selectedRows || selectedRows.length === 0) {
+      Alert.alert('', '전송할 유효한 전표 데이터가 없습니다.');
       return;
      }
 
@@ -825,6 +888,8 @@
 
       const lines = [];
       let   lineNo = 1;
+
+      const expenseGroupMap = {};
 
       const receiptDepositMap = {};
 
@@ -850,11 +915,6 @@
        // yyyyMMdd 형태로 숫자만 추출
        let menuDt = (rawDate || '').toString().replace(/[^0-9]/g, '');
 
-       // // 발행일자가 비어 있으면 fallback 으로 오늘 날짜 사용
-       // if (!menuDt) {
-       //  menuDt = defaultMenuDt;
-       // }
-       // 그래도 없으면(이론상 거의 없음) 해당 행은 스킵
        if (!menuDt) {
         console.warn('메뉴일자(menuDt)가 없어 전표에서 제외된 행:', row);
         return;
@@ -887,6 +947,7 @@
        const rowSubject = row.SUBJECT || row.subject || '';
        let   remark     = row.remark || '';   // TB_CA640.remark 원본문구
 
+
        // ✅ 수금(docuTy = '4')일 때는 remark 에 SUBJECT를 그대로 넣기
        if (dty === '4' && rowSubject) {
         remark = rowSubject;
@@ -916,7 +977,7 @@
         const companyName = row.cltnm;
 
         // 2) 자재명 / 수량 / 단가 (getPriceRead의 alias 기준)
-        const matNameRaw   = row.pname  || row.PNAME  || '';  // 제품명
+        const matNameRaw   = row.pname  || '';  // 제품명
         const qtyRaw       = row.pqty   || row.PQTY   || '';  // 수량
         const unitRaw      = row.punit  || row.PUNIT  || '';  // 단위 (EA 등)
         const unitPriceRaw = row.puamt  || row.PUAMT  || '';  // 단가
@@ -938,7 +999,7 @@
         if (unitPriceStr) detailParts.push(unitPriceStr);
 
         const detailStr = detailParts.length > 0
-         ? ` (${detailParts.join(', ')})`   // 앞에 공백 하나 + 괄호
+         ? ` (${detailParts.join(' * ')})`   // 앞에 공백 하나 + 괄호
          : '';
 
         // 자재명 없으면 SUBJECT / 기본문구 사용
@@ -953,8 +1014,8 @@
 
        } else {
         // ✅ 나머지(docuTy 3,4,5)는 기존 방식 유지
-        const fieldName = row.ACTNM || row.actnm || '';
-        const subject   = remark || '';
+        const fieldName = row.ACTNM || row.actnm || row.SUBJECT || '';
+        const subject   = row.SUBJECT || '';
         isuDoc = (fieldName + ' ' + subject).trim() || defaultRmk;
         rmkDc  = subject || defaultRmk;
        }
@@ -1017,7 +1078,7 @@
           issDt:    common.menuDt,
           jeonjaYn: '1',
           supAm:    supplyAmt,
-          taxFg:    '1'
+          taxFg:    '11'
          });
         }
 
@@ -1043,7 +1104,7 @@
        //    ls_acct_cd[2] = 13500 (부가세대급금)
        //    ls_acct_cd[3] = 25100 (외상매입금)
        // ──────────────────────────
-       if (dty === '2') {
+       /*if (dty === '2') {
         const supplyAmt = _this.toNumber(row.amt      ?? row.SUPPLY_PRICE, 0);
         const vatAmt    = _this.toNumber(row.addamt   ?? row.SURTAX,       0);
         const totalAmt  = _this.toNumber(row.totalAmt ?? row.TOTAL_AMOUNT, 0);
@@ -1130,6 +1191,88 @@
           pjtCd : row.pjcd
          });
         }
+
+        return;
+       }*/
+       if (dty === '2') {
+        const supplyAmt = _this.toNumber(row.amt   , 0);
+        const vatAmt    = _this.toNumber(row.addamt   ?? row.SURTAX,       0);
+        const totalAmt  = _this.toNumber(row.totalAmt ?? row.TOTAL_AMOUNT, 0);
+        /*console.log('비용 row 체크:', {
+         misdate,
+         misnum,
+         spjangcd,
+         amt: row.amt,
+         AMT: row.AMT,
+         SUPPLY_PRICE: row.SUPPLY_PRICE,
+         계산된_supplyAmt: supplyAmt
+        });*/
+        // 🔹 공통 A1(거래처) / C1(사용부서)
+        const trCd = (
+         row.CUSTOMER_CD   ||
+         row.cltcd         ||
+         row.trCd          ||
+         ''
+        );
+        const trNm = (
+         row.CUSTOMER_NAME ||
+         row.cltnm         ||
+         row.trNm          ||
+         ''
+        );
+        const ctDept   = row.dzdivicd || row.divicd || '';
+        const ctDeptNm = row.divinm   || '';
+        const pjtCd    = row.pjcd;
+
+        // 🔹 그룹키 (MISDATE+MISNUM+SPJANGCD)
+        const groupKey = [misdate, misnum, spjangcd].join('|');
+
+        // 🔹 그룹 최초 초기화
+        if (!expenseGroupMap[groupKey]) {
+         expenseGroupMap[groupKey] = {
+          common:  { ...common },
+          acctCd:  { ...acctCd },
+          drcrFg:  { ...drcrFg },
+          acctNm:  { ...acctNm },
+
+          trCd,
+          trNm,
+          ctDept,
+          ctDeptNm,
+          pjtCd,
+
+          // 🔹 합산값
+          supplySum: 0,   // ✅ 공급가 합
+          vatSum:    0,   // ✅ 부가세 합
+          totalSum:  0,   // (쓰면 쓰고, 안 쓰면 나중에 지워도 됨)
+
+          firstRow: row,
+         };
+        }
+
+        const grp = expenseGroupMap[groupKey];
+
+        // ✅ ① 원재료/비용: 행별로 그대로 전표 생성
+        if (supplyAmt !== 0) {
+         const dzAcctCd1 = _this.getDzAcctCd(row, acctCd[1], 1);
+         lines.push({
+          ...common,
+          menuLnSq: lineNo++,
+          drcrFg:   drcrFg[1],
+          acctCd:   dzAcctCd1,
+          acctNm:   acctNm[1] || '원재료',
+          acctAm:   supplyAmt,
+
+          trCd,
+          trNm,
+          ctDept,
+          ctDeptNm,
+          pjtCd,
+         });
+        }
+
+        grp.supplySum += supplyAmt;  // ✅ 공급가 누적
+        grp.vatSum    += vatAmt;     // ✅ 부가세 누적
 
         return;
        }
@@ -1430,6 +1573,60 @@
        });
       }
 
+      // ✅ 비용(docuTy = '2'): 그룹별 부가세대급금 + 외상매입금 2줄 생성
+      if (dty === '2') {
+       Object.keys(expenseGroupMap).forEach(key => {
+        const grp = expenseGroupMap[key];
+        const { common, acctCd, drcrFg, acctNm } = grp;
+        const repRow = grp.firstRow;
+
+        // ① 부가세대급금 (차변)
+        if (grp.vatSum !== 0) {
+         const dzAcctCd2 = _this.getDzAcctCd(repRow, acctCd[2], 2);
+         lines.push({
+          ...common,
+          menuLnSq: lineNo++,
+          drcrFg:   drcrFg[2],
+          acctCd:   dzAcctCd2,
+          acctNm:   acctNm[2] || '부가세대급금',
+          acctAm:   grp.vatSum,
+          vatDivCd: '',
+          issDt:    common.menuDt,
+          jeonjaYn: '1',
+          supAm:    grp.totalSum - grp.vatSum, // 공급가 합
+          taxFg:    '21',
+
+          trCd:     grp.trCd,
+          trNm:     grp.trNm,
+          ctDept:   grp.ctDept,
+          ctDeptNm: grp.ctDeptNm,
+          rmkDc:    '부가세',
+         });
+        }
+
+        // ② 외상매입금 (대변) = 공급가합 + 부가세합
+        const payableSum = grp.supplySum + grp.vatSum;  // ✅ 원재료합 + 부가세합
+
+        if (payableSum !== 0) {
+         const dzAcctCd3 = _this.getDzAcctCd(repRow, acctCd[3], 3);
+         lines.push({
+          ...common,
+          menuLnSq: lineNo++,
+          drcrFg:   drcrFg[3],
+          acctCd:   dzAcctCd3,
+          acctNm:   acctNm[3] || '외상매입금',
+          acctAm:   payableSum,
+
+          trCd:     grp.trCd,
+          trNm:     grp.trNm,
+          ctDept:   grp.ctDept,
+          ctDeptNm: grp.ctDeptNm,
+          pjtCd:    grp.pjtCd,
+         });
+        }
+       });
+      }
+
       if (lines.length === 0) {
        Alert.alert('', '전송할 유효한 전표 데이터가 없습니다.');
        return;
@@ -1548,11 +1745,11 @@
      });
     }
 
-    searchPriceDate(){
+    searchPriceDate() {
      let _this = this;
-     const start = $('#srchStartDt2').val();
-     const end   = $('#srchEndDt2').val();
-     const company = $('#cboCompany2').val();
+     const start      = $('#srchStartDt2').val();
+     const end        = $('#srchEndDt2').val();
+     const company    = $('#cboCompany2').val();
      const price_type = $('#price_type').val();
 
      let data = {
@@ -1564,14 +1761,29 @@
 
      let fnsuccess = function (result) {
       if (result && result.data) {
-       // 🔹 비용 탭은 그룹 없이 평 리스트로 (새 CollectionView)
+
+       // 🔹 결과로 CollectionView 생성
        _this.viewData2 = new wijmo.collections.CollectionView(result.data);
+
+       // 🔹 MISDATE + MISNUM 조합으로 그룹 키 생성
+       let gd = new wijmo.collections.PropertyGroupDescription(
+        null, // propertyName 대신 커스텀 그룹 함수 사용
+        function (item) {
+         // 서버에서 오는 키가 MISDATE / MISNUM 또는 소문자일 수도 있으니 둘 다 케어
+         let date = item.MISDATE || item.misdate || '';
+         let num  = item.MISNUM  || item.misnum  || '';
+         return date + '-' + num; // 원하는 형식으로 조합
+        }
+       );
+       _this.viewData2.groupDescriptions.push(gd);
+
+       // 🔹 그리드에 바인딩
        _this.grid2.itemsSource = _this.viewData2;
       }
      };
 
-     AjaxUtil.getAsyncData( _this.url + '/price_read', data, fnsuccess);
-    }//비용 검색
+     AjaxUtil.getAsyncData(_this.url + '/price_read', data, fnsuccess);
+    } // 비용 검색
 
     searchReceiptDate(){
      let _this = this;
@@ -1749,7 +1961,6 @@
 
     return { acctCd, drcrFg, acctNm };
    }
-
 
    function getPaymentAccountInfo(row){
 

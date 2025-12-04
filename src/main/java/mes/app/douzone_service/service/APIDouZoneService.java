@@ -142,7 +142,7 @@ public class APIDouZoneService {
 			ROW_NUMBER() OVER (
 			    PARTITION BY TB_CA640.mijdate
 			    ORDER BY TB_CA640.mijdate, TB_CA640.mijnum
-			) AS dateSeq,			
+			) AS dateSeq,	
 			-- 일자-순번: MM.dd - 0001 형식
 			FORMAT(CONVERT(date, TB_CA640.mijdate, 112), 'yy.MM.dd')
 			    + ' - '
@@ -201,11 +201,10 @@ public class APIDouZoneService {
 			     TB_CA640.divicd as divicd ,
 			     		(select dzdivicd from tb_jc002 where custcd=:as_custcd and spjangcd=:spjangcd and divicd=TB_CA640.divicd) as dzdivicd,
 			     		(select divinm from tb_jc002 where custcd=:as_custcd and spjangcd=:spjangcd and divicd=TB_CA640.divicd) as divinm,
-							(SELECT top 1 max(pname) as pname from TB_CA641_PCODE where custcd=:as_custcd and spjangcd=:spjangcd and mijdate=TB_CA640.mijdate and mijnum=TB_CA640.mijnum) as pname, -- 제품명
-							(SELECT top 1 max(psize) as pname from TB_CA641_PCODE where custcd=:as_custcd and spjangcd=:spjangcd and mijdate=TB_CA640.mijdate and mijnum=TB_CA640.mijnum) as psize,
-							(SELECT top 1 max(punit) as pname from TB_CA641_PCODE where custcd=:as_custcd and spjangcd=:spjangcd and mijdate=TB_CA640.mijdate and mijnum=TB_CA640.mijnum) as punit,
-							(SELECT top 1 max(uamt) as pname from TB_CA641_PCODE where custcd=:as_custcd and spjangcd=:spjangcd and mijdate=TB_CA640.mijdate and mijnum=TB_CA640.mijnum) as puamt, -- 단가
-							(SELECT top 1 max(qty) as pname from TB_CA641_PCODE where custcd=:as_custcd and spjangcd=:spjangcd and mijdate=TB_CA640.mijdate and mijnum=TB_CA640.mijnum) as pqty -- 수량
+							a.pname  AS pname,
+							a.unit  AS punit,
+							a.uamt  AS puamt,
+							a.qty   AS pqty
 			 FROM TB_CA640 WITH (NOLOCK)
 			 LEFT OUTER JOIN TB_AC001 WITH (NOLOCK)
 			     ON (TB_CA640.custcd = TB_AC001.custcd AND TB_CA640.acccd = TB_AC001.acccd)
@@ -217,9 +216,12 @@ public class APIDouZoneService {
 			     SELECT custcd, spjangcd, cltcd, mijdate, mijnum,
 			            SUM(samt) AS amt,
 			            SUM(tamt) AS addamt,
-			            remark
+			            unit,
+									uamt,
+									qty,
+									remark as pname
 			     FROM TB_CA641 WITH (NOLOCK)
-			     GROUP BY custcd, spjangcd, cltcd, mijdate, mijnum, remark
+			     GROUP BY custcd, spjangcd, cltcd, mijdate, mijnum, remark, unit, uamt, qty
 			 ) a
 			     ON (TB_CA640.custcd = a.custcd
 			     AND TB_CA640.spjangcd = a.spjangcd

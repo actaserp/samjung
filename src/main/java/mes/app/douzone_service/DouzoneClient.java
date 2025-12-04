@@ -69,6 +69,8 @@ public class DouzoneClient {
 			body.put("divCd",     divCd);     // 사업장
 			body.put("frDt",      frDt);      // 조회시작일 (yyyyMMdd)
 			body.put("toDt",      toDt);      // 조회종료일 (yyyyMMdd)
+			body.put("viewPage",  viewPage);   // 몇 페이지
+			body.put("viewCount", viewCount);  // 페이지당 건수
 
 			String url = props.getBaseUrl() + API_PATH_AUTO_DOCU;
 

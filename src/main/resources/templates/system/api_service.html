@@ -892,6 +892,7 @@
       const expenseGroupMap = {};
 
       const receiptDepositMap = {};
+      const receiptFeeMap    = {};   // 🔹 지급수수료 집계용
 
       selectedRows.forEach(row => {
        // ✅ 1) docuTy별 발행일자 컬럼 → menuDt 로 사용
@@ -1109,96 +1110,6 @@
        //    ls_acct_cd[2] = 13500 (부가세대급금)
        //    ls_acct_cd[3] = 25100 (외상매입금)
        // ──────────────────────────
-       /*if (dty === '2') {
-        const supplyAmt = _this.toNumber(row.amt      ?? row.SUPPLY_PRICE, 0);
-        const vatAmt    = _this.toNumber(row.addamt   ?? row.SURTAX,       0);
-        const totalAmt  = _this.toNumber(row.totalAmt ?? row.TOTAL_AMOUNT, 0);
-
-        // 🔹 공통 A1(거래처) / C1(사용부서) 값 준비
-        const trCd = (
-         row.CUSTOMER_CD   // getPriceRead: TB_XCLIENT.emcltcd AS CUSTOMER_CD
-         || row.cltcd      // TB_XCLIENT.cltcd AS cltcd
-         || row.trCd
-         || ''
-        );
-
-        const trNm = (
-         row.CUSTOMER_NAME // 혹시 다른 쿼리에서 쓰는 alias
-         || row.cltnm      // TB_XCLIENT.cltnm AS cltnm
-         || row.trNm
-         || ''
-        );
-
-        const ctDept   = row.dzdivicd || row.divicd || ''; // TB_CA640.divicd, dzdivicd
-        const ctDeptNm = row.divinm   || '';               // divinm
-
-        // ① 원재료 / 비용
-        if (supplyAmt !== 0) {
-         const dzAcctCd1 = _this.getDzAcctCd(row, acctCd[1], 1);
-         lines.push({
-          ...common,
-          menuLnSq: lineNo++,
-          drcrFg:   drcrFg[1],
-          acctCd:   dzAcctCd1,
-          acctNm:   acctNm[1] || '원재료',
-          acctAm:   supplyAmt,
-
-          // 🔹 A1 / C1
-          trCd:     trCd,
-          trNm:     trNm,
-          ctDept:   ctDept,
-          ctDeptNm: ctDeptNm,
-          pjtCd : row.pjcd
-         });
-        }
-
-        // ② 부가세 대급금
-        if (vatAmt !== 0) {
-         const dzAcctCd2 = _this.getDzAcctCd(row, acctCd[2], 2);
-         lines.push({
-          ...common,
-          menuLnSq: lineNo++,
-          drcrFg:   drcrFg[2],
-          acctCd:   dzAcctCd2,
-          acctNm:   acctNm[2] || '부가세대급금',
-          acctAm:   vatAmt,
-          vatDivCd: '',
-          issDt:    common.menuDt,
-          jeonjaYn: '1',
-          supAm:    supplyAmt,
-          taxFg:    '21',
-
-          // 🔹 A1 / C1
-          trCd:     trCd,
-          trNm:     trNm,
-          ctDept:   ctDept,
-          ctDeptNm: ctDeptNm,
-          rmkDc: '부가세'
-         });
-        }
-
-        // ③ 외상매입금 (여기서 A1/C1 필수라 특히 중요)
-        if (totalAmt !== 0) {
-         const dzAcctCd3 = _this.getDzAcctCd(row, acctCd[3], 3);
-         lines.push({
-          ...common,
-          menuLnSq: lineNo++,
-          drcrFg:   drcrFg[3],
-          acctCd:   dzAcctCd3,
-          acctNm:   acctNm[3] || '외상매입금',
-          acctAm:   totalAmt,
-
-          // 🔹 A1 / C1
-          trCd:     trCd,
-          trNm:     trNm,
-          ctDept:   ctDept,
-          ctDeptNm: ctDeptNm,
-          pjtCd : row.pjcd
-         });
-        }
-
-        return;
-       }*/
        if (dty === '2') {
         const supplyAmt = _this.toNumber(row.amt   , 0);
         const vatAmt    = _this.toNumber(row.addamt   ?? row.SURTAX,       0);
@@ -1282,7 +1193,7 @@
         return;
        }
 
-       if (dty === '4') {
+       /*if (dty === '4') {
 
         const receiptAmt = _this.toNumber(
          row.receiptAmt ??
@@ -1421,20 +1332,29 @@
         }
 
         return;
-       }
+       }*/
+       // ──────────────────────────
+       // (4) 수금(docuTy = '4')
+       //   - SUPPLY_PRICE : 수금액  → 외상매출금
+       //   - SURTAX       : 수수료  → 지급수수료
+       //   - netAmt       : 통장입금액(보통예금)
+       // ──────────────────────────
+       if (dty === '4') {
 
-       /*if (dty === '4') {
-
-        // 👉 실제 컬럼명에 맞게 수정하세요.
+        // ✅ 수금액 = SUPPLY_PRICE (없으면 기존 필드 fallback)
         const receiptAmt = _this.toNumber(
-         row.receiptAmt ??
+         row.SUPPLY_PRICE ??      // 그리드의 "수금액"
+         row.receiptAmt   ??
          row.RECEIPT_AMOUNT ??
-         row.totalAmt ??
+         row.totalAmt     ??
          row.TOTAL_AMOUNT,
          0
         );
+
+        // ✅ 지급수수료 = SURTAX (없으면 기존 필드 fallback)
         const feeAmt = _this.toNumber(
-         row.feeAmt ??
+         row.SURTAX   ??          // 그리드의 "수수료"
+         row.feeAmt   ??
          row.FEE_AMOUNT ??
          0,
          0
@@ -1470,51 +1390,75 @@
         // ── 3-1) 계좌 수금(보통예금 + 지급수수료 + 외상매출) ──
         if (hasAccount) {
 
-         // ① 보통예금 (실입금액, 차변 10300001)
+         // --------------------------------------
+         // ① 보통예금 : 집계만 하고, 라인은 나중에 한 번에 생성
+         //    key = 계좌코드 + 작성일자 기준으로 묶음
+         // --------------------------------------
          if (netAmt !== 0) {
           const dzAcctCd1 = _this.getDzAcctCd(row, acctCd[1], 1);
 
-          // ✅ 이 라인이 보통예금인지 체크
           const isNormalDeposit =
-           dzAcctCd1 === '10300001' ||                    // 계정코드 기준
-           (acctNm[1] && acctNm[1].includes('보통예금')); // 계정명에 '보통예금'
+           dzAcctCd1 === '10300001' ||
+           (acctNm[1] && acctNm[1].includes('보통예금'));
 
-          lines.push({
-           ...common,
-           menuLnSq: lineNo++,
-           drcrFg:   drcrFg[1],      // '3' (차변)
-           acctCd:   dzAcctCd1,      // 10300001
-           acctNm:   acctNm[1] || '보통예금',
-           acctAm:   netAmt,
+          const key = `${bankTrCd}|${common.menuDt}`;
 
-           // 🔹 A1 : 계좌(은행) 거래처
-           trCd:     bankTrCd,
-           trNm:     bankTrNm,
+          if (!receiptDepositMap[key]) {
+           receiptDepositMap[key] = {
+            common: {
+             ...common,
+             // 보통예금 라인의 A1은 은행 거래처
+             trCd: bankTrCd,
+             trNm: bankTrNm,
+             // 적요는 '외상매출금 입금' 고정
+             rmkDc: isNormalDeposit ? '외상매출금 입금' : common.rmkDc,
 
-           // ✅ 보통예금 라인은 적요를 '외상매출금 입금'으로 고정
-           rmkDc:    isNormalDeposit ? '외상매출금 입금' : common.rmkDc
-          });
+            },
+            drcrFg: drcrFg[1],               // 차변
+            acctCd: dzAcctCd1,               // 10300001
+            acctNm: acctNm[1] || '보통예금',
+            netAmt: 0
+           };
+          }
+
+          // 계좌 + 작성일자별로 실입금액 누적
+          receiptDepositMap[key].netAmt += netAmt;
          }
 
-         // ② 지급수수료 (수수료 금액, 차변 8310000)
+         // --------------------------------------
+         // ② 지급수수료 : SURTAX → feeAmt /계좌+작성일자 기준으로 집계
+         // --------------------------------------
          if (feeAmt !== 0) {
           const dzAcctCd2 = _this.getDzAcctCd(row, acctCd[2], 2);
-          lines.push({
-           ...common,
-           menuLnSq: lineNo++,
-           drcrFg:   drcrFg[2],      // '3' (차변)
-           acctCd:   dzAcctCd2,      // 8310000
-           acctNm:   acctNm[2] || '지급수수료',
-           acctAm:   feeAmt,
 
-           // 🔹 A1 : 계좌(은행) 거래처
-           trCd:     bankTrCd,
-           trNm:     bankTrNm
-           // rmkDc는 common.rmkDc 그대로
-          });
+          // 🔑 수수료 집계 key: 계좌 + 작성일자
+          const feeKey = `${bankTrCd}|${common.menuDt}`;
+
+          if (!receiptFeeMap[feeKey]) {
+           receiptFeeMap[feeKey] = {
+            common: {
+             ...common,
+             // 수수료 라인의 A1도 은행 거래처 기준
+             trCd: bankTrCd,
+             trNm: bankTrNm,
+             ctDept : row.dzdivicd,
+             // rmkDc: '지급수수료'
+            },
+            drcrFg: drcrFg[2],                 // 차변
+            acctCd: dzAcctCd2,                 // 8310000
+            acctNm: acctNm[2] || '지급수수료',
+            feeAmt: 0
+           };
+          }
+
+          // 🔹 같은 계좌+일자에 대해 수수료 누적
+          receiptFeeMap[feeKey].feeAmt += feeAmt;
          }
 
-         // ③ 외상매출 (총 수금액, 대변 1080000)
+
+         // --------------------------------------
+         // ③ 외상매출금 : SUPPLY_PRICE → receiptAmt
+         // --------------------------------------
          if (receiptAmt !== 0) {
           const dzAcctCd3 = _this.getDzAcctCd(row, acctCd[3], 3);
           lines.push({
@@ -1524,11 +1468,12 @@
            acctCd:   dzAcctCd3,      // 1080000
            acctNm:   acctNm[3] || '외상매출금',
            acctAm:   receiptAmt,
+           // pjtCd:    row.pjcd,
+           ctDept : row.dzdivicd,
 
            // 🔹 A1 : 고객 거래처
            trCd:     custTrCd,
            trNm:     custTrNm
-           // rmkDc도 common.rmkDc 사용
           });
          }
 
@@ -1536,33 +1481,38 @@
         }
 
         // ── 3-2) 계좌코드가 없는 경우 (무계좌 수금) ──
+        //  현재 getReceiptAccountInfo의 else 분기에서
+        //    acctCd[1] = '1080000'(외상매출금) 만 셋팅하므로
+        //  → 외상매출금 1줄만 생성 (지급수수료 분개 없음)
         if (receiptAmt !== 0) {
          const dzAcctCd1 = _this.getDzAcctCd(row, acctCd[1], 1); // 1080000(외상매출금)
          lines.push({
           ...common,
           menuLnSq: lineNo++,
-          drcrFg:   drcrFg[1],       // 현재 규칙상 '3'
+          drcrFg:   drcrFg[1],       // 현재 규칙상 '3' (여기 정책은 회계와 협의 가능)
           acctCd:   dzAcctCd1,
           acctNm:   acctNm[1] || '외상매출금',
           acctAm:   receiptAmt,
 
           // 🔹 A1 : 고객 거래처
           trCd:     custTrCd,
-          trNm:     custTrNm
-          // rmkDc는 common.rmkDc
+          trNm:     custTrNm,
+          // pjtCd:    row.pjcd,
+          ctDept : row.dzdivicd,
          });
         }
 
         return;
-       }*/
+       }
 
        // ⚠️ dty === '5'(지급) 는 로직 정해지면 여기에 추가
 
 
       }); // forEach 끝
 
-      // 🔹 수금(docuTy = '4')인 경우, 계좌+작성일자별로 보통예금 합산 라인 생성
+      // 🔹 수금(docuTy = '4')인 경우, 계좌+작성일자별로 보통예금/지급수수료 합산 라인 생성
       if (dty === '4') {
+       // ① 보통예금 합산
        Object.keys(receiptDepositMap).forEach(key => {
         const info = receiptDepositMap[key];
         if (!info || info.netAmt === 0) return;
@@ -1574,6 +1524,21 @@
          acctCd:   info.acctCd,
          acctNm:   info.acctNm,
          acctAm:   info.netAmt
+        });
+       });
+
+       // ② 지급수수료 합산
+       Object.keys(receiptFeeMap).forEach(key => {
+        const info = receiptFeeMap[key];
+        if (!info || info.feeAmt === 0) return;
+
+        lines.push({
+         ...info.common,
+         menuLnSq: lineNo++,
+         drcrFg:   info.drcrFg,
+         acctCd:   info.acctCd,
+         acctNm:   info.acctNm,
+         acctAm:   info.feeAmt
         });
        });
       }

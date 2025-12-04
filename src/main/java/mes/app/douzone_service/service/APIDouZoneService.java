@@ -274,90 +274,141 @@ public class APIDouZoneService {
 		param.addValue("receiptType", receiptType);
 
 		String sql = """
-			SELECT '' as DEL_CHK,
-					TB_DA026h.rcvdate,
-					TB_DA026h.spjangcd as WORKAREA_CD,
-						'T' as RELATION_DIVISION,
-					FORMAT(CONVERT(date, TB_DA026h.rcvdate, 112), 'yy.MM.dd')
-					 + ' - '
-					 + TB_DA026h.rcvnum AS relation_no,
-				'01' as RELATION_SEQ,
-				 CASE WHEN ISNULL(TB_DA023.misamt,0) - ISNULL(TB_DA023.chaamt,0) - ISNULL(TB_DA023.hamt,0) - ISNULL(TB_DA023.bamt,0) - ISNULL(TB_DA023.jamt,0) - ISNULL(TB_DA023.jmar,0)  - ISNULL(TB_DA023.csamt,0) - ISNULL(TB_DA023.cmar,0) - ISNULL(TB_DA023.eamt,0) - ISNULL(TB_DA023.samt,0)  -  ISNULL(TB_DA023.cdmar,0) - ISNULL(TB_DA023.damt,0) - ISNULL(TB_DA023.gamt,0) - ISNULL(TB_DA023.dcamt,0) - ISNULL(TB_DA023.camt,0) = 0
-					THEN 'Y'
-					ELSE 'N'
-				 END as RELATION_CHOICE,
-				 CASE WHEN TB_DA026h.bamt > 0
-					THEN '03'
-						ELSE '05'
-							END as BILL_COLLECT_TYPE,
-							TB_XCLIENT.cltcd as cltcd,
-							TB_XCLIENT.emcltcd as CUSTOMER_CD,
-						TB_XCLIENT.cltnm as CUSTOMER_NAME,
-					(select emactcd from tb_e601 where custcd=TB_DA023.custcd and spjangcd=TB_DA023.spjangcd and actcd=TB_DA023.actcd) as FIELD_CD,
-					(select actnm from tb_e601 where custcd=TB_DA023.custcd and spjangcd=TB_DA023.spjangcd and actcd=TB_DA023.actcd) as FIELD_NAME,
-					 TB_DA023.actcd as actcd,
-					(select actnm from tb_e601 where custcd=TB_DA023.custcd and spjangcd=TB_DA023.spjangcd and actcd=TB_DA023.actcd) as actnm,
-						FORMAT(CONVERT(date, TB_DA026h.rcvdate, 112), 'yyyy-MM-dd')as RELATION_DATE,						 
-						TB_XCLIENT.saupnum as REGISTRATION_NO,
-					ISNULL(TB_DA026h.hamt,0) + ISNULL(TB_DA026h.bamt,0) + ISNULL(TB_DA026h.jamt,0) + ISNULL(TB_DA026h.eamt,0) +  ISNULL(TB_DA026h.samt,0) +  ISNULL(TB_DA026h.damt,0) + ISNULL(TB_DA026h.csamt,0) +   ISNULL(TB_DA026h.dcamt,0)  as SUPPLY_PRICE,
-						ISNULL(TB_DA026h.jmar,0) + ISNULL(TB_DA026h.bmar,0) + ISNULL(TB_DA026h.gamt,0)  + ISNULL(TB_DA026h.cmar,0) + ISNULL(TB_DA026h.cdmar,0) as SURTAX,
-						ISNULL(TB_DA026h.hamt,0) + ISNULL(TB_DA026h.bamt,0) + ISNULL(TB_DA026h.jamt,0) + ISNULL(TB_DA026h.jmar,0) +  ISNULL(TB_DA026h.csamt,0) +ISNULL(TB_DA026h.cmar,0) +  ISNULL(TB_DA026h.eamt,0) +  ISNULL(TB_DA026h.samt,0) + ISNULL(TB_DA026h.cdmar,0) +  ISNULL(TB_DA026h.damt,0) +  ISNULL(TB_DA026h.gamt,0) +  ISNULL(TB_DA026h.dcamt,0) +  ISNULL(TB_DA026h.bmar,0) as TOTAL_AMOUNT,
-						(SELECT TOP 1 d.remark FROM TB_DA026 d WITH (NOLOCK) WHERE d.custcd = TB_DA026h.custcd AND d.spjangcd = TB_DA026h.spjangcd AND d.cltcd = TB_DA026h.cltcd AND d.rcvdate = TB_DA026h.rcvdate
-			        AND d.rcvnum = TB_DA026h.rcvnum ORDER BY LEN(ISNULL(d.remark, '')) DESC, d.remark DESC ) AS SUBJECT,
-							TB_DA026h.DATASEND_DIVISION,
-							TB_XCLIENT.prenum as COPORATE_NO,
-							TB_XCLIENT.prenm as REPRESENTATIVE_NAME,
-							TB_XCLIENT.biztypenm as BUSINESS_TYPE,
-					 TB_XCLIENT.bizitemnm as BUSINESS_CONDITIONS,
-							TB_XCLIENT.cltadres as RELATION_ADDRESS,
-							TB_XCLIENT.taxtelnum as TEL_NO,
-						CASE WHEN LEN(TB_DA026h.bankcd) >0 and  TB_DA026h.bankcd is not null
-						THEN 	  (select reference_cd from STD_REFERENCE_ICUBE where STD_REFERENCE_ICUBE.bankcd = TB_DA026h.bankcd )
-						WHEN LEN(TB_DA026h.cbankcd) >0 and  TB_DA026h.cbankcd is not null				
-										 THEN   (select reference_cd from STD_REFERENCE_ICUBE where STD_REFERENCE_ICUBE.bankcd = TB_DA026h.cbankcd ) 
-							 ELSE	  (select reference_cd from STD_REFERENCE_ICUBE where STD_REFERENCE_ICUBE.bankcd = TB_DA026h.jbankcd )
-						END	as ACCOUNT_NO,
+			SELECT
+						'' AS DEL_CHK,
+						TB_DA026h.rcvdate,
+						TB_DA026h.spjangcd AS WORKAREA_CD,
+						'T' AS RELATION_DIVISION,
+						FORMAT(CONVERT(date, TB_DA026h.rcvdate, 112), 'yy.MM.dd')
+								+ ' - '
+								+ TB_DA026h.rcvnum AS relation_no,
+						'01' AS RELATION_SEQ,
 						CASE
-							WHEN LEN(TB_DA026h.bankcd)  > 0 AND TB_DA026h.bankcd  IS NOT NULL
-								THEN (SELECT reference_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.bankcd)
-							WHEN LEN(TB_DA026h.cbankcd) > 0 AND TB_DA026h.cbankcd IS NOT NULL
-								THEN (SELECT reference_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.cbankcd)
-							ELSE
-								(SELECT reference_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.jbankcd)
-						END AS BANK_TR_CD,   -- 🔹 은행 거래처코드(A1)
-						-- 계좌코드 (더존 bank_cd)
+								WHEN ISNULL(TB_DA023.misamt, 0)
+									 - ISNULL(TB_DA023.chaamt, 0)
+									 - ISNULL(TB_DA023.hamt, 0)
+									 - ISNULL(TB_DA023.bamt, 0)
+									 - ISNULL(TB_DA023.jamt, 0)
+									 - ISNULL(TB_DA023.jmar, 0)
+									 - ISNULL(TB_DA023.csamt, 0)
+									 - ISNULL(TB_DA023.cmar, 0)
+									 - ISNULL(TB_DA023.eamt, 0)
+									 - ISNULL(TB_DA023.samt, 0)
+									 - ISNULL(TB_DA023.cdmar, 0)
+									 - ISNULL(TB_DA023.damt, 0)
+									 - ISNULL(TB_DA023.gamt, 0)
+									 - ISNULL(TB_DA023.dcamt, 0)
+									 - ISNULL(TB_DA023.camt, 0) = 0
+								THEN 'Y'
+								ELSE 'N'
+						END AS RELATION_CHOICE,
 						CASE
-							WHEN LEN(TB_DA026h.bankcd)  > 0 AND TB_DA026h.bankcd  IS NOT NULL
-								THEN (SELECT bank_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.bankcd)
-							WHEN LEN(TB_DA026h.cbankcd) > 0 AND TB_DA026h.cbankcd IS NOT NULL
-								THEN (SELECT bank_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.cbankcd)
-							ELSE
-								(SELECT bank_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.jbankcd)
-						END AS BANK_ACCT_CD,  -- 🔹 더존 계좌코드(bank_cd)
+								WHEN TB_DA026h.bamt > 0 THEN '03'
+								ELSE '05'
+						END AS BILL_COLLECT_TYPE,
+						TB_XCLIENT.cltcd       AS cltcd,
+						TB_XCLIENT.emcltcd     AS CUSTOMER_CD,
+						TB_XCLIENT.cltnm       AS CUSTOMER_NAME,
+						-- 🔹 현장(프로젝트) 정보: TB_E601 JOIN 사용
+						TB_E601.emactcd AS FIELD_CD,    -- 현장 외부코드
+						TB_E601.actnm   AS FIELD_NAME,  -- 현장명
+						TB_DA023.actcd  AS actcd,       -- 내부 현장코드
+						TB_E601.actnm   AS actnm,       -- 현장명(기존 alias 유지용)
+						TB_E601.actcd AS pjcd,
+					TB_E601.actnm AS pjnm,
+						FORMAT(CONVERT(date, TB_DA026h.rcvdate, 112), 'yyyy-MM-dd') AS RELATION_DATE,
+						TB_XCLIENT.saupnum  AS REGISTRATION_NO,
+						-- 수금액 / 수수료 / 합계
+						ISNULL(TB_DA026h.hamt, 0) + ISNULL(TB_DA026h.bamt, 0) + ISNULL(TB_DA026h.jamt, 0)
+							+ ISNULL(TB_DA026h.eamt, 0) + ISNULL(TB_DA026h.samt, 0) + ISNULL(TB_DA026h.damt, 0)
+							+ ISNULL(TB_DA026h.csamt, 0) + ISNULL(TB_DA026h.dcamt, 0) AS SUPPLY_PRICE,
+						ISNULL(TB_DA026h.jmar, 0) + ISNULL(TB_DA026h.bmar, 0) + ISNULL(TB_DA026h.gamt, 0)
+							+ ISNULL(TB_DA026h.cmar, 0) + ISNULL(TB_DA026h.cdmar, 0) AS SURTAX,
+						ISNULL(TB_DA026h.hamt, 0) + ISNULL(TB_DA026h.bamt, 0) + ISNULL(TB_DA026h.jamt, 0)
+							+ ISNULL(TB_DA026h.jmar, 0) + ISNULL(TB_DA026h.csamt, 0) + ISNULL(TB_DA026h.cmar, 0)
+							+ ISNULL(TB_DA026h.eamt, 0) + ISNULL(TB_DA026h.samt, 0) + ISNULL(TB_DA026h.cdmar, 0)
+							+ ISNULL(TB_DA026h.damt, 0) + ISNULL(TB_DA026h.gamt, 0) + ISNULL(TB_DA026h.dcamt, 0)
+							+ ISNULL(TB_DA026h.bmar, 0) AS TOTAL_AMOUNT,
+						(SELECT TOP 1 d.remark
+						 FROM TB_DA026 d WITH (NOLOCK)
+						 WHERE d.custcd  = TB_DA026h.custcd
+							 AND d.spjangcd= TB_DA026h.spjangcd
+							 AND d.cltcd   = TB_DA026h.cltcd
+							 AND d.rcvdate = TB_DA026h.rcvdate
+							 AND d.rcvnum  = TB_DA026h.rcvnum
+						 ORDER BY LEN(ISNULL(d.remark, '')) DESC, d.remark DESC
+						) AS SUBJECT,
+						TB_DA026h.DATASEND_DIVISION,
+						TB_XCLIENT.prenum      AS COPORATE_NO,
+						TB_XCLIENT.prenm       AS REPRESENTATIVE_NAME,
+						TB_XCLIENT.biztypenm   AS BUSINESS_TYPE,
+						TB_XCLIENT.bizitemnm   AS BUSINESS_CONDITIONS,
+						TB_XCLIENT.cltadres    AS RELATION_ADDRESS,
+						TB_XCLIENT.taxtelnum   AS TEL_NO,
+						-- 🔹 계좌/은행 정보
 						CASE
-			       WHEN LEN(TB_DA026h.bankcd)  > 0 AND TB_DA026h.bankcd IS NOT NULL
-			         THEN (SELECT bank_name FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.bankcd)
-			       WHEN LEN(TB_DA026h.cbankcd) > 0 AND TB_DA026h.cbankcd IS NOT NULL
-			         THEN (SELECT bank_name FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.cbankcd)
-			       ELSE
-			         (SELECT bank_name FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.jbankcd)
-			     END AS BANK_NAME,
-					TB_DA023.acccd as djacccd  ,
-					TB_AC001.accnm     AS accnm, 
-					TB_DA026h.IN_DT ,
-					TB_DA026h.IN_SQ,
-					FORMAT(CONVERT(date, TB_DA026h.IN_DT, 112), 'yy.MM.dd')
-						+ ' - '
-						+ RIGHT('0000' + CAST(TB_DA026h.IN_SQ AS varchar(4)), 4) AS IN_DT_SEQ,
-					'' as divicd,
-					 TB_DA026h.spjangcd as SPJANGCD,      
-			         TB_DA026h.misdate   as MISDATE,   
-			         TB_DA026h.misnum    as MISNUM
-				 FROM TB_DA026h WITH(NOLOCK)
-				 LEFT OUTER JOIN TB_XCLIENT WITH(NOLOCK) ON (TB_DA026h.custcd = TB_XCLIENT.custcd AND TB_DA026h.cltcd = TB_XCLIENT.cltcd)
-				 LEFT OUTER JOIN TB_DA023 WITH(NOLOCK) ON (TB_DA026h.custcd = TB_DA023.custcd AND TB_DA026h.spjangcd = TB_DA023.spjangcd AND TB_DA026h.misdate = TB_DA023.misdate AND TB_DA026h.misnum = TB_DA023.misnum  AND TB_DA026h.cltcd=tb_da023.cltcd)
-				LEFT OUTER JOIN TB_AC001 WITH (NOLOCK) ON (TB_DA026h.custcd = TB_AC001.custcd AND TB_DA023.acccd  = TB_AC001.acccd)
-				WHERE TB_DA026h.custcd = :as_custcd
+								WHEN LEN(TB_DA026h.bankcd) > 0 AND TB_DA026h.bankcd IS NOT NULL
+										THEN (SELECT reference_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.bankcd)
+								WHEN LEN(TB_DA026h.cbankcd) > 0 AND TB_DA026h.cbankcd IS NOT NULL
+										THEN (SELECT reference_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.cbankcd)
+								ELSE
+										(SELECT reference_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.jbankcd)
+						END AS ACCOUNT_NO,
+						CASE
+								WHEN LEN(TB_DA026h.bankcd) > 0 AND TB_DA026h.bankcd IS NOT NULL
+										THEN (SELECT reference_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.bankcd)
+								WHEN LEN(TB_DA026h.cbankcd) > 0 AND TB_DA026h.cbankcd IS NOT NULL
+										THEN (SELECT reference_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.cbankcd)
+								ELSE
+										(SELECT reference_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.jbankcd)
+						END AS BANK_TR_CD,   -- 은행 거래처코드(A1)
+						CASE
+								WHEN LEN(TB_DA026h.bankcd) > 0 AND TB_DA026h.bankcd IS NOT NULL
+										THEN (SELECT bank_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.bankcd)
+								WHEN LEN(TB_DA026h.cbankcd) > 0 AND TB_DA026h.cbankcd IS NOT NULL
+										THEN (SELECT bank_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.cbankcd)
+								ELSE
+										(SELECT bank_cd FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.jbankcd)
+						END AS BANK_ACCT_CD,  -- 더존 계좌코드(bank_cd)
+						CASE
+								WHEN LEN(TB_DA026h.bankcd) > 0 AND TB_DA026h.bankcd IS NOT NULL
+										THEN (SELECT bank_name FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.bankcd)
+								WHEN LEN(TB_DA026h.cbankcd) > 0 AND TB_DA026h.cbankcd IS NOT NULL
+										THEN (SELECT bank_name FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.cbankcd)
+								ELSE
+										(SELECT bank_name FROM STD_REFERENCE_ICUBE WHERE STD_REFERENCE_ICUBE.bankcd = TB_DA026h.jbankcd)
+						END AS BANK_NAME,
+						(select dzdivicd from tb_jc002 where custcd=:as_custcd and spjangcd=:spjangcd and divicd=TB_DA023.divicd) as dzdivicd,
+			   	(select divinm from tb_jc002 where custcd=:as_custcd and spjangcd=:spjangcd and divicd=TB_DA023.divicd) as divinm,
+						TB_DA023.acccd AS djacccd,
+						TB_AC001.accnm AS accnm,
+						TB_DA026h.IN_DT,
+						TB_DA026h.IN_SQ,
+						FORMAT(CONVERT(date, TB_DA026h.IN_DT, 112), 'yy.MM.dd')
+								+ ' - '
+								+ RIGHT('0000' + CAST(TB_DA026h.IN_SQ AS varchar(4)), 4) AS IN_DT_SEQ,
+						'' AS divicd,
+						TB_DA026h.spjangcd AS SPJANGCD,
+						TB_DA026h.misdate  AS MISDATE,
+						TB_DA026h.misnum   AS MISNUM
+				FROM TB_DA026h WITH (NOLOCK)
+				LEFT OUTER JOIN TB_XCLIENT WITH (NOLOCK)
+						ON TB_DA026h.custcd = TB_XCLIENT.custcd
+					 AND TB_DA026h.cltcd  = TB_XCLIENT.cltcd
+				LEFT OUTER JOIN TB_DA023 WITH (NOLOCK)
+						ON TB_DA026h.custcd   = TB_DA023.custcd
+					 AND TB_DA026h.spjangcd = TB_DA023.spjangcd
+					 AND TB_DA026h.misdate  = TB_DA023.misdate
+					 AND TB_DA026h.misnum   = TB_DA023.misnum
+					 AND TB_DA026h.cltcd    = TB_DA023.cltcd
+				LEFT OUTER JOIN TB_AC001 WITH (NOLOCK)
+						ON TB_DA026h.custcd   = TB_AC001.custcd
+					 AND TB_DA023.acccd     = TB_AC001.acccd
+				LEFT OUTER JOIN TB_E601 WITH (NOLOCK)
+						ON TB_E601.custcd     = TB_DA023.custcd
+					 AND TB_E601.spjangcd   = TB_DA023.spjangcd
+					 AND TB_E601.actcd      = TB_DA023.actcd
+				WHERE TB_DA026h.custcd   = :as_custcd
 					AND TB_DA026h.spjangcd = :spjangcd
 					AND TB_DA026h.rcvdate BETWEEN :as_stdate AND :as_enddate
 			""";
@@ -838,6 +889,17 @@ public class APIDouZoneService {
 			for (Map<String, Object> c : candidates) {
 				String cd = String.valueOf(c.get("acctCd"));
 				if ("1490000".equals(cd)) {
+					return c;
+				}
+			}
+			return candidates.get(0);
+		}
+
+		if ("지급수수료".equals(acctNm)) {
+			// 1순위: acctCd = 8310000
+			for (Map<String, Object> c : candidates) {
+				String cd = String.valueOf(c.get("acctCd"));
+				if ("8310000".equals(cd)) {
 					return c;
 				}
 			}

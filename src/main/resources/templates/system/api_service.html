@@ -1125,7 +1125,7 @@
         });*/
         // 🔹 공통 A1(거래처) / C1(사용부서)
         const trCd = (row.CUSTOMER_CD   || row.cltcd || row.trCd || '');
-        const trNm = (row.CUSTOMER_NAME || row.cltnm || row.trNm || '');
+        const trNm = ( row.cltnm || row.trNm ||row.CUSTOMER_NAME || '');
         const ctDept   = row.dzdivicd || row.divicd || '';
         const ctDeptNm = row.divinm   || '';
         const pjtCd    = row.pjcd || row.pjcd_OR || '' ;
@@ -1185,23 +1185,20 @@
 
        // ──────────────────────────
        // (4) 수금(docuTy = '4')
-       //   - SUPPLY_PRICE : 수금액  → 외상매출금
+       //   - TOTAL_AMOUNT : 합계(외상매출금)
+       //   - SUPPLY_PRICE : 수금액(보통예금, 실제 통장 입금액)
        //   - SURTAX       : 수수료  → 지급수수료
-       //   - netAmt       : 통장입금액(보통예금)
        // ──────────────────────────
        if (dty === '4') {
 
-        // ✅ 수금액 = SUPPLY_PRICE (없으면 기존 필드 fallback)
-        const receiptAmt = _this.toNumber(
-         row.SUPPLY_PRICE ??      // 그리드의 "수금액"
-         row.receiptAmt   ??
-         row.RECEIPT_AMOUNT ??
-         row.totalAmt     ??
-         row.TOTAL_AMOUNT,
+        // 1) 외상매출금 = 합계
+        const totalAmt = _this.toNumber(
+         row.totalAmt ??
+         row.TOTAL_AMOUNT ??
          0
         );
 
-        // ✅ 지급수수료 = SURTAX (없으면 기존 필드 fallback)
+        // 2) 지급수수료 = SURTAX (없으면 기존 필드 fallback)
         const feeAmt = _this.toNumber(
          row.SURTAX   ??          // 그리드의 "수수료"
          row.feeAmt   ??
@@ -1210,8 +1207,15 @@
          0
         );
 
-        // 실입금액(통장에 찍히는 금액) = 총 수금액 - 수수료
-        const netAmt = receiptAmt - feeAmt;
+        // 3) 보통예금(실제 수금액) = SUPPLY_PRICE
+        //    SUPPLY_PRICE가 0이거나 없으면 (합계 - 수수료)로 보정
+        let netAmt = _this.toNumber(row.SUPPLY_PRICE, 0);
+        if (netAmt === 0 && totalAmt !== 0) {
+         netAmt = totalAmt - feeAmt;
+        }
+
+        // 외상매출금 금액
+        const receiptAmt = totalAmt;
 
         // 계좌 존재 여부 (더존 bank_cd)
         const accountNo = (row.BANK_ACCT_CD || '').toString().trim();
@@ -1220,7 +1224,7 @@
         // 🔹 ① 고객 거래처 (외상매출 라인에서 사용)
         const custTrCd = (row.CUSTOMER_CD || row.cltcd || '');
         const custTrNm = (row.CUSTOMER_NAME || row.cltnm || '');
-        const pjtCd =  row.FIELD_CD || row.actcd ||'';
+        const pjtCd    = row.FIELD_CD || row.actcd || '';
 
         // 🔹 ② 은행 거래처 (보통예금/지급수수료 라인 A1)
         const bankTrCd = row.BANK_ACCT_CD || '';   // 쿼리에서 만든 reference_cd
@@ -1234,7 +1238,7 @@
         if (hasAccount) {
 
          // --------------------------------------
-         // ① 보통예금 : 집계만 하고, 라인은 나중에 한 번에 생성
+         // ① 보통예금 : SUPPLY_PRICE(또는 보정된 netAmt)
          //    key = 계좌코드 + 작성일자 기준으로 묶음
          // --------------------------------------
          if (netAmt !== 0) {
@@ -1255,7 +1259,6 @@
              trNm: bankTrNm,
              // 적요는 '외상매출금 입금' 고정
              rmkDc: isNormalDeposit ? '외상매출금 입금' : common.rmkDc,
-
             },
             drcrFg: drcrFg[1],               // 차변
             acctCd: dzAcctCd1,               // 10300001
@@ -1284,9 +1287,7 @@
              // 수수료 라인의 A1도 은행 거래처 기준
              trCd: bankTrCd,
              trNm: bankTrNm,
-             // pjtCd: pjtCd, //현장 코드
-             ctDept : row.dzdivicd, // 부서
-             // rmkDc: '지급수수료'
+             ctDept: row.dzdivicd, // 부서
             },
             drcrFg: drcrFg[2],                 // 차변
             acctCd: dzAcctCd2,                 // 8310000
@@ -1299,21 +1300,20 @@
           receiptFeeMap[feeKey].feeAmt += feeAmt;
          }
 
-
          // --------------------------------------
-         // ③ 외상매출금 : SUPPLY_PRICE → receiptAmt
+         // ③ 외상매출금 : TOTAL_AMOUNT → receiptAmt
          // --------------------------------------
          if (receiptAmt !== 0) {
           const dzAcctCd3 = _this.getDzAcctCd(row, acctCd[3], 3);
           lines.push({
            ...common,
-           menuLnSq:lineNo++,
-           drcrFg:  drcrFg[3],      // '4' (대변)
-           acctCd:  dzAcctCd3,      // 1080000
-           acctNm:  acctNm[3] || '외상매출금',
-           acctAm:  receiptAmt,
-           pjtCd:   pjtCd,
-           ctDept:  row.dzdivicd,
+           menuLnSq: lineNo++,
+           drcrFg:   drcrFg[3],      // '4' (대변)
+           acctCd:   dzAcctCd3,      // 1080000
+           acctNm:   acctNm[3] || '외상매출금',
+           acctAm:   receiptAmt,
+           pjtCd:    pjtCd,
+           ctDept:   row.dzdivicd,
 
            // 🔹 A1 : 고객 거래처
            trCd:     custTrCd,
@@ -1342,7 +1342,7 @@
           trCd:    custTrCd,
           trNm:    custTrNm,
           pjtCd:   pjtCd,
-          ctDept : row.dzdivicd,
+          ctDept:  row.dzdivicd,
          });
         }
 

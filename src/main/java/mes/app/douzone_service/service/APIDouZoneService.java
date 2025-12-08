@@ -75,8 +75,9 @@ public class APIDouZoneService {
 				 TB_XCLIENT.taxtelnum as TEL_NO,
 				TB_DA023.acccd as djacccd ,
 				TB_DA023.divicd as divicd ,
-				TB_E601.emactcd              AS pjcd, -- 현장코드
-				TB_E601.actnm              AS pjnm, -- 현장명
+				TB_E601.actcd    AS pjcd_OR, -- 현장코드(기존 더존 연결용)
+			  TB_E601.emactcd  AS pjcd_PR, -- 현장코드(현재 더존연결)
+				TB_E601.actnm    AS pjnm, -- 현장명
 				 TB_DA023.gubun ,
 				(select dzdivicd from tb_jc002 where custcd=:as_custcd and spjangcd=:as_spjangcd and divicd=TB_DA023.divicd) as dzdivicd,
 				(select divinm from tb_jc002 where custcd=:as_custcd and spjangcd=:as_spjangcd and divicd=TB_DA023.divicd) as divinm,

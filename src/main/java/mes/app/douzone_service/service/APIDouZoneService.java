@@ -197,7 +197,8 @@ public class APIDouZoneService {
 			     TB_CA640.IN_SQ,
 			     TB_CA640.divicd            AS divicd,           
 			     TB_CA640.actcd             AS actcd_org,
-			     TB_E601.emactcd AS pjcd,	-- 현장코드
+			     TB_E601.actcd   AS pjcd_OR, -- 현장코드(기존 더존 연결용)
+			     TB_E601.emactcd AS pjcd,	-- 현장코드(현재 더존연결)
 			     TB_E601.actnm   AS pjnm, -- 현장명
 			     TB_CA640.mijdate AS MISDATE,
 					 TB_CA640.mijnum  AS MISNUM,
@@ -315,8 +316,6 @@ public class APIDouZoneService {
 						TB_E601.actnm   AS FIELD_NAME,  -- 현장명
 						TB_DA023.actcd  AS actcd,       -- 내부 현장코드
 						TB_E601.actnm   AS actnm,       -- 현장명(기존 alias 유지용)
-						TB_E601.emactcd AS pjcd,
-					TB_E601.actnm AS pjnm,
 						FORMAT(CONVERT(date, TB_DA026h.rcvdate, 112), 'yyyy-MM-dd') AS RELATION_DATE,
 						TB_XCLIENT.saupnum  AS REGISTRATION_NO,
 						-- 수금액 / 수수료 / 합계

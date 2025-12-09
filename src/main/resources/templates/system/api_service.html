@@ -1104,6 +1104,7 @@
 
         return; // 이 행(row)에 대한 처리는 끝
        }
+
        // ──────────────────────────
        // (2) 비용/매입(docuTy = '2')
        //    ls_acct_cd[1] = 원재료(= ls_acccd)
@@ -1130,8 +1131,8 @@
         const ctDeptNm = row.divinm   || '';
         const pjtCd    = row.pjcd || row.pjcd_OR || '' ;
 
-        // 🔹 그룹키 (MISDATE+MISNUM+SPJANGCD)
-        const groupKey = [misdate, misnum, spjangcd].join('|');
+        // 🔹 그룹키 (menuDt + MISDATE + MISNUM + SPJANGCD)
+        const groupKey = [common.menuDt, misdate, misnum, spjangcd].join('|');
 
         // 🔹 그룹 최초 초기화
         if (!expenseGroupMap[groupKey]) {

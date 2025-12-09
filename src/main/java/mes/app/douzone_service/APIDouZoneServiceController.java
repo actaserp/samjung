@@ -44,174 +44,6 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 	}
 
 	/*@PostMapping("/DouZoneSave")
-	public AjaxResult salesDouZoneSave(@RequestBody Map<String, Object> body) { // 매출/비용/수금/지급 전송
-		AjaxResult result = new AjaxResult();
-
-		try {
-			String coCd   = (String) body.getOrDefault("coCd", "1000");
-			Object docuTyObj = body.get("docuTy");
-			String docuTy = (docuTyObj != null) ? docuTyObj.toString().trim() : null;
-
-			if (docuTy == null || docuTy.isEmpty()) {
-				result.success = false;
-				result.message = "전표유형(docuTy)이 없습니다. (2: 매입, 3: 매출, 4: 수금, 5: 지급)";
-				return result;
-			}
-
-			// 허용값 검증
-			if (!docuTy.equals("2") && !docuTy.equals("3")
-						&& !docuTy.equals("4") && !docuTy.equals("5")) {
-				result.success = false;
-				result.message = "전표유형(docuTy)이 올바르지 않습니다. (받은 값: " + docuTy + ")";
-				return result;
-			}
-
-			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> lines =
-				(List<Map<String, Object>>) body.get("data");
-
-			if (lines == null || lines.isEmpty()) {
-				result.success = false;
-				result.message = "전송할 데이터가 없습니다.";
-				return result;
-			}
-
-			// ⓪ 계정코드 매핑 + 관리항목 검증 (전체 라인에 대해 한 번)
-			List<String> mapErrors = apidouZoneService.applyAccountCodeByAcctNm(coCd, lines);
-			if (!mapErrors.isEmpty()) {
-				result.success = false;
-				result.message = "계정 매핑 오류:\n" + String.join("\n", mapErrors);
-				return result;
-			}
-
-			List<String> errors = apidouZoneService.validateAccountsAndControls(coCd, lines);
-			if (!errors.isEmpty()) {
-				result.success = false;
-				result.message = "전송 전 검증 오류:\n" + String.join("\n", errors);
-				return result;
-			}
-
-			// 🔹 ① 헤더 그룹핑: docuTy별로 기준 다르게
-			Map<String, List<Map<String, Object>>> groupMap = new LinkedHashMap<>();
-
-			for (Map<String, Object> line : lines) {
-				String menuDt = asString(line.get("menuDt"));   // JS에서 넣어준 작성일자
-				String trCd   = asString(line.get("trCd"));     // DouZoneSend.common.trCd
-
-				if (menuDt == null || menuDt.isBlank()) {
-					continue;
-				}
-
-				String key;
-
-				if ("3".equals(docuTy)) {
-					// 🔹 매출: "작성일자 + 거래처 + (원본 전표키: misdate/misnum/spjangcd)" 기준
-					String misdate  = asString(line.get("misdate"));   // DouZoneSend.common.misdate
-					String misnum   = asString(line.get("misnum"));    // DouZoneSend.common.misnum
-					String spjangcd = asString(line.get("spjangcd"));  // DouZoneSend.common.spjangcd
-
-					// 세금계산서 단위 키
-					String taxKey = misdate + "|" + misnum + "|" + spjangcd;
-
-					key = menuDt + "|" + trCd + "|" + taxKey;
-
-				} else if ("4".equals(docuTy) || "5".equals(docuTy)) {
-					// 🔹 수금/지급: 작성일자 + 거래처 기준 (필요시 나중에 정책 변경)
-					key = menuDt + "|" + trCd;
-
-				} else {
-					// 🔹 비용(2): 기존처럼 날짜 기준만
-					key = menuDt;
-				}
-
-				groupMap.computeIfAbsent(key, k -> new ArrayList<>()).add(line);
-			}
-
-			if (groupMap.isEmpty()) {
-				result.success = false;
-				result.message = "그룹핑된 전표 데이터가 없습니다.";
-				return result;
-			}
-
-			List<String> dzMessages = new ArrayList<>();
-
-			// 🔹 ② 그룹별로 menuSq 채번 + 더존 호출
-			for (Map.Entry<String, List<Map<String, Object>>> entry : groupMap.entrySet()) {
-				List<Map<String, Object>> groupLines = entry.getValue();
-				if (groupLines.isEmpty()) continue;
-
-				String menuDt = asString(groupLines.get(0).get("menuDt"));
-
-				int menuSq = apidouZoneService.generateMenuSqFromDb(coCd, menuDt);
-
-				for (Map<String, Object> line : groupLines) {
-					line.put("menuSq", menuSq);
-					line.put("docuTy", docuTy);
-				}
-
-				Map<String, Object> payload = new HashMap<>();
-				payload.put("coCd", coCd);
-				payload.put("data", groupLines);
-
-				Map<String, Object> dzRes = douzoneClient.callAutoDocuSave(payload);
-
-				// 결과 코드 파싱
-				Object rcObj = dzRes.get("resultCode");
-				Integer resultCode = null;
-				if (rcObj instanceof Number) {
-					resultCode = ((Number) rcObj).intValue();
-				} else if (rcObj != null) {
-					resultCode = Integer.parseInt(rcObj.toString());
-				}
-
-				String resultMsg = (String) dzRes.get("resultMsg");
-				dzMessages.add("[" + entry.getKey() + "] " + (resultMsg != null ? resultMsg : ""));
-
-				if (resultCode != null && resultCode == 0) {
-					// ✅ 그룹별 전송 성공 시 DATASEND_DIVISION 업데이트
-					try {
-						switch (docuTy) {
-							case "3": // 매출
-								apidouZoneService.updateSalesSendFlag(groupLines, menuDt, menuSq);
-								break;
-							case "2": // 비용(매입)
-								apidouZoneService.updatePriceSendFlag(groupLines, menuDt, menuSq);
-								break;
-							case "4": // 수금
-								apidouZoneService.updateReceiptSendFlag(groupLines, menuDt, menuSq);
-								break;
-							case "5": // 지급
-								apidouZoneService.updatePaymentSendFlag(groupLines, menuDt, menuSq);
-								break;
-							default:
-								log.warn("전표유형(docuTy={})에 대한 플래그 업데이트 로직이 없습니다.", docuTy);
-						}
-					} catch (Exception e) {
-						log.warn("TB_DA0xx DATASEND_DIVISION 업데이트 실패 (key={})", entry.getKey(), e);
-					}
-				} else {
-					// ❗ 한 건이라도 실패하면 여기서 바로 에러 리턴하는 정책
-					result.success = false;
-					result.message = "더존 오류:\n" + String.join("\n", dzMessages);
-					result.data    = dzRes;
-					return result;
-				}
-			}
-
-			result.success = true;
-			result.message = "더존 자동전표 전송 완료";
-			// 필요하면 result.data = dzMessages; 로 바꿔서 키/메시지들 보내도 됨
-
-		} catch (Exception e) {
-			log.error("sales_DouZoneSave error", e);
-			result.success = false;
-			result.message = "전송 중 오류: " + e.getMessage();
-		}
-
-		return result;
-	}*/
-
-	/*@PostMapping("/DouZoneSave")
 	public AjaxResult salesDouZoneSave(@RequestBody Map<String, Object> body) {	//매출 전송[저장]처리
 		AjaxResult result = new AjaxResult();
 
@@ -336,7 +168,7 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 		return result;
 	}*/
 
-	@PostMapping("/DouZoneSave")
+	/*@PostMapping("/DouZoneSave")
 	public AjaxResult salesDouZoneSave(@RequestBody Map<String, Object> body) { // 매출/비용/수금/지급 전송
 		AjaxResult result = new AjaxResult();
 
@@ -507,6 +339,283 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 						case "2": // 비용(매입)
 							apidouZoneService.updatePriceSendFlag(lines, menuDt, menuSq);
 							break;
+						case "4": // 수금
+							apidouZoneService.updateReceiptSendFlag(lines, menuDt, menuSq);
+							break;
+						case "5": // 지급
+							apidouZoneService.updatePaymentSendFlag(lines, menuDt, menuSq);
+							break;
+						default:
+							log.warn("전표유형(docuTy={})에 대한 플래그 업데이트 로직이 없습니다.", docuTy);
+					}
+				} catch (Exception e) {
+					log.warn("TB_DA0xx DATASEND_DIVISION 업데이트 실패", e);
+				}
+
+				result.success = true;
+				result.message = "더존 자동전표 전송 완료";
+				result.data    = dzRes;
+			} else {
+				result.success = false;
+				result.message = "더존 오류: " + (resultMsg != null ? resultMsg : "알 수 없는 오류");
+				result.data    = dzRes;
+			}
+
+		} catch (Exception e) {
+			log.error("sales_DouZoneSave error", e);
+			result.success = false;
+			result.message = "전송 중 오류: " + e.getMessage();
+		}
+
+		return result;
+	}*/
+	@PostMapping("/DouZoneSave")
+	public AjaxResult salesDouZoneSave(@RequestBody Map<String, Object> body) { // 매출/비용/수금/지급 전송
+		AjaxResult result = new AjaxResult();
+
+		try {
+			String coCd = (String) body.getOrDefault("coCd", "1000");
+			Object docuTyObj = body.get("docuTy");
+			String docuTy = (docuTyObj != null) ? docuTyObj.toString().trim() : null;
+
+			// 0) docuTy 필수/허용값 체크
+			if (docuTy == null || docuTy.isEmpty()) {
+				result.success = false;
+				result.message = "전표유형(docuTy)이 없습니다. (2: 매입, 3: 매출, 4: 수금, 5: 지급)";
+				return result;
+			}
+
+			if (!docuTy.equals("2") && !docuTy.equals("3")
+						&& !docuTy.equals("4") && !docuTy.equals("5")) {
+				result.success = false;
+				result.message = "전표유형(docuTy)이 올바르지 않습니다. (받은 값: " + docuTy + ")";
+				return result;
+			}
+
+			@SuppressWarnings("unchecked")
+			List<Map<String, Object>> lines = (List<Map<String, Object>>) body.get("data");
+
+			if (lines == null || lines.isEmpty()) {
+				result.success = false;
+				result.message = "전송할 데이터가 없습니다.";
+				return result;
+			}
+
+			// ⓪ 계정 매핑
+			List<String> mapErrors = apidouZoneService.applyAccountCodeByAcctNm(coCd, lines);
+			if (!mapErrors.isEmpty()) {
+				result.success = false;
+				result.message = "계정 매핑 오류:\n" + String.join("\n", mapErrors);
+				return result;
+			}
+
+			// ① 계정 + 관리항목 사전 검증
+			List<String> errors = apidouZoneService.validateAccountsAndControls(coCd, lines);
+			if (!errors.isEmpty()) {
+				result.success = false;
+				result.message = "전송 전 검증 오류:\n" + String.join("\n", errors);
+				return result;
+			}
+
+			// ② 매출(docuTy = '3') → 세금계산서 단위 그룹핑 + 그룹별 호출
+			if ("3".equals(docuTy)) {
+
+				Map<String, List<Map<String, Object>>> groupMap = new LinkedHashMap<>();
+
+				for (Map<String, Object> line : lines) {
+					String menuDt = asString(line.get("menuDt"));   // 작성일자
+					String trCd   = asString(line.get("trCd"));     // 거래처
+
+					if (menuDt == null || menuDt.isBlank()) {
+						continue; // 메뉴일자 없으면 스킵
+					}
+
+					String misdate  = asString(line.get("misdate"));   // 원본전표일자
+					String misnum   = asString(line.get("misnum"));    // 원본전표번호
+					String spjangcd = asString(line.get("spjangcd"));  // 사업장
+
+					// 세금계산서 단위 키
+					String taxKey = misdate + "|" + misnum + "|" + spjangcd;
+					String key    = menuDt + "|" + trCd + "|" + taxKey;
+
+					groupMap.computeIfAbsent(key, k -> new ArrayList<>()).add(line);
+				}
+
+				if (groupMap.isEmpty()) {
+					result.success = false;
+					result.message = "그룹핑된 전표 데이터가 없습니다. (menuDt/misdate/misnum/spjangcd 확인 필요)";
+					return result;
+				}
+
+				List<String> dzMessages = new ArrayList<>();
+
+				// 🔹 ②-1 그룹별로 menuSq 채번 + 더존 호출
+				for (Map.Entry<String, List<Map<String, Object>>> entry : groupMap.entrySet()) {
+					List<Map<String, Object>> groupLines = entry.getValue();
+					if (groupLines.isEmpty()) continue;
+
+					String menuDt = asString(groupLines.get(0).get("menuDt"));
+					int menuSq    = apidouZoneService.generateMenuSqFromDb(coCd, menuDt);
+
+					for (Map<String, Object> line : groupLines) {
+						line.put("menuSq", menuSq);
+						line.put("docuTy", docuTy);
+					}
+
+					Map<String, Object> payload = new HashMap<>();
+					payload.put("coCd", coCd);
+					payload.put("data", groupLines);
+
+					Map<String, Object> dzRes = douzoneClient.callAutoDocuSave(payload);
+
+					// 결과 코드 파싱
+					Object rcObj = dzRes.get("resultCode");
+					Integer resultCode = null;
+					if (rcObj instanceof Number) {
+						resultCode = ((Number) rcObj).intValue();
+					} else if (rcObj != null) {
+						resultCode = Integer.parseInt(rcObj.toString());
+					}
+
+					String resultMsg = (String) dzRes.get("resultMsg");
+					dzMessages.add("[" + entry.getKey() + "] " + (resultMsg != null ? resultMsg : ""));
+
+					if (resultCode != null && resultCode == 0) {
+						// ✅ 그룹별 전송 성공 시 DATASEND_DIVISION 업데이트
+						try {
+							apidouZoneService.updateSalesSendFlag(groupLines, menuDt, menuSq);
+						} catch (Exception e) {
+							log.warn("TB_DA0xx DATASEND_DIVISION 업데이트 실패 (key={})", entry.getKey(), e);
+						}
+					} else {
+						// 한 그룹이라도 실패하면 바로 종료
+						result.success = false;
+						result.message = "더존 오류:\n" + String.join("\n", dzMessages);
+						result.data    = dzRes;
+						return result;
+					}
+				}
+
+				// 전 그룹 성공
+				result.success = true;
+				result.message = "더존 자동전표 전송 완료";
+				return result;
+			}
+
+			// ★ ③ 비용(docuTy = '2') → MISDATE+MISNUM+SPJANGCD(+menuDt) 단위 그룹핑 + 그룹별 호출
+			if ("2".equals(docuTy)) {
+
+				Map<String, List<Map<String, Object>>> groupMap = new LinkedHashMap<>();
+
+				for (Map<String, Object> line : lines) {
+					String menuDt  = asString(line.get("menuDt"));   // 작성일자
+					String misdate = asString(line.get("misdate"));  // 원본전표일자
+					String misnum  = asString(line.get("misnum"));   // 원본전표번호
+					String spjangcd = asString(line.get("spjangcd")); // 사업장
+
+					if (menuDt == null || menuDt.isBlank()) {
+						continue;
+					}
+
+					// ★ 비용 그룹키: menuDt + misdate + misnum + spjangcd
+					String grpKey = menuDt + "|" + misdate + "|" + misnum + "|" + spjangcd;
+					groupMap.computeIfAbsent(grpKey, k -> new ArrayList<>()).add(line);
+				}
+
+				if (groupMap.isEmpty()) {
+					result.success = false;
+					result.message = "비용 전표 그룹 데이터가 없습니다. (menuDt/misdate/misnum/spjangcd 확인 필요)";
+					return result;
+				}
+
+				List<String> dzMessages = new ArrayList<>();
+
+				for (Map.Entry<String, List<Map<String, Object>>> entry : groupMap.entrySet()) {
+					List<Map<String, Object>> groupLines = entry.getValue();
+					if (groupLines.isEmpty()) continue;
+
+					String menuDtGrp = asString(groupLines.get(0).get("menuDt"));
+					int menuSqGrp    = apidouZoneService.generateMenuSqFromDb(coCd, menuDtGrp);
+
+					for (Map<String, Object> line : groupLines) {
+						line.put("menuSq", menuSqGrp);
+						line.put("docuTy", docuTy);
+					}
+
+					Map<String, Object> payload = new HashMap<>();
+					payload.put("coCd", coCd);
+					payload.put("data", groupLines);
+
+					Map<String, Object> dzRes = douzoneClient.callAutoDocuSave(payload);
+
+					Object rcObj = dzRes.get("resultCode");
+					Integer resultCode = null;
+					if (rcObj instanceof Number) {
+						resultCode = ((Number) rcObj).intValue();
+					} else if (rcObj != null) {
+						resultCode = Integer.parseInt(rcObj.toString());
+					}
+
+					String resultMsg = (String) dzRes.get("resultMsg");
+					dzMessages.add("[" + entry.getKey() + "] " + (resultMsg != null ? resultMsg : ""));
+
+					if (resultCode != null && resultCode == 0) {
+						// ✅ 그룹별 전송 성공 시 DATASEND_DIVISION 업데이트
+						try {
+							apidouZoneService.updatePriceSendFlag(groupLines, menuDtGrp, menuSqGrp);
+						} catch (Exception e) {
+							log.warn("비용 DATASEND_DIVISION 업데이트 실패 (key={})", entry.getKey(), e);
+						}
+					} else {
+						// 한 그룹이라도 실패하면 종료
+						result.success = false;
+						result.message = "더존 오류:\n" + String.join("\n", dzMessages);
+						result.data    = dzRes;
+						return result;
+					}
+				}
+
+				// 전 그룹 성공
+				result.success = true;
+				result.message = "더존 비용 자동전표 전송 완료";
+				return result;
+			}
+
+			// ★ ④ 수금/지급(docuTy = 4,5) → 기존처럼 한 번에 전송
+			String menuDt = asString(lines.get(0).get("menuDt"));
+			if (menuDt == null || menuDt.isBlank()) {
+				result.success = false;
+				result.message = "작성일자(menuDt)가 없습니다.";
+				return result;
+			}
+
+			int menuSq = apidouZoneService.generateMenuSqFromDb(coCd, menuDt);
+
+			for (Map<String, Object> line : lines) {
+				line.put("menuSq", menuSq);
+				line.put("docuTy", docuTy);
+			}
+
+			Map<String, Object> payload = new HashMap<>();
+			payload.put("coCd", coCd);
+			payload.put("data", lines);
+
+			Map<String, Object> dzRes = douzoneClient.callAutoDocuSave(payload);
+
+			Object rcObj = dzRes.get("resultCode");
+			Integer resultCode = null;
+			if (rcObj instanceof Number) {
+				resultCode = ((Number) rcObj).intValue();
+			} else if (rcObj != null) {
+				resultCode = Integer.parseInt(rcObj.toString());
+			}
+
+			String resultMsg = (String) dzRes.get("resultMsg");
+
+			if (resultCode != null && resultCode == 0) {
+
+				try {
+					switch (docuTy) {
 						case "4": // 수금
 							apidouZoneService.updateReceiptSendFlag(lines, menuDt, menuSq);
 							break;

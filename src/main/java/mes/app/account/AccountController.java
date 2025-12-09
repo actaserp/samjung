@@ -98,51 +98,82 @@ public class AccountController {
     private UserService userService;
 
 	@GetMapping("/login")
-	public ModelAndView loginPage(
-			HttpServletRequest request,
-			HttpServletResponse response,
-			HttpSession session, Authentication auth) {
+	public ModelAndView loginPage(HttpServletRequest request,
+																HttpServletResponse response,
+																HttpSession session,
+																Authentication auth) {
 
-		//User-Agent를 기반으로 모바일 여부 감지
-		String userAgent = request.getHeader("User-Agent").toLowerCase();
-		boolean isMobile = userAgent.contains("mobile") || userAgent.contains("android") || userAgent.contains("iphone");
+		// ✅ 1️⃣ 자동로그인 쿠키 검사
+		if (auth == null) {
+			Cookie[] cookies = request.getCookies();
+			if (cookies != null) {
+				for (Cookie cookie : cookies) {
+					if ("SJ_AUTO_LOGIN".equals(cookie.getName())) {
+						String username = cookie.getValue();
 
-		// 세션을 이용해 모바일에서 한 번만 리디렉션되도록 설정
-		Boolean isMobileRedirected = (Boolean) session.getAttribute("isMobileRedirected");
+						User user = userRepository.findByUsername(username).orElse(null);
 
-		if (isMobile && (isMobileRedirected == null || !isMobileRedirected)) {
-			session.setAttribute("isMobileRedirected", true);  // ✅ 모바일에서 리디렉션 상태 저장
-			return new ModelAndView("redirect:/MobileFirstPage");
+						if (user != null && user.getActive()) {
+							UsernamePasswordAuthenticationToken token =
+								new UsernamePasswordAuthenticationToken(
+									user, null, Collections.emptyList());
+
+							SecurityContextHolder.getContext().setAuthentication(token);
+							session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+
+							return new ModelAndView("redirect:/");
+						} else {
+							Cookie clearCookie = new Cookie("SJ_AUTO_LOGIN", null);
+							clearCookie.setMaxAge(0);
+							clearCookie.setPath("/");
+							response.addCookie(clearCookie);
+						}
+					}
+
+				}
+			}
 		}
 
-		// 모바일이면 "mlogin" 뷰 반환, 웹이면 "login" 뷰 반환
+		// ✅ 2️⃣ 기존 로그인 페이지 로직
+		String userAgent = request.getHeader("User-Agent").toLowerCase();
+		boolean isMobile = userAgent.contains("mobile") || userAgent.contains("iphone");
 		ModelAndView mv = new ModelAndView(isMobile ? "mlogin" : "login");
+		mv.addObject("userinfo", new HashMap<>());
+		mv.addObject("gui", new HashMap<>());
 
-		Map<String, Object> userInfo = new HashMap<String, Object>();
-		Map<String, Object> gui = new HashMap<String, Object>();
-
-		mv.addObject("userinfo", userInfo);
-
-		mv.addObject("gui", gui);
-		if(auth!=null) {
-			SecurityContextLogoutHandler handler =  new SecurityContextLogoutHandler();
+		// ✅ 3️⃣ 이미 로그인된 상태라면 강제 로그아웃 처리
+		if (auth != null) {
+			SecurityContextLogoutHandler handler = new SecurityContextLogoutHandler();
 			handler.logout(request, response, auth);
 		}
 
 		return mv;
 	}
 
+	@GetMapping("/MobileFirstPage")
+	public ModelAndView mobileFirstPage(HttpSession session) {
+		session.removeAttribute("isMobileRedirected");  // ✅ 모바일 첫 페이지에서 세션 값 초기화
+		return new ModelAndView("/mobile/MobileFirstPage");
+	}
+
 	@GetMapping("/logout")
-	public void logout(
-			HttpServletRequest request
-			, HttpServletResponse response) throws IOException {
-
+	public void logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		SecurityContextLogoutHandler handler =  new SecurityContextLogoutHandler();
+		SecurityContextLogoutHandler handler = new SecurityContextLogoutHandler();
 
+		// ✅ 로그아웃 로그 저장
 		this.accountService.saveLoginLog("logout", auth);
 
+		// ✅ 세션 & SecurityContext 정리
 		handler.logout(request, response, auth);
+
+		// ✅ 자동로그인 쿠키 제거
+		Cookie clearCookie = new Cookie("SJ_AUTO_LOGIN", null);
+		clearCookie.setMaxAge(0);     // 즉시 만료
+		clearCookie.setPath("/");     // 전체 경로 적용
+		response.addCookie(clearCookie);
+
+		// ✅ 로그인 페이지로 리다이렉트
 		response.sendRedirect("/login");
 	}
 
@@ -185,7 +216,7 @@ public class AccountController {
 				}
 				// 자동 로그인
 				if ("on".equals(autoLogin)) {
-					Cookie autoLoginCookie = new Cookie("SHIN_AUTO_LOGIN", username);
+					Cookie autoLoginCookie = new Cookie("SJ_AUTO_LOGIN", username);
 					autoLoginCookie.setHttpOnly(true);
 					autoLoginCookie.setPath("/");
 					autoLoginCookie.setMaxAge(60 * 60 * 24 * 365); // 30일 자동 로그인

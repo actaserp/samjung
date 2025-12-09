@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Resource;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -149,7 +150,9 @@ public class AccountController {
 	public AjaxResult postLogin(
 			@RequestParam("username") final String username,
 			@RequestParam("password") final String password,
-			final HttpServletRequest request) throws UnknownHostException {
+			@RequestParam(value = "autoLogin", required = false) String autoLogin,
+			final HttpServletRequest request,
+			HttpServletResponse response) throws UnknownHostException {
 
 		//System.out.println("로그인 데이터: " + username + " / " + password);
 
@@ -168,16 +171,26 @@ public class AccountController {
 			return result;
 		}
 
-		if(auth!=null) {
-			User user = (User)auth.getPrincipal();
-			user.getActive();
-			data.put("code", "OK");
+		if (auth != null) {
+			User user = (User) auth.getPrincipal();
 
-			try {
-				this.accountService.saveLoginLog("login", auth);
-			} catch (UnknownHostException e) {
-				// Handle the exception (e.g., log it)
-				e.printStackTrace();
+			if (!user.getActive()) {
+				data.put("code", "noactive");
+			} else {
+				data.put("code", "OK");
+				try {
+					this.accountService.saveLoginLog("login", auth);
+				} catch (UnknownHostException e) {
+					e.printStackTrace();
+				}
+				// 자동 로그인
+				if ("on".equals(autoLogin)) {
+					Cookie autoLoginCookie = new Cookie("SHIN_AUTO_LOGIN", username);
+					autoLoginCookie.setHttpOnly(true);
+					autoLoginCookie.setPath("/");
+					autoLoginCookie.setMaxAge(60 * 60 * 24 * 365); // 30일 자동 로그인
+					response.addCookie(autoLoginCookie);
+				}
 			}
 		} else {
 			result.success=false;

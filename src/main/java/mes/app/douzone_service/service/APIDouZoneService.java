@@ -197,9 +197,9 @@ public class APIDouZoneService {
 			     TB_CA640.IN_SQ,
 			     TB_CA640.divicd            AS divicd,           
 			     TB_CA640.actcd             AS actcd_org,
-			     TB_E601.actcd   AS pjcd_OR, -- 현장코드(기존 더존 연결용)
-			     TB_E601.emactcd AS pjcd,	-- 현장코드(현재 더존연결)
-			     TB_E601.actnm   AS pjnm, -- 현장명
+			     a.actcd         AS pjcd_OR,   -- 라인 현장코드
+			     TB_E601.emactcd AS pjcd,      -- 더존 프로젝트 코드
+			     TB_E601.actnm   AS pjnm,       -- 현장명
 			     TB_CA640.mijdate AS MISDATE,
 					 TB_CA640.mijnum  AS MISNUM,
 			     TB_CA640.divicd as divicd ,
@@ -214,23 +214,26 @@ public class APIDouZoneService {
 			     ON (TB_CA640.custcd = TB_AC001.custcd AND TB_CA640.acccd = TB_AC001.acccd)
 			 LEFT OUTER JOIN TB_XCLIENT WITH (NOLOCK)
 			     ON (TB_CA640.custcd = TB_XCLIENT.custcd AND TB_CA640.cltcd = TB_XCLIENT.cltcd)
-			 LEFT OUTER JOIN TB_E601 WITH (NOLOCK)
-			     ON (TB_CA640.custcd = TB_E601.custcd AND TB_CA640.spjangcd = TB_E601.spjangcd AND TB_CA640.actcd = TB_E601.actcd)
+			 /*LEFT OUTER JOIN TB_E601 WITH (NOLOCK)
+			     ON (TB_CA640.custcd = TB_E601.custcd AND TB_CA640.spjangcd = TB_E601.spjangcd AND TB_CA640.actcd = TB_E601.actcd)*/
 			 LEFT OUTER JOIN (
 			     SELECT custcd, spjangcd, cltcd, mijdate, mijnum,
 			            SUM(samt) AS amt,
 			            SUM(tamt) AS addamt,
-			            unit,
-									uamt,
-									qty,
+			            unit, actcd,
+									uamt, qty,
 									remark as pname
 			     FROM TB_CA641 WITH (NOLOCK)
-			     GROUP BY custcd, spjangcd, cltcd, mijdate, mijnum, remark, unit, uamt, qty
+			     GROUP BY custcd, spjangcd, cltcd, mijdate, mijnum, remark, unit, uamt, qty,actcd
 			 ) a
 			     ON (TB_CA640.custcd = a.custcd
 			     AND TB_CA640.spjangcd = a.spjangcd
 			     AND TB_CA640.mijdate = a.mijdate
 			     AND TB_CA640.mijnum  = a.mijnum)
+			     LEFT JOIN TB_E601 WITH (NOLOCK)
+			       ON a.custcd   = TB_E601.custcd
+			      AND a.spjangcd = TB_E601.spjangcd
+			      AND a.actcd    = TB_E601.actcd
 			 WHERE TB_CA640.custcd   = :as_custcd
 			   AND TB_CA640.spjangcd = :spjangcd
 			   AND TB_CA640.mijdate BETWEEN :as_stdate AND :as_enddate

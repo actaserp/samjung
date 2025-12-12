@@ -479,7 +479,7 @@
        { binding: 'divicd', header: 'divicd', visible: false },
        { binding: 'dzdivicd', header: 'dzdivicd', visible: false },
        { binding: 'divinm', header: 'divinm', visible: false },
-       { binding: 'pjcd', header: '현장코드', visible: false },
+       { binding: 'pjcd', header: '현장코드', visible: false},
       ],
       itemsSource: _this.viewData2,
      });
@@ -1129,7 +1129,7 @@
         const trNm = ( row.cltnm || row.trNm ||row.CUSTOMER_NAME || '');
         const ctDept   = row.dzdivicd || row.divicd || '';
         const ctDeptNm = row.divinm   || '';
-        const pjtCd    = row.pjcd || row.pjcd_OR || '' ;
+        const pjtCd    = row.pjcd_OR || row.pjcd || '' ;
 
         // 🔹 그룹키 (menuDt + MISDATE + MISNUM + SPJANGCD)
         const groupKey = [common.menuDt, misdate, misnum, spjangcd].join('|');
@@ -1146,7 +1146,6 @@
           trNm,
           ctDept,
           ctDeptNm,
-          pjtCd,
 
           // 🔹 합산값
           supplySum: 0,   // ✅ 공급가 합

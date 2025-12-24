@@ -142,7 +142,8 @@ public class DataSourceConfig {
 		final SqlSessionFactoryBean sessionFactory = new SqlSessionFactoryBean();
 		sessionFactory.setDataSource(dataSource);
 		PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-		sessionFactory.setMapperLocations(resolver.getResources("mapper/*.xml")); 	//mapper 파일 로드
+		sessionFactory.setMapperLocations(resolver.getResources("classpath*:mapper/**/*.xml"));
+//		sessionFactory.setMapperLocations(resolver.getResources("mapper/*.xml")); 	//mapper 파일 로드
 		//sessionFactory.setConfigLocation(resolver.getResource("mybatis-config.xml"));//mybatis-config 로드
 		return sessionFactory.getObject();
 	}

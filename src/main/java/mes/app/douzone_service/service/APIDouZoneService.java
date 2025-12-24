@@ -218,13 +218,11 @@ public class APIDouZoneService {
 			     ON (TB_CA640.custcd = TB_E601.custcd AND TB_CA640.spjangcd = TB_E601.spjangcd AND TB_CA640.actcd = TB_E601.actcd)*/
 			 LEFT OUTER JOIN (
 			     SELECT custcd, spjangcd, cltcd, mijdate, mijnum,
-			            SUM(samt) AS amt,
-			            SUM(tamt) AS addamt,
-			            unit, actcd,
-									uamt, qty,
-									remark as pname
-			     FROM TB_CA641 WITH (NOLOCK)
-			     GROUP BY custcd, spjangcd, cltcd, mijdate, mijnum, remark, unit, uamt, qty,actcd
+									 samt AS amt,
+									 tamt AS addamt,
+									 unit, actcd, uamt, qty,
+									 remark AS pname
+						FROM TB_CA641 WITH (NOLOCK)
 			 ) a
 			     ON (TB_CA640.custcd = a.custcd
 			     AND TB_CA640.spjangcd = a.spjangcd
@@ -282,6 +280,7 @@ public class APIDouZoneService {
 			SELECT
 						'' AS DEL_CHK,
 						TB_DA026h.rcvdate,
+						TB_DA026h.rcvnum AS rcvnum,
 						TB_DA026h.spjangcd AS WORKAREA_CD,
 						'T' AS RELATION_DIVISION,
 						FORMAT(CONVERT(date, TB_DA026h.rcvdate, 112), 'yy.MM.dd')
@@ -1420,6 +1419,60 @@ public class APIDouZoneService {
 		}
 	}
 
+
+	@Transactional
+	public List<Map<String, Object>> receiptDetails(Map<String, Object> body) {
+		MapSqlParameterSource p = new MapSqlParameterSource();
+
+		String custcd   = String.valueOf(body.getOrDefault("custcd", "samjung"));
+		String spjangcd = String.valueOf(body.getOrDefault("spjangcd", "ZZ"));
+
+		List<Map<String, Object>> keys = (List<Map<String, Object>>) body.get("keys");
+		if (keys == null || keys.isEmpty()) {
+			throw new IllegalArgumentException("keys가 비었습니다.");
+		}
+
+		p.addValue("custcd", custcd);
+		p.addValue("spjangcd", spjangcd);
+
+		StringBuilder cond = new StringBuilder();
+		int i = 0;
+
+		for (Map<String, Object> k : keys) {
+			String cltcd   = String.valueOf(k.getOrDefault("cltcd", "")).trim();
+			String rcvdate = String.valueOf(k.getOrDefault("rcvdate", "")).replaceAll("[^0-9]", "");
+			String rcvnum  = String.valueOf(k.getOrDefault("rcvnum", "")).trim();
+
+			if (cltcd.isEmpty() || rcvdate.isEmpty() || rcvnum.isEmpty()) continue;
+
+			if (cond.length() > 0) cond.append(" OR ");
+			cond.append("""
+            (d.cltcd = :cltcd%d AND d.rcvdate = :rcvdate%d AND d.rcvnum = :rcvnum%d)
+        """.formatted(i, i, i));
+
+			p.addValue("cltcd" + i, cltcd);
+			p.addValue("rcvdate" + i, rcvdate);
+			p.addValue("rcvnum" + i, rcvnum);
+			i++;
+		}
+
+		if (i == 0) throw new IllegalArgumentException("유효한 key가 없습니다.");
+
+		String sql = """
+        SELECT
+            d.custcd, d.spjangcd, d.cltcd, d.misdate, d.misnum, d.rcvdate, d.rcvnum, d.rcvseq,
+            d.hamt, d.bamt, d.jamt, d.eamt, d.samt, d.damt,
+            d.jmar, d.bmar, d.gamt, d.cmar, d.cdmar,
+            d.remark
+        FROM TB_DA026 d WITH (NOLOCK)
+        WHERE d.custcd = :custcd
+          AND d.spjangcd = :spjangcd
+          AND ( %s )
+        ORDER BY d.rcvdate, d.rcvnum, d.rcvseq
+    """.formatted(cond.toString());
+
+		return sqlRunner.getRows(sql, p);
+	}
 
 }
 

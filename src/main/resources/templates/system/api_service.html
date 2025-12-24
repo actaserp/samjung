@@ -788,24 +788,16 @@
      // 1) docuTy별 grid 선택
      let grid;
      switch (docuTy) {
-      case '3': // 매출
-       grid = _this.grid;
-       break;
-      case '2': // 비용(매입)
-       grid = _this.grid2;
-       break;
-      case '4': // 수금
-       grid = _this.grid3;
-       break;
-      case '5': // 지급
-       grid = _this.grid4;
-       break;
+      case '3': grid = _this.grid;  break; // 매출
+      case '2': grid = _this.grid2; break; // 비용(매입)
+      case '4': grid = _this.grid3; break; // 수금
+      case '5': grid = _this.grid4; break; // 지급
       default:
        Alert.alert('', '지원하지 않는 전표유형(docuTy)입니다.');
        return;
      }
 
-     // 1) 그리드에서 선택된 항목들
+     // 2) 선택된 항목
      let rawSelected = grid.selectedItems || [];
      if (!rawSelected || rawSelected.length === 0) {
       Alert.alert('', '전송할 데이터를 선택하세요.');
@@ -814,26 +806,23 @@
 
      let selectedRows = [];
 
-      // 🔹 비용(docuTy = '2')일 때만 "그룹 단위" 규칙 적용
+     // 🔹 비용(docuTy = '2')일 때만 "그룹 단위" 규칙 적용
      if (docuTy === '2') {
       const cv = grid.collectionView;
 
-      // 그리드가 실제로 그룹핑되어 있을 때만 검사
       if (cv && cv.groups && cv.groups.length > 0) {
        const selectedSet = new Set(rawSelected);
 
        cv.groups.forEach(group => {
-        const headerSelected = selectedSet.has(group);      // 그룹 헤더 선택 여부
-        const items         = group.items || [];            // 이 그룹의 실제 데이터 행들
+        const headerSelected = selectedSet.has(group);
+        const items = group.items || [];
         const selectedItems = items.filter(it => selectedSet.has(it));
         const selectedCount = selectedItems.length;
-        const totalCount    = items.length;
+        const totalCount = items.length;
 
         const anyChildSelected = selectedCount > 0;
 
-        // ⚠️ 부분 선택 체크
-        //  - 그룹 헤더는 안 찍고, 자식만 일부 선택한 경우
-        //  - 또는 헤더+자식 섞어서 찍었는데 전체가 아닌 경우
+        // 부분 선택 금지
         if (!headerSelected && anyChildSelected && selectedCount < totalCount) {
          Alert.alert('', '비용 전표는 그룹 단위로만 전송할 수 있습니다.\n(해당 일자-순번 그룹 전체를 선택해 주세요.)');
          selectedRows = [];
@@ -845,10 +834,8 @@
          return;
         }
 
-        // ✅ 이 그룹이 선택된 경우(헤더 또는 자식 하나 이상)
         if (headerSelected || anyChildSelected) {
-         // → 그룹 전체 행을 전송 대상으로 추가
-         selectedRows.push(...items);
+         selectedRows.push(...items); // 그룹 전체 전송
         }
        });
 
@@ -856,14 +843,10 @@
         Alert.alert('', '전송할 유효한 비용 전표 데이터가 없습니다.');
         return;
        }
-
       } else {
-       // 혹시나 그룹이 없는 경우에는 그냥 기존처럼 처리
        selectedRows = rawSelected.slice();
       }
-
      } else {
-      // 🔹 매출/수금/지급(docuTy 3,4,5)은 기존 방식 유지
       selectedRows = rawSelected;
      }
 
@@ -872,609 +855,525 @@
       return;
      }
 
+     // 3) confirm
      Alert.confirm('', '데이터를 전송하시겠습니까?', function () {
+      const dty = docuTy;
 
-      const coCd    = '1000';
-      const inDivCd = '1000';
-      const menuCd  = '11A10';
-      const dty     = docuTy;   // 전표유형(1~9)
-
-      // 오늘 날짜를 기본 작성일자(yyyyMMdd)로 사용
-      const now = new Date();
-      const defaultMenuDt =
-       now.getFullYear().toString() +
-       String(now.getMonth() + 1).padStart(2, '0') +
-       String(now.getDate()).padStart(2, '0');
-
-      const lines = [];
-      let   lineNo = 1;
-
-      const expenseGroupMap = {};
-
-      const receiptDepositMap = {};
-      const receiptFeeMap    = {};   // 🔹 지급수수료 집계용
-
-      selectedRows.forEach(row => {
-       // ✅ 1) docuTy별 발행일자 컬럼 → menuDt 로 사용
-       let rawDate = null;
-
-       switch (dty) {
-        case '3': // 매출(grid)
-         rawDate = row.misdate;
-         break;
-        case '2': // 비용(grid2)
-         rawDate = row.PriceDate;
-         break;
-        case '4': // 수금(grid3)
-         rawDate = row.rcvdate;
-         break;
-        case '5': // 지급(grid4)
-         rawDate = row.mijdate;
-         break;
-       }
-
-       // yyyyMMdd 형태로 숫자만 추출
-       let menuDt = (rawDate || '').toString().replace(/[^0-9]/g, '');
-
-       if (!menuDt) {
-        console.warn('메뉴일자(menuDt)가 없어 전표에서 제외된 행:', row);
-        return;
-       }
-
-       // 🔹 더존 원본 전표키 (MISDATE / MISNUM / SPJANGCD)
-       const misdate  = (row.MISDATE       || row.RELATION_DATE || '').toString().replace(/[^0-9]/g, '');
-       const misnum   = (row.MISNUM        || row.RELATION_SEQ  || '').toString();
-       const spjangcd =  row.SPJANGCD      || row.spjangcd      || '';
-
-       // 2) docuTy별 계정/차대/계정명 가져오기
-       let acctInfo;
-       switch (dty) {
-        case '3': // 매출
-         acctInfo = getSalesAccountInfo(row);
-         break;
-        case '2': // 비용(매입)
-         acctInfo = getPriceAccountInfo(row);
-         break;
-        case '4': acctInfo = getReceiptAccountInfo(row);
-         break; // 수금
-        case '5': acctInfo = getPaymentAccountInfo(row);
-         break;  // 지급
-        default:
-         acctInfo = getSalesAccountInfo(row); // 임시 fallback
-       }
-       const { acctCd, drcrFg, acctNm } = acctInfo;
-
-       // 3) 품의내역 / 적요
-       const rowSubject = row.SUBJECT || row.subject || '';
-       let   remark     = row.remark || '';   // TB_CA640.remark 원본문구
-
-
-       // ✅ 수금(docuTy = '4')일 때는 remark 에 SUBJECT를 그대로 넣기
-       if (dty === '4' && rowSubject) {
-        remark = rowSubject;
-       }
-
-       const defaultRmk = (function () {
-        switch (dty) {
-         case '3': return '매출';
-         case '2': return '비용';
-         case '4': return '수금';
-         case '5': return '지급';
-         default:  return '전표';
-        }
-       })();
-
-       let isuDoc; // 더존 품의내역
-       let rmkDc;  // 더존 적요
-
-       if (dty === '2') {
-        // ================================
-        //  ✅ 비용(매입)일 때 규칙
-        //    rmkDc  = 자재명 (수량, 단가)
-        //    isuDoc = 업체명 + SUBJECT
-        // ================================
-
-        // 1) 업체명 (거래처명)
-        const companyName = row.cltnm;
-
-        // 2) 자재명 / 수량 / 단가 (getPriceRead의 alias 기준)
-        const matNameRaw   = row.pname  || '';  // 제품명
-        const qtyRaw       = row.pqty   || row.PQTY   || '';  // 수량
-        const unitRaw      = row.punit  || row.PUNIT  || '';  // 단위 (EA 등)
-        const unitPriceRaw = row.puamt  || row.PUAMT  || '';  // 단가
-
-        // 수량 + 단위
-        const qtyStr = qtyRaw
-         ? (unitRaw ? `${qtyRaw}${unitRaw}` : `${qtyRaw}`)
-         : '';
-
-        // 단가 숫자/콤마 포맷
-        const unitPriceNum = _this.toNumber(unitPriceRaw, 0);
-        const unitPriceStr = unitPriceNum
-         ? unitPriceNum.toLocaleString('ko-KR')   // 25,000 이런 식
-         : '';
-
-        // "(수량, 단가)" 부분 만들기
-        const detailParts = [];
-        if (qtyStr)       detailParts.push(qtyStr);
-        if (unitPriceStr) detailParts.push(unitPriceStr);
-
-        const detailStr = detailParts.length > 0
-         ? ` (${detailParts.join(' * ')})`   // 앞에 공백 하나 + 괄호
-         : '';
-
-        // 자재명 없으면 SUBJECT / 기본문구 사용
-        const matName = (matNameRaw || rowSubject || defaultRmk).trim();
-
-        // ✅ rmkDc = 자재명 (수량, 단가)
-        rmkDc = `${matName}${detailStr}`.trim() || defaultRmk;
-
-        // ✅ isuDoc = 업체명 + SUBJECT
-        const subjectForIsu = (rowSubject || '').trim();
-        isuDoc = `${companyName} ${subjectForIsu}`.trim() || defaultRmk;
-
-       } else {
-        // ✅ 나머지(docuTy 3,4,5)는 기존 방식 유지
-        const fieldName = row.ACTNM || row.actnm || row.SUBJECT || '';
-        const subject   = row.SUBJECT || '';
-        isuDoc = (fieldName + ' ' + subject).trim() || defaultRmk;
-        rmkDc  = subject || defaultRmk;
-       }
-
-       // 4) 공통 필드
-       const common = {
-        inDivCd:  inDivCd,
-        menuDt:   menuDt,
-        menuSq:   null,     // 서버에서 채번
-        isuDoc:   isuDoc,   //품의내역
-        docuTy:   dty,
-        trCd:     row.CUSTOMER_CD || row.custCode || row.cltcd || '',
-        trNm:     row.custName || row.CUSTOMER_NAME || '',
-        attrCd:   '1',
-        rmkDc:    rmkDc,   //적요
-        regNb:    row.saupnum || row.REGISTRATION_NO || '',
-        vatDivCd: '',
-        issDt:    '',
-        jeonjaYn: '',
-        supAm:    null,
-        misdate:  misdate,
-        misnum:   misnum,
-        spjangcd: spjangcd
-       };
-
-       // 5) docuTy별 전표 라인 전개
-
-       // ──────────────────────────
-       // (1) 매출(docuTy = '3')
-       // ──────────────────────────
-       if (dty === '3') {
-        const supplyAmt = _this.toNumber(row.supplyAmt ?? row.SUPPLY_PRICE, 0);
-        const vatAmt    = _this.toNumber(row.vatAmt    ?? row.SURTAX,       0);
-        const totalAmt  = _this.toNumber(row.totalAmt  ?? row.TOTAL_AMOUNT, 0);
-        const pjtCd = row.pjcd_PR || row.pjcd_OR || '';
-
-        // ① 매출 (공급가)
-        if (supplyAmt !== 0) {
-         const dzAcctCd1 = _this.getDzAcctCd(row, acctCd[1], 1);
-         lines.push({
-          ...common,
-          menuLnSq: lineNo++,
-          drcrFg:   drcrFg[1],
-          acctCd:   dzAcctCd1,
-          acctNm:   acctNm[1],
-          acctAm:   supplyAmt,
-          ctDept : row.dzdivicd, //부서
-          pjtCd : pjtCd //프로젝트 코드(현장)
-         });
-        }
-
-        // ② 부가세예수
-        if (vatAmt !== 0) {
-         const dzAcctCd2 = _this.getDzAcctCd(row, acctCd[2], 2);
-         lines.push({
-          ...common,
-          menuLnSq: lineNo++,
-          drcrFg:   drcrFg[2],
-          acctCd:   dzAcctCd2,
-          acctNm:   acctNm[2],
-          acctAm:   vatAmt,
-          vatDivCd: '',
-          issDt:    common.menuDt,
-          jeonjaYn: '1',
-          supAm:    supplyAmt,
-          taxFg:    '11'
-         });
-        }
-
-        // ③ 외상매출금
-        if (totalAmt !== 0) {
-         const dzAcctCd3 = _this.getDzAcctCd(row, acctCd[3], 3);
-         lines.push({
-          ...common,
-          menuLnSq: lineNo++,
-          drcrFg:   drcrFg[3],
-          acctCd:   dzAcctCd3,
-          acctNm:   acctNm[3],
-          acctAm:   totalAmt,
-          ctDept : row.dzdivicd, //부서
-          pjtCd : pjtCd //프로젝트 코드(현장)
-
-         });
-        }
-
-        return; // 이 행(row)에 대한 처리는 끝
-       }
-
-       // ──────────────────────────
-       // (2) 비용/매입(docuTy = '2')
-       //    ls_acct_cd[1] = 원재료(= ls_acccd)
-       //    ls_acct_cd[2] = 13500 (부가세대급금)
-       //    ls_acct_cd[3] = 25100 (외상매입금)
-       // ──────────────────────────
-       if (dty === '2') {
-        const supplyAmt = _this.toNumber(row.amt   , 0);
-        const vatAmt    = _this.toNumber(row.addamt   ?? row.SURTAX,       0);
-        const totalAmt  = _this.toNumber(row.totalAmt ?? row.TOTAL_AMOUNT, 0);
-        /*console.log('비용 row 체크:', {
-         misdate,
-         misnum,
-         spjangcd,
-         amt: row.amt,
-         AMT: row.AMT,
-         SUPPLY_PRICE: row.SUPPLY_PRICE,
-         계산된_supplyAmt: supplyAmt
-        });*/
-        // 🔹 공통 A1(거래처) / C1(사용부서)
-        const trCd = (row.CUSTOMER_CD   || row.cltcd || row.trCd || '');
-        const trNm = ( row.cltnm || row.trNm ||row.CUSTOMER_NAME || '');
-        const ctDept   = row.dzdivicd || row.divicd || '';
-        const ctDeptNm = row.divinm   || '';
-        const pjtCd    = row.pjcd_OR || row.pjcd || '' ;
-
-        // 🔹 그룹키 (menuDt + MISDATE + MISNUM + SPJANGCD)
-        const groupKey = [common.menuDt, misdate, misnum, spjangcd].join('|');
-
-        // 🔹 그룹 최초 초기화
-        if (!expenseGroupMap[groupKey]) {
-         expenseGroupMap[groupKey] = {
-          common:  { ...common },
-          acctCd:  { ...acctCd },
-          drcrFg:  { ...drcrFg },
-          acctNm:  { ...acctNm },
-
-          trCd,
-          trNm,
-          ctDept,
-          ctDeptNm,
-
-          // 🔹 합산값
-          supplySum: 0,   // ✅ 공급가 합
-          vatSum:    0,   // ✅ 부가세 합
-          totalSum:  0,   // (쓰면 쓰고, 안 쓰면 나중에 지워도 됨)
-
-          firstRow: row,
-         };
-        }
-
-        const grp = expenseGroupMap[groupKey];
-
-        // ✅ ① 원재료/비용: 행별로 그대로 전표 생성
-        if (supplyAmt !== 0) {
-         const dzAcctCd1 = _this.getDzAcctCd(row, acctCd[1], 1);
-         lines.push({
-          ...common,
-          menuLnSq: lineNo++,
-          drcrFg:   drcrFg[1],
-          acctCd:   dzAcctCd1,
-          acctNm:   acctNm[1] || '원재료',
-          acctAm:   supplyAmt,
-
-          trCd,
-          trNm,
-          ctDept,
-          ctDeptNm,
-          pjtCd,
-         });
-        }
-
-        grp.supplySum += supplyAmt;  // ✅ 공급가 누적
-        grp.vatSum    += vatAmt;     // ✅ 부가세 누적
-
-        return;
-       }
-
-       // ──────────────────────────
-       // (4) 수금(docuTy = '4')
-       //   - TOTAL_AMOUNT : 합계(외상매출금)
-       //   - SUPPLY_PRICE : 수금액(보통예금, 실제 통장 입금액)
-       //   - SURTAX       : 수수료  → 지급수수료
-       // ──────────────────────────
-       if (dty === '4') {
-
-        // 1) 외상매출금 = 합계
-        const totalAmt = _this.toNumber(
-         row.totalAmt ??
-         row.TOTAL_AMOUNT ??
-         0
-        );
-
-        // 2) 지급수수료 = SURTAX (없으면 기존 필드 fallback)
-        const feeAmt = _this.toNumber(
-         row.SURTAX   ??          // 그리드의 "수수료"
-         row.feeAmt   ??
-         row.FEE_AMOUNT ??
-         0,
-         0
-        );
-
-        // 3) 보통예금(실제 수금액) = SUPPLY_PRICE
-        //    SUPPLY_PRICE가 0이거나 없으면 (합계 - 수수료)로 보정
-        let netAmt = _this.toNumber(row.SUPPLY_PRICE, 0);
-        if (netAmt === 0 && totalAmt !== 0) {
-         netAmt = totalAmt - feeAmt;
-        }
-
-        // 외상매출금 금액
-        const receiptAmt = totalAmt;
-
-        // 계좌 존재 여부 (더존 bank_cd)
-        const accountNo = (row.BANK_ACCT_CD || '').toString().trim();
-        const hasAccount = accountNo.length > 0;
-
-        // 🔹 ① 고객 거래처 (외상매출 라인에서 사용)
-        const custTrCd = (row.CUSTOMER_CD || row.cltcd || '');
-        const custTrNm = (row.CUSTOMER_NAME || row.cltnm || '');
-        const pjtCd    = row.FIELD_CD || row.actcd || '';
-
-        // 🔹 ② 은행 거래처 (보통예금/지급수수료 라인 A1)
-        const bankTrCd = row.BANK_ACCT_CD || '';   // 쿼리에서 만든 reference_cd
-        const bankTrNm = row.BANK_NAME    || '';   // 쿼리에서 bank_name 같이 select
-
-        // 계정/차대 정보
-        const acctInfo = getReceiptAccountInfo(row);
-        const { acctCd, drcrFg, acctNm } = acctInfo;
-
-        // ── 3-1) 계좌 수금(보통예금 + 지급수수료 + 외상매출) ──
-        if (hasAccount) {
-
-         // --------------------------------------
-         // ① 보통예금 : SUPPLY_PRICE(또는 보정된 netAmt)
-         //    key = 계좌코드 + 작성일자 기준으로 묶음
-         // --------------------------------------
-         if (netAmt !== 0) {
-          const dzAcctCd1 = _this.getDzAcctCd(row, acctCd[1], 1);
-
-          const isNormalDeposit =
-           dzAcctCd1 === '10300001' ||
-           (acctNm[1] && acctNm[1].includes('보통예금'));
-
-          const key = `${bankTrCd}|${common.menuDt}`;
-
-          if (!receiptDepositMap[key]) {
-           receiptDepositMap[key] = {
-            common: {
-             ...common,
-             // 보통예금 라인의 A1은 은행 거래처
-             trCd: bankTrCd,
-             trNm: bankTrNm,
-             // 적요는 '외상매출금 입금' 고정
-             rmkDc: isNormalDeposit ? '외상매출금 입금' : common.rmkDc,
-            },
-            drcrFg: drcrFg[1],               // 차변
-            acctCd: dzAcctCd1,               // 10300001
-            acctNm: acctNm[1] || '보통예금',
-            netAmt: 0
-           };
-          }
-
-          // 계좌 + 작성일자별로 실입금액 누적
-          receiptDepositMap[key].netAmt += netAmt;
-         }
-
-         // --------------------------------------
-         // ② 지급수수료 : SURTAX → feeAmt /계좌+작성일자 기준으로 집계
-         // --------------------------------------
-         if (feeAmt !== 0) {
-          const dzAcctCd2 = _this.getDzAcctCd(row, acctCd[2], 2);
-
-          // 🔑 수수료 집계 key: 계좌 + 작성일자
-          const feeKey = `${bankTrCd}|${common.menuDt}`;
-
-          if (!receiptFeeMap[feeKey]) {
-           receiptFeeMap[feeKey] = {
-            common: {
-             ...common,
-             // 수수료 라인의 A1도 은행 거래처 기준
-             trCd: bankTrCd,
-             trNm: bankTrNm,
-             ctDept: row.dzdivicd, // 부서
-            },
-            drcrFg: drcrFg[2],                 // 차변
-            acctCd: dzAcctCd2,                 // 8310000
-            acctNm: acctNm[2] || '지급수수료',
-            feeAmt: 0
-           };
-          }
-
-          // 🔹 같은 계좌+일자에 대해 수수료 누적
-          receiptFeeMap[feeKey].feeAmt += feeAmt;
-         }
-
-         // --------------------------------------
-         // ③ 외상매출금 : TOTAL_AMOUNT → receiptAmt
-         // --------------------------------------
-         if (receiptAmt !== 0) {
-          const dzAcctCd3 = _this.getDzAcctCd(row, acctCd[3], 3);
-          lines.push({
-           ...common,
-           menuLnSq: lineNo++,
-           drcrFg:   drcrFg[3],      // '4' (대변)
-           acctCd:   dzAcctCd3,      // 1080000
-           acctNm:   acctNm[3] || '외상매출금',
-           acctAm:   receiptAmt,
-           pjtCd:    pjtCd,
-           ctDept:   row.dzdivicd,
-
-           // 🔹 A1 : 고객 거래처
-           trCd:     custTrCd,
-           trNm:     custTrNm
-          });
-         }
-
-         return;
-        }
-
-        // ── 3-2) 계좌코드가 없는 경우 (무계좌 수금) ──
-        //  현재 getReceiptAccountInfo의 else 분기에서
-        //    acctCd[1] = '1080000'(외상매출금) 만 셋팅하므로
-        //  → 외상매출금 1줄만 생성 (지급수수료 분개 없음)
-        if (receiptAmt !== 0) {
-         const dzAcctCd1 = _this.getDzAcctCd(row, acctCd[1], 1); // 1080000(외상매출금)
-         lines.push({
-          ...common,
-          menuLnSq: lineNo++,
-          drcrFg:   drcrFg[1],       // 현재 규칙상 '3'
-          acctCd:   dzAcctCd1,
-          acctNm:   acctNm[1] || '외상매출금',
-          acctAm:   receiptAmt,
-
-          // 🔹 A1 : 고객 거래처
-          trCd:    custTrCd,
-          trNm:    custTrNm,
-          pjtCd:   pjtCd,
-          ctDept:  row.dzdivicd,
-         });
-        }
-
-        return;
-       }
-
-       // ⚠️ dty === '5'(지급) 는 로직 정해지면 여기에 추가
-
-
-      }); // forEach 끝
-
-      // 🔹 수금(docuTy = '4')인 경우, 계좌+작성일자별로 보통예금/지급수수료 합산 라인 생성
+      // ✅ 수금이면 디테일 먼저 조회하고 -> 성공 콜백에서 전송 진행
       if (dty === '4') {
-       // ① 보통예금 합산
-       Object.keys(receiptDepositMap).forEach(key => {
-        const info = receiptDepositMap[key];
-        if (!info || info.netAmt === 0) return;
+       try {
+        const keys = selectedRows.map(r => ({
+         cltcd:   (r.cltcd   ?? '').toString().trim(),
+         misdate: (r.MISDATE ?? '').toString().replace(/[^0-9]/g,''),
+         misnum:  (r.MISNUM  ?? '').toString().trim(),
+         rcvdate: (r.rcvdate ?? '').toString().replace(/[^0-9]/g,''),
+         rcvnum:  (r.rcvnum  ?? '').toString().trim(),
+        })).filter(k => k.cltcd && k.misdate && k.misnum && k.rcvdate && k.rcvnum);
 
-        lines.push({
-         ...info.common,
-         menuLnSq: lineNo++,
-         drcrFg:   info.drcrFg,
-         acctCd:   info.acctCd,
-         acctNm:   info.acctNm,
-         acctAm:   info.netAmt
+
+        // 중복 제거
+        const uniq = new Map();
+        keys.forEach(k => {
+         const kk = `${k.cltcd}|${k.rcvdate}|${k.rcvnum}`;
+         if (k.rcvdate && k.rcvnum) uniq.set(kk, k);
         });
-       });
 
-       // ② 지급수수료 합산
-       Object.keys(receiptFeeMap).forEach(key => {
-        const info = receiptFeeMap[key];
-        if (!info || info.feeAmt === 0) return;
+        const payload = {
+         custcd: 'samjung',
+         spjangcd: (selectedRows[0].SPJANGCD || selectedRows[0].spjangcd || 'ZZ'),
+         keys: Array.from(uniq.values())
+        };
+        console.log('selectedRows.length=', selectedRows?.length, selectedRows);
 
-        lines.push({
-         ...info.common,
-         menuLnSq: lineNo++,
-         drcrFg:   info.drcrFg,
-         acctCd:   info.acctCd,
-         acctNm:   info.acctNm,
-         acctAm:   info.feeAmt
+        AjaxUtil.postJsonAsyncData(_this.url + '/receipt/details', payload, function(detailRes) {
+
+         if (!detailRes || detailRes.success === false) {
+          Alert.alert('', detailRes?.message || '수금 디테일 조회에 실패했습니다.');
+          return;
+         }
+
+         const detailRows = detailRes.data || [];
+         const receiptDetailMap = buildReceiptDetailMap(detailRows);
+
+         // ✅ 디테일 받은 다음에 전송 진행
+         _this._buildLinesAndSend(dty, selectedRows, receiptDetailMap);
         });
-       });
-      }
 
-      // ✅ 비용(docuTy = '2'): 그룹별 부가세대급금 + 외상매입금 2줄 생성
-      if (dty === '2') {
-       Object.keys(expenseGroupMap).forEach(key => {
-        const grp = expenseGroupMap[key];
-        const { common, acctCd, drcrFg, acctNm } = grp;
-        const repRow = grp.firstRow;
-
-        // ① 부가세대급금 (차변)
-        if (grp.vatSum !== 0) {
-         const dzAcctCd2 = _this.getDzAcctCd(repRow, acctCd[2], 2);
-         lines.push({
-          ...common,
-          menuLnSq: lineNo++,
-          drcrFg:   drcrFg[2],
-          acctCd:   dzAcctCd2,
-          acctNm:   acctNm[2] || '부가세대급금',
-          acctAm:   grp.vatSum,
-          vatDivCd: '',
-          issDt:    common.menuDt,
-          jeonjaYn: '1',
-          supAm:    grp.supplySum, // 공급가 합  [supAm => 부가세계정-공급가액]
-          taxFg:    '21',
-
-          trCd:     grp.trCd,
-          trNm:     grp.trNm,
-          ctDept:   grp.ctDept,
-          ctDeptNm: grp.ctDeptNm,
-          rmkDc:    '부가세',
-         });
-        }
-
-        // ② 외상매입금 (대변) = 공급가합 + 부가세합
-        const payableSum = grp.supplySum + grp.vatSum;  // ✅ 원재료합 + 부가세합
-
-        if (payableSum !== 0) {
-         const dzAcctCd3 = _this.getDzAcctCd(repRow, acctCd[3], 3);
-         lines.push({
-          ...common,
-          menuLnSq: lineNo++,
-          drcrFg:   drcrFg[3],
-          acctCd:   dzAcctCd3,
-          acctNm:   acctNm[3] || '외상매입금',
-          acctAm:   payableSum,
-
-          trCd:     grp.trCd,
-          trNm:     grp.trNm,
-          ctDept:   grp.ctDept,
-          ctDeptNm: grp.ctDeptNm,
-          pjtCd:    grp.pjtCd,
-         });
-        }
-       });
-      }
-
-      if (lines.length === 0) {
-       Alert.alert('', '전송할 유효한 전표 데이터가 없습니다.');
+       } catch (e) {
+        console.error(e);
+        Alert.alert('', '수금 디테일 조회 준비 중 오류: ' + (e.message || e));
+       }
        return;
       }
 
-      const data = {
-       coCd:   coCd,
-       menuCd: menuCd,
-       docuTy: dty,   // 🔹 여기로 docuTy 넘어감
-       data:   lines
+      // ✅ 수금이 아니면 바로 전송 진행
+      _this._buildLinesAndSend(dty, selectedRows, null);
+     });
+    }
+
+// ✅ lines 만들고 /DouZoneSave 보내는 공통 함수
+    _buildLinesAndSend(dty, selectedRows, receiptDetailMap) {
+     let _this = this;
+
+     const coCd    = '1000';
+     const inDivCd = '1000';
+     const menuCd  = '11A10';
+
+     const lines = [];
+     let lineNo = 1;
+
+     const expenseGroupMap   = {};
+     const receiptDepositMap = {};
+     const receiptFeeMap     = {}; // 지급수수료 합산
+
+     // ===============================
+     // ✅ 여기부터는 기존 forEach 로직을 그대로 옮김
+     // ===============================
+     selectedRows.forEach(row => {
+
+      // ✅ docuTy별 발행일자 컬럼 → menuDt
+      let rawDate = null;
+      switch (dty) {
+       case '3': rawDate = row.misdate;    break;
+       case '2': rawDate = row.PriceDate;  break;
+       case '4': rawDate = row.rcvdate;    break;
+       case '5': rawDate = row.mijdate;    break;
+      }
+
+      const menuDt = (rawDate || '').toString().replace(/[^0-9]/g, '');
+      if (!menuDt) {
+       console.warn('menuDt 없음으로 제외:', row);
+       return;
+      }
+
+      // 🔹 더존 원본 전표키
+      const misdate  = (row.MISDATE || row.RELATION_DATE || '').toString().replace(/[^0-9]/g, '');
+      const misnum   = (row.MISNUM  || row.RELATION_SEQ  || '').toString();
+      const spjangcd =  row.SPJANGCD || row.spjangcd || '';
+
+      // 계정/차대/계정명
+      let acctInfo;
+      switch (dty) {
+       case '3': acctInfo = getSalesAccountInfo(row);   break;
+       case '2': acctInfo = getPriceAccountInfo(row);   break;
+       case '4': acctInfo = getReceiptAccountInfo(row); break;
+       case '5': acctInfo = getPaymentAccountInfo(row); break;
+       default:  acctInfo = getSalesAccountInfo(row);
+      }
+      const { acctCd, drcrFg, acctNm } = acctInfo;
+
+      // 품의내역/적요
+      const rowSubject = row.SUBJECT || row.subject || '';
+      const defaultRmk = (function () {
+       switch (dty) {
+        case '3': return '매출';
+        case '2': return '비용';
+        case '4': return '수금';
+        case '5': return '지급';
+        default:  return '전표';
+       }
+      })();
+
+      let isuDoc, rmkDc;
+
+      if (dty === '2') {
+       // 비용 규칙
+       const companyName   = row.cltnm;
+       const matNameRaw    = row.pname || '';
+       const qtyRaw        = row.pqty  || row.PQTY  || '';
+       const unitRaw       = row.punit || row.PUNIT || '';
+       const unitPriceRaw  = row.puamt || row.PUAMT || '';
+
+       const qtyStr = qtyRaw ? (unitRaw ? `${qtyRaw}${unitRaw}` : `${qtyRaw}`) : '';
+       const unitPriceNum = _this.toNumber(unitPriceRaw, 0);
+       const unitPriceStr = unitPriceNum ? unitPriceNum.toLocaleString('ko-KR') : '';
+
+       const parts = [];
+       if (qtyStr)       parts.push(qtyStr);
+       if (unitPriceStr) parts.push(unitPriceStr);
+
+       const detailStr = parts.length ? ` (${parts.join(' * ')})` : '';
+       const matName = (matNameRaw || rowSubject || defaultRmk).trim();
+
+       rmkDc = `${matName}${detailStr}`.trim() || defaultRmk;
+       isuDoc = `${companyName} ${(rowSubject || '').trim()}`.trim() || defaultRmk;
+      } else {
+       const fieldName = row.ACTNM || row.actnm || '';
+       const subject   = row.SUBJECT || '';
+       isuDoc = (fieldName + ' ' + subject).trim() || defaultRmk;
+       rmkDc  = subject || defaultRmk;
+      }
+
+      // 공통
+      const common = {
+       inDivCd,
+       menuDt,
+       menuSq: null,
+       isuDoc,
+       docuTy: dty,
+       trCd: row.CUSTOMER_CD || row.custCode || row.cltcd || '',
+       trNm: row.custName || row.CUSTOMER_NAME || '',
+       attrCd: '1',
+       rmkDc,
+       regNb: row.saupnum || row.REGISTRATION_NO || '',
+       vatDivCd: '',
+       issDt: '',
+       jeonjaYn: '',
+       supAm: null,
+       misdate,
+       misnum,
+       spjangcd
       };
 
-      let fnsuccess = function (result) {
-       if (!result) {
-        Alert.alert('', '서버 응답이 없습니다.');
-        return;
+      // ───────── 매출(3) ─────────
+      if (dty === '3') {
+       const supplyAmt = _this.toNumber(row.supplyAmt ?? row.SUPPLY_PRICE, 0);
+       const vatAmt    = _this.toNumber(row.vatAmt    ?? row.SURTAX,       0);
+       const totalAmt  = _this.toNumber(row.totalAmt  ?? row.TOTAL_AMOUNT, 0);
+       const pjtCd     = row.pjcd_PR || row.pjcd_OR || '';
+
+       if (supplyAmt !== 0) {
+        lines.push({
+         ...common,
+         menuLnSq: lineNo++,
+         drcrFg:   drcrFg[1],
+         acctCd:   _this.getDzAcctCd(row, acctCd[1], 1),
+         acctNm:   acctNm[1],
+         acctAm:   supplyAmt,
+         ctDept:   row.dzdivicd,
+         pjtCd
+        });
        }
 
-       if (result.success) {
-        Alert.alert('', result.message || '더존 자동전표 전송이 완료되었습니다.');
+       if (vatAmt !== 0) {
+        lines.push({
+         ...common,
+         menuLnSq: lineNo++,
+         drcrFg:   drcrFg[2],
+         acctCd:   _this.getDzAcctCd(row, acctCd[2], 2),
+         acctNm:   acctNm[2],
+         acctAm:   vatAmt,
+         issDt:    common.menuDt,
+         jeonjaYn: '1',
+         supAm:    supplyAmt,
+         taxFg:    '11'
+        });
+       }
 
-        // 탭별 재조회
-        switch (dty) {
-         case '3': page.searchSalesDate();   break;
-         case '2': page.searchPriceDate();   break;
-         case '4': page.searchReceiptDate(); break;
-         case '5': page.searchPaymentDate(); break;
+       if (totalAmt !== 0) {
+        lines.push({
+         ...common,
+         menuLnSq: lineNo++,
+         drcrFg:   drcrFg[3],
+         acctCd:   _this.getDzAcctCd(row, acctCd[3], 3),
+         acctNm:   acctNm[3],
+         acctAm:   totalAmt,
+         ctDept:   row.dzdivicd,
+         pjtCd
+        });
+       }
+       return;
+      }
+
+      // ───────── 비용(2) ─────────
+      if (dty === '2') {
+       const supplyAmt = _this.toNumber(row.amt, 0);
+       const vatAmt    = _this.toNumber(row.addamt ?? row.SURTAX, 0);
+
+       const trCd = (row.CUSTOMER_CD || row.cltcd || row.trCd || '');
+       const trNm = (row.cltnm || row.trNm || row.CUSTOMER_NAME || '');
+       const ctDept   = row.dzdivicd || row.divicd || '';
+       const ctDeptNm = row.divinm   || '';
+       const pjtCd    = row.pjcd_OR || row.pjcd || '';
+
+       const groupKey = [common.menuDt, misdate, misnum, spjangcd].join('|');
+
+       if (!expenseGroupMap[groupKey]) {
+        expenseGroupMap[groupKey] = {
+         common: { ...common },
+         acctCd: { ...acctCd },
+         drcrFg: { ...drcrFg },
+         acctNm: { ...acctNm },
+         trCd, trNm, ctDept, ctDeptNm,
+         supplySum: 0,
+         vatSum: 0,
+         firstRow: row,
+        };
+       }
+
+       const grp = expenseGroupMap[groupKey];
+
+       if (supplyAmt !== 0) {
+        lines.push({
+         ...common,
+         menuLnSq: lineNo++,
+         drcrFg:   drcrFg[1],
+         acctCd:   _this.getDzAcctCd(row, acctCd[1], 1),
+         acctNm:   acctNm[1] || '원재료',
+         acctAm:   supplyAmt,
+         trCd, trNm, ctDept, ctDeptNm, pjtCd
+        });
+       }
+
+       grp.supplySum += supplyAmt;
+       grp.vatSum    += vatAmt;
+       return;
+      }
+
+      // ───────── 수금(4) ─────────
+      if (dty === '4') {
+       const totalAmt = _this.toNumber(row.totalAmt ?? row.TOTAL_AMOUNT ?? 0, 0);
+       const feeAmt   = _this.toNumber(row.SURTAX ?? row.feeAmt ?? row.FEE_AMOUNT ?? 0, 0);
+
+       let netAmt = _this.toNumber(row.SUPPLY_PRICE, 0);
+       if (netAmt === 0 && totalAmt !== 0) netAmt = totalAmt - feeAmt;
+
+       const receiptAmt = totalAmt;
+
+       const bankTrCd = (row.BANK_ACCT_CD || '').toString().trim();
+       const hasAccount = bankTrCd.length > 0;
+
+       const custTrCd = (row.CUSTOMER_CD || row.cltcd || '');
+       const custTrNm = (row.CUSTOMER_NAME || row.cltnm || '');
+       const pjtCd    = row.FIELD_CD || row.actcd || '';
+
+       const bankTrNm = row.BANK_NAME || '';
+
+       // 계좌 수금
+       if (hasAccount) {
+
+        // ① 보통예금 합산
+        if (netAmt !== 0) {
+         const dzAcctCd1 = _this.getDzAcctCd(row, acctCd[1], 1);
+         const key = `${bankTrCd}|${common.menuDt}`;
+
+         if (!receiptDepositMap[key]) {
+          receiptDepositMap[key] = {
+           common: {
+            ...common,
+            trCd: bankTrCd,
+            trNm: bankTrNm,
+            rmkDc: '외상매출금 입금'
+           },
+           drcrFg: drcrFg[1],
+           acctCd: dzAcctCd1,
+           acctNm: acctNm[1] || '보통예금',
+           netAmt: 0
+          };
+         }
+         receiptDepositMap[key].netAmt += netAmt;
         }
-       } else {
-        Alert.alert('', result.message || '전송 중 오류가 발생했습니다.');
-       }
-      };
 
-      AjaxUtil.postJsonAsyncData(_this.url + '/DouZoneSave', data, fnsuccess);
+        // ② 지급수수료 합산
+        if (feeAmt !== 0) {
+         const dzAcctCd2 = _this.getDzAcctCd(row, acctCd[2], 2);
+         const feeKey = `${bankTrCd}|${common.menuDt}`;
+
+         if (!receiptFeeMap[feeKey]) {
+          receiptFeeMap[feeKey] = {
+           common: {
+            ...common,
+            trCd: bankTrCd,
+            trNm: bankTrNm,
+            ctDept: row.dzdivicd
+           },
+           drcrFg: drcrFg[2],
+           acctCd: dzAcctCd2,
+           acctNm: acctNm[2] || '지급수수료',
+           feeAmt: 0
+          };
+         }
+         receiptFeeMap[feeKey].feeAmt += feeAmt;
+        }
+
+        // ③ 외상매출금(행별)
+        {
+         const rcvdate = (row.rcvdate ?? '').toString().replace(/[^0-9]/g, '');
+         const rcvnum  = (row.rcvnum  ?? '').toString().trim();
+         const dKey = `${rcvdate}|${rcvnum}`;
+
+         const details = receiptDetailMap?.get?.(dKey) || receiptDetailMap?.[dKey] || [];
+
+         // ✅ 디테일이 있으면: bamt/remark 기준으로 여러 줄
+         if (Array.isArray(details) && details.length > 0) {
+          for (const d of details) {
+           const amt = _this.toNumber(d.bamt ?? 0, 0);
+           if (amt === 0) continue;
+
+           lines.push({
+            ...common,
+            menuLnSq: lineNo++,
+            drcrFg:   drcrFg[3],
+            acctCd:   _this.getDzAcctCd(row, acctCd[3], 3),
+            acctNm:   acctNm[3] || '외상매출금',
+            acctAm:   amt,                           // ✅ bamt로 여러 줄
+            pjtCd,
+            ctDept:   row.dzdivicd,
+            trCd:     custTrCd,
+            trNm:     custTrNm,
+            rmkDc:    (d.remark ?? '').toString()    // ✅ 적요(선택)
+           });
+          }
+         } else {
+          // ✅ 디테일이 없으면 기존처럼 1줄 (fallback)
+          if (receiptAmt !== 0) {
+           lines.push({
+            ...common,
+            menuLnSq: lineNo++,
+            drcrFg:   drcrFg[3],
+            acctCd:   _this.getDzAcctCd(row, acctCd[3], 3),
+            acctNm:   acctNm[3] || '외상매출금',
+            acctAm:   receiptAmt,
+            pjtCd,
+            ctDept:   row.dzdivicd,
+            trCd:     custTrCd,
+            trNm:     custTrNm
+           });
+          }
+         }
+        }
+        return;
+
+        /*if (receiptAmt !== 0) {
+         lines.push({
+          ...common,
+          menuLnSq: lineNo++,
+          drcrFg:   drcrFg[3],
+          acctCd:   _this.getDzAcctCd(row, acctCd[3], 3),
+          acctNm:   acctNm[3] || '외상매출금',
+          acctAm:   receiptAmt,
+          pjtCd,
+          ctDept:   row.dzdivicd,
+          trCd:     custTrCd,
+          trNm:     custTrNm
+         });
+        }
+        return;*/
+       }
+
+       // 무계좌 수금
+       if (receiptAmt !== 0) {
+        lines.push({
+         ...common,
+         menuLnSq: lineNo++,
+         drcrFg:   drcrFg[1],
+         acctCd:   _this.getDzAcctCd(row, acctCd[1], 1),
+         acctNm:   acctNm[1] || '외상매출금',
+         acctAm:   receiptAmt,
+         trCd: custTrCd,
+         trNm: custTrNm,
+         pjtCd,
+         ctDept: row.dzdivicd
+        });
+       }
+       return;
+      }
+
+      // ⚠️ 지급(5) 로직은 추후 추가
+     });
+
+     // ✅ 수금(4) : 보통예금/지급수수료 합산 라인 생성
+     if (dty === '4') {
+      Object.keys(receiptDepositMap).forEach(key => {
+       const info = receiptDepositMap[key];
+       if (!info || info.netAmt === 0) return;
+       lines.push({
+        ...info.common,
+        menuLnSq: lineNo++,
+        drcrFg: info.drcrFg,
+        acctCd: info.acctCd,
+        acctNm: info.acctNm,
+        acctAm: info.netAmt
+       });
+      });
+
+      Object.keys(receiptFeeMap).forEach(key => {
+       const info = receiptFeeMap[key];
+       if (!info || info.feeAmt === 0) return;
+       lines.push({
+        ...info.common,
+        menuLnSq: lineNo++,
+        drcrFg: info.drcrFg,
+        acctCd: info.acctCd,
+        acctNm: info.acctNm,
+        acctAm: info.feeAmt
+       });
+      });
+     }
+
+     // ✅ 비용(2): 그룹별 부가세대급금 + 외상매입금 2줄 생성
+     if (dty === '2') {
+      Object.keys(expenseGroupMap).forEach(key => {
+       const grp = expenseGroupMap[key];
+       const repRow = grp.firstRow;
+       const pjtCd = repRow.pjcd_OR || repRow.pjcd || '';
+
+       // ① 부가세대급금(차변)
+       if (grp.vatSum !== 0) {
+        lines.push({
+         ...grp.common,
+         menuLnSq: lineNo++,
+         drcrFg:   grp.drcrFg[2],
+         acctCd:   _this.getDzAcctCd(repRow, grp.acctCd[2], 2),
+         acctNm:   grp.acctNm[2] || '부가세대급금',
+         acctAm:   grp.vatSum,
+         issDt:    grp.common.menuDt,
+         jeonjaYn: '1',
+         supAm:    grp.supplySum,
+         taxFg:    '21',
+         trCd:     grp.trCd,
+         trNm:     grp.trNm,
+         ctDept:   grp.ctDept,
+         ctDeptNm: grp.ctDeptNm,
+         rmkDc:    '부가세'
+        });
+       }
+
+       // ② 외상매입금(대변) = 공급가 + 부가세
+       const payableSum = grp.supplySum + grp.vatSum;
+       if (payableSum !== 0) {
+        lines.push({
+         ...grp.common,
+         menuLnSq: lineNo++,
+         drcrFg:   grp.drcrFg[3],
+         acctCd:   _this.getDzAcctCd(repRow, grp.acctCd[3], 3),
+         acctNm:   grp.acctNm[3] || '외상매입금',
+         acctAm:   payableSum,
+         trCd:     grp.trCd,
+         trNm:     grp.trNm,
+         ctDept:   grp.ctDept,
+         ctDeptNm: grp.ctDeptNm,
+         pjtCd
+        });
+       }
+      });
+     }
+
+     if (lines.length === 0) {
+      Alert.alert('', '전송할 유효한 전표 데이터가 없습니다.');
+      return;
+     }
+
+     const data = { coCd, menuCd, docuTy: dty, data: lines };
+
+     AjaxUtil.postJsonAsyncData(_this.url + '/DouZoneSave', data, function (result) {
+      if (!result) {
+       Alert.alert('', '서버 응답이 없습니다.');
+       return;
+      }
+
+      if (result.success) {
+       Alert.alert('', result.message || '더존 자동전표 전송이 완료되었습니다.');
+
+       switch (dty) {
+        case '3': page.searchSalesDate();   break;
+        case '2': page.searchPriceDate();   break;
+        case '4': page.searchReceiptDate(); break;
+        case '5': page.searchPaymentDate(); break;
+       }
+      } else {
+       Alert.alert('', result.message || '전송 중 오류가 발생했습니다.');
+      }
      });
     }
 
@@ -1650,6 +1549,19 @@
     }//지금 검색
 
     }//APIDouZoneServicePage
+
+   // ✅ (추가) rcvdate|rcvnum → detail rows 로 맵 구성
+   function buildReceiptDetailMap(detailRows) {
+    const map = new Map();
+    (detailRows || []).forEach(d => {
+     const rcvdate = (d.rcvdate || d.RCVDATE || '').toString().replace(/[^0-9]/g, '');
+     const rcvnum  = (d.rcvnum  || d.RCVNUM  || '').toString().trim();
+     const key = `${rcvdate}|${rcvnum}`;
+     if (!map.has(key)) map.set(key, []);
+     map.get(key).push(d);
+    });
+    return map;
+   }
 
    // 🔹 매출 전표용 계정/차대/계정명 구하기
    function getSalesAccountInfo(row) {
@@ -1925,7 +1837,6 @@
     $('#btnSearch4').click(function (e) {
      page.searchPaymentDate();
     }); //지급 검색
-
 
     $('#accountListExcel').click(function (e) {
      page.accountListExcel();

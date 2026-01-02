@@ -911,7 +911,7 @@
      });
     }
 
-// ✅ lines 만들고 /DouZoneSave 보내는 공통 함수
+    // ✅ lines 만들고 /DouZoneSave 보내는 공통 함수
     _buildLinesAndSend(dty, selectedRows, receiptDetailMap) {
      let _this = this;
 
@@ -925,6 +925,17 @@
      const expenseGroupMap   = {};
      const receiptDepositMap = {};
      const receiptFeeMap     = {}; // 지급수수료 합산
+
+     const getDetailNetAmt = (d) => {
+      return _this.toNumber(d.hamt ?? 0, 0)
+       + _this.toNumber(d.bamt ?? 0, 0)
+       + _this.toNumber(d.jamt ?? 0, 0)
+       + _this.toNumber(d.eamt ?? 0, 0)
+       + _this.toNumber(d.samt ?? 0, 0)
+       + _this.toNumber(d.damt ?? 0, 0)
+       + _this.toNumber(d.csamt ?? 0, 0)
+       + _this.toNumber(d.dcamt ?? 0, 0);
+     };
 
      // ===============================
      // ✅ 여기부터는 기존 forEach 로직을 그대로 옮김
@@ -1084,7 +1095,7 @@
        const trNm = (row.cltnm || row.trNm || row.CUSTOMER_NAME || '');
        const ctDept   = row.dzdivicd || row.divicd || '';
        const ctDeptNm = row.divinm   || '';
-       const pjtCd    = row.pjcd_OR || row.pjcd || '';
+       const pjtCd    = row.pjcd || row.pjcd_OR || '';
 
        const groupKey = [common.menuDt, misdate, misnum, spjangcd].join('|');
 
@@ -1186,7 +1197,7 @@
          receiptFeeMap[feeKey].feeAmt += feeAmt;
         }
 
-        // ③ 외상매출금(행별)
+        // ③ 외상매출금(행별)  ✅ 무조건 TOTAL_AMOUNT 1줄로
         {
          const rcvdate = (row.rcvdate ?? '').toString().replace(/[^0-9]/g, '');
          const rcvnum  = (row.rcvnum  ?? '').toString().trim();
@@ -1194,62 +1205,35 @@
 
          const details = receiptDetailMap?.get?.(dKey) || receiptDetailMap?.[dKey] || [];
 
-         // ✅ 디테일이 있으면: bamt/remark 기준으로 여러 줄
+         // ✅ 디테일이 있으면 적요만 참고(가장 긴 remark 1개)
+         let remarkBest = '';
          if (Array.isArray(details) && details.length > 0) {
           for (const d of details) {
-           const amt = _this.toNumber(d.bamt ?? 0, 0);
-           if (amt === 0) continue;
+           const r = (d.remark ?? '').toString().trim();
+           if (r.length > remarkBest.length) remarkBest = r;
+          }
+         }
 
-           lines.push({
-            ...common,
-            menuLnSq: lineNo++,
-            drcrFg:   drcrFg[3],
-            acctCd:   _this.getDzAcctCd(row, acctCd[3], 3),
-            acctNm:   acctNm[3] || '외상매출금',
-            acctAm:   amt,                           // ✅ bamt로 여러 줄
-            pjtCd,
-            ctDept:   row.dzdivicd,
-            trCd:     custTrCd,
-            trNm:     custTrNm,
-            rmkDc:    (d.remark ?? '').toString()    // ✅ 적요(선택)
-           });
-          }
-         } else {
-          // ✅ 디테일이 없으면 기존처럼 1줄 (fallback)
-          if (receiptAmt !== 0) {
-           lines.push({
-            ...common,
-            menuLnSq: lineNo++,
-            drcrFg:   drcrFg[3],
-            acctCd:   _this.getDzAcctCd(row, acctCd[3], 3),
-            acctNm:   acctNm[3] || '외상매출금',
-            acctAm:   receiptAmt,
-            pjtCd,
-            ctDept:   row.dzdivicd,
-            trCd:     custTrCd,
-            trNm:     custTrNm
-           });
-          }
+         // ✅ 외상매출금은 무조건 총액(TOTAL_AMOUNT) 1줄
+         if (receiptAmt !== 0) {
+          lines.push({
+           ...common,
+           menuLnSq: lineNo++,
+           drcrFg:   drcrFg[3],
+           acctCd:   _this.getDzAcctCd(row, acctCd[3], 3),
+           acctNm:   acctNm[3] || '외상매출금',
+           acctAm:   receiptAmt,                 // ✅ 82,500 처럼 TOTAL_AMOUNT
+           pjtCd,
+           ctDept:   row.dzdivicd,
+           trCd:     custTrCd,
+           trNm:     custTrNm,
+           rmkDc:    remarkBest || common.rmkDc
+          });
          }
         }
         return;
 
-        /*if (receiptAmt !== 0) {
-         lines.push({
-          ...common,
-          menuLnSq: lineNo++,
-          drcrFg:   drcrFg[3],
-          acctCd:   _this.getDzAcctCd(row, acctCd[3], 3),
-          acctNm:   acctNm[3] || '외상매출금',
-          acctAm:   receiptAmt,
-          pjtCd,
-          ctDept:   row.dzdivicd,
-          trCd:     custTrCd,
-          trNm:     custTrNm
-         });
-        }
-        return;*/
-       }
+      }
 
        // 무계좌 수금
        if (receiptAmt !== 0) {
@@ -1306,7 +1290,7 @@
       Object.keys(expenseGroupMap).forEach(key => {
        const grp = expenseGroupMap[key];
        const repRow = grp.firstRow;
-       const pjtCd = repRow.pjcd_OR || repRow.pjcd || '';
+       const pjtCd = repRow.pjcd ||repRow.pjcd_OR || '';
 
        // ① 부가세대급금(차변)
        if (grp.vatSum !== 0) {
@@ -1548,7 +1532,7 @@
      AjaxUtil.getAsyncData( _this.url + '/payment_read', data, fnsuccess);
     }//지금 검색
 
-    }//APIDouZoneServicePage
+   }//APIDouZoneServicePage
 
    // ✅ (추가) rcvdate|rcvnum → detail rows 로 맵 구성
    function buildReceiptDetailMap(detailRows) {

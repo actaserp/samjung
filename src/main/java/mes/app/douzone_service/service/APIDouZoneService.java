@@ -155,9 +155,10 @@ public class APIDouZoneService {
 			                ORDER BY TB_CA640.mijdate, TB_CA640.mijnum
 			            ) AS varchar(4)
 			      ), 4) AS mijDate,
+			     TB_XCLIENT.emcltcd   AS emcltcd,     -- 거래처코드
 			     TB_XCLIENT.cltcd   AS cltcd,         -- 거래처코드
-			     TB_CA640.actcd AS actcd,         -- ACTS 코드
-			     TB_XCLIENT.cltnm  AS cltnm,         -- 거래처명
+			     TB_CA640.actcd AS actcd,         		-- ACTS 코드
+			     TB_XCLIENT.cltnm  AS cltnm,         	-- 거래처명
 			     FORMAT(CONVERT(date, TB_CA640.mijdate, 112), 'yyyy-MM-dd') AS PriceDate, -- 비용일자
 			     TB_CA640.gubun AS gubun,         -- 계정과목(구분)
 			     ISNULL(a.amt, 0) AS amt,           -- 공급가
@@ -1472,6 +1473,104 @@ public class APIDouZoneService {
     """.formatted(cond.toString());
 
 		return sqlRunner.getRows(sql, p);
+	}
+
+	public List<Map<String, Object>> syncClientListFromDz(String trNm, String regNb) {
+
+		// 1) ACTS 미동기화 목록 (TB_XCLIENT)
+		List<Map<String, Object>> acts = sqlRunner.getRows("""
+    SELECT emcltcd, cltcd, cltnm, saupnum
+	 FROM SAMJUNG.dbo.TB_XCLIENT
+	 WHERE emcltcd IS NULL
+			OR LTRIM(RTRIM(emcltcd)) = ''
+  """, new MapSqlParameterSource());
+
+		// 2) 더존 거래처조회(회사코드 고정)
+		Map<String, Object> dzRes = douzoneClient.callTradeClientList("1000", trNm, regNb);
+
+		// resultCode 체크
+		Object rc = dzRes.get("resultCode");
+		int resultCode = (rc instanceof Number) ? ((Number) rc).intValue() : Integer.parseInt(String.valueOf(rc));
+		if (resultCode != 0) {
+			throw new IllegalStateException("더존 api16S11 오류: " + dzRes.get("resultMsg"));
+		}
+
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> dzList = (List<Map<String, Object>>) dzRes.get("resultData");
+		if (dzList == null) dzList = Collections.emptyList();
+
+		// 3) 매칭 (regNb=saupnum, trNm=cltnm) 후 trCd -> dzcltcd
+		for (Map<String, Object> a : acts) {
+			String saup = normDigits((String) a.get("saupnum"));
+			String name = normName((String) a.get("cltnm"));
+
+			Map<String, Object> matched = null;
+			for (Map<String, Object> dz : dzList) {
+				String reg = normDigits((String) dz.get("regNb"));
+				String nm  = normName((String) dz.get("trNm"));
+
+				if (!saup.isEmpty() && saup.equals(reg) && !name.isEmpty() && name.equals(nm)) {
+					matched = dz;
+					break;
+				}
+			}
+
+			if (matched != null) {
+				String trCd = String.valueOf(matched.get("trCd"));
+				a.put("dzcltcd", trCd);  // ✅ trCd -> dzcltcd
+				a.put("matchYn", "Y");
+			} else {
+				a.put("matchYn", "N");
+			}
+		}
+
+		return acts;
+	}
+
+	private String normDigits(String s) {
+		if (s == null) return "";
+		return s.replaceAll("[^0-9]", "");
+	}
+	private String normName(String s) {
+		if (s == null) return "";
+		return s.trim().replaceAll("\\s+", " ");
+	}
+
+	@Transactional
+	public void syncClientEmcltcd(List<Map<String, Object>> rows) {
+
+		if (rows == null || rows.isEmpty()) {
+			return;
+		}
+
+		String updateSql = """
+        UPDATE TB_XCLIENT
+           SET emcltcd = :emcltcd,
+               cltnm   = :cltnm
+         WHERE custcd  = 'samjung'
+           AND cltcd   = :cltcd
+        """;
+
+		for (Map<String, Object> r : rows) {
+
+			String cltcd   = asString(r.get("cltcd"));
+			String dzcltcd = asString(r.get("dzcltcd")); // 🔥 이 값이 emcltcd로 저장됨
+			String cltnm   = asString(r.get("cltnm"));
+
+			if (cltcd == null || cltcd.isEmpty()) {
+				continue;
+			}
+
+			MapSqlParameterSource params = new MapSqlParameterSource()
+																			 .addValue("cltcd",   cltcd)
+																			 .addValue("emcltcd", dzcltcd)
+																			 .addValue("cltnm",   cltnm);
+
+			int updated = sqlRunner.execute(updateSql, params);
+
+			// 필요하면 로그
+			// log.info("syncClientEmcltcd: cltcd={}, emcltcd={}, updated={}", cltcd, dzcltcd, updated);
+		}
 	}
 
 }

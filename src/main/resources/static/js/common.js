@@ -710,6 +710,9 @@ let AjaxUtil = {
                 } else {
                     AjaxUtil.failureCallback(req, status, error);
                 }
+            },
+            complete: function () {
+                AjaxUtil.hideLoading();
             }
         });
 
@@ -731,6 +734,9 @@ let AjaxUtil = {
                 } else {
                     AjaxUtil.failureCallback(req, status, error);
                 }
+            },
+            complete: function () {
+                AjaxUtil.hideLoading();
             }
         });
     },
@@ -760,6 +766,9 @@ let AjaxUtil = {
                 } else {
                     AjaxUtil.failureCallback(req, status, error);
                 }
+            },
+            complete: function () {
+                AjaxUtil.hideLoading();
             }
         });
         return result;
@@ -790,6 +799,9 @@ let AjaxUtil = {
 
                     AjaxUtil.failureCallback(req, status, error);
                 }
+            },
+            complete: function () {
+                AjaxUtil.hideLoading();
             }
         });
     },

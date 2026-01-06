@@ -9,6 +9,7 @@ import mes.app.douzone_service.service.APIDouZoneService;
 import mes.domain.entity.User;
 import mes.domain.model.AjaxResult;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -1075,6 +1076,39 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 		AjaxResult result = new AjaxResult();
 		result.data = items;
 
+		return result;
+	}
+
+	@GetMapping("/SyncClientList")
+	public AjaxResult SyncClientList(
+		@RequestParam(value="trNm", required=false) String trNm,
+		@RequestParam(value="regNb", required=false) String regNb
+	) {
+		List<Map<String, Object>> items = apidouZoneService.syncClientListFromDz(trNm, regNb);
+		AjaxResult result = new AjaxResult();
+		result.data = items;
+		return result;
+	}
+
+	@PostMapping("/SyncClientSave")
+	public AjaxResult SyncClientSave(@RequestBody Map<String, Object> body) {
+
+		AjaxResult result = new AjaxResult();
+
+		Object rowsObj = body.get("rows");
+		if (!(rowsObj instanceof List)) {
+			result.success = false;
+			result.message = "rows 파라미터가 없습니다.";
+			return result;
+		}
+
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> rows = (List<Map<String, Object>>) rowsObj;
+
+		apidouZoneService.syncClientEmcltcd(rows);
+
+		result.success = true;
+		result.message = "OK";
 		return result;
 	}
 

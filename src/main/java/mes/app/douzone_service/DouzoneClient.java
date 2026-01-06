@@ -19,7 +19,8 @@ public class DouzoneClient {
 	private static final String API_PATH_AUTO_DOCU = "/apiproxy/api11A16"; //자동전표데이터조회 API
 	private static final String API_PATH_AUTO_DOCU_SAVE = "/apiproxy/api11A10"; // 등록(저장)
 	private static final String API_PATH_ACCT_SEARCH = "/apiproxy/api11A02"; //계정과목조회 (acctNm LIKE)
-	private static final String API_PATH_AUTO_DOCU_DELETE = "/apiproxy/api11A17";
+	private static final String API_PATH_AUTO_DOCU_DELETE = "/apiproxy/api11A17";	//삭제
+	private static final String API_PATH_TR_SEARCH = "/apiproxy/api16S11"; // 거래처조회
 
 	private final RestTemplate restTemplate;
 	private final DouzoneProperties props;
@@ -374,6 +375,60 @@ public class DouzoneClient {
 			throw new RuntimeException("Douzone autoDocu delete error", e);
 		}
 	}
+
+	/**
+	 * 거래처조회 (/apiproxy/api16S11)
+	 * - coCd 필수
+	 * - trNm(거래처명), regNb(사업자번호) 선택
+	 * - 결과 Map 그대로 반환 (DTO 사용 안함)
+	 */
+	public Map<String, Object> callTradeClientList(String coCd, String trNm, String regNb) {
+		try {
+			String transactionId = generateTransactionId();
+			String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
+
+			String value = props.getAccessToken()
+											 + transactionId
+											 + timestamp
+											 + API_PATH_TR_SEARCH;
+
+			String wehagoSign = hmacSha256Base64(props.getHashKey(), value);
+
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			headers.set("callerName", props.getCallerName());
+			headers.set("Authorization", "Bearer " + props.getAccessToken());
+			headers.set("transaction-id", transactionId);
+			headers.set("timestamp", timestamp);
+			if (props.getGroupSeq() != null) headers.set("groupSeq", props.getGroupSeq());
+			headers.set("wehago-sign", wehagoSign);
+
+			Map<String, Object> body = new HashMap<>();
+			body.put("coCd", coCd); // ✅ 필수
+
+			// ✅ 선택 검색조건(요청하신 것)
+			if (trNm != null && !trNm.isBlank()) body.put("trNm", trNm);
+			if (regNb != null && !regNb.isBlank()) body.put("regNb", regNb);
+
+			// (선택) 데이터 많으면 페이징 켜세요
+			// body.put("usePagination", true);
+			// body.put("pagingOffset", 0);
+			// body.put("pagingCount", 1000);
+
+			HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+			String url = props.getBaseUrl() + API_PATH_TR_SEARCH;
+
+			ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+
+			ObjectMapper mapper = new ObjectMapper();
+			return mapper.readValue(response.getBody(), Map.class);
+
+		} catch (Exception e) {
+			log.error("[Douzone] api16S11 호출 중 오류", e);
+			throw new RuntimeException("Douzone api16S11 error", e);
+		}
+	}
+
 
 	// ===== 유틸 메서드들 =====
 

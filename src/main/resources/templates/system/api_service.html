@@ -97,24 +97,29 @@
                 </dl>
               </div>
               <div class="button-wrap">
-                <ul>
-                  <li>
-                    <a class="btn btn-excell" id="btnSend" title="더존 전송">
-                      더존 전송
-                    </a>
-                  </li>
-                  <li>
-                    <a class="btn btn-excell" id="btnCancelSend" title="전송취소">
-                      전송취소
-                    </a>
-                  </li>
-                  <li>
-                    <a class="btn btn-excell" id="btnDouZoneList" title="더존목록">
-                      더존목록
-                    </a>
-                  </li>
-                </ul>
-              </div>
+              <ul>
+                <li>
+                  <a class="btn btn-excell" id="btnSyncClient" title="거래처 동기화">
+                    거래처 동기화
+                  </a>
+                </li>
+                <li>
+                  <a class="btn btn-excell" id="btnSend" title="더존 전송">
+                    더존 전송
+                  </a>
+                </li>
+                <li>
+                  <a class="btn btn-excell" id="btnCancelSend" title="전송취소">
+                    전송취소
+                  </a>
+                </li>
+                <li>
+                  <a class="btn btn-excell" id="btnDouZoneList" title="더존목록">
+                    더존목록
+                  </a>
+                </li>
+              </ul>
+            </div>
             </div>
             <div class="grid_box">
 
@@ -384,6 +389,76 @@
       </div>
     </div>
   </div>
+
+  <script id="SyncClientTemplate" type="text/x-tmpl">
+    <style>
+      #div_sync_client.content_wrap.popup{
+        display:flex; flex-direction:column; height:100%;
+      }
+      #div_sync_client .table-wrap{
+        flex:1; overflow-y:auto; padding-right:5px; min-height:0;
+      }
+      #div_sync_client .popup-button{
+        flex-shrink:0; padding:10px; background:#fff; border-top:1px solid #ddd;
+        display:flex; justify-content:center; gap:10px;
+      }
+      #div_sync_client .popup-button .btn-popup{
+        flex:0 0 auto; min-width:120px; padding:10px 24px;
+      }
+
+      #div_sync_client .sync-table-scroll{ overflow-y:auto; }
+      #div_sync_client .sync-table-scroll thead th{
+        position: sticky; top: 0; background:#EDEFF5; z-index:2;
+      }
+      #div_sync_client .sync-notice{
+      flex-shrink:0;
+      padding: 10px 12px;
+      background: #fff;
+      border-top: 1px solid #ddd;   /* 테이블과 구분 */
+      color: #333;
+      line-height: 0;
+
+      }
+
+    </style>
+
+    <div class="content_wrap popup" id="div_sync_client">
+      <div class="table-wrap">
+        <div class="sync-table-scroll">
+          <table class="item-table" id="syncClientTable">
+            <colgroup>
+              <col style="width: 6%">
+              <col style="width: 15%">
+              <col style="width: 15%">
+              <col style="width: 15%">
+              <col style="width: 35%">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>선택</th>
+                <th>ACTS 코드</th>
+                <th>더존매칭 코드</th>
+                <th>아마란스 코드</th>
+                <th>거래처명</th>
+              </tr>
+            </thead>
+            <tbody id="syncClientTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="sync-notice">
+        ⚠ 아마란스 코드가 없는 거래처는 아마란스에 등록 되지 않은 거래처입니다.
+      </div>
+
+      <div class="popup-button">
+        <button type="button" class="btn-popup" id="btnSyncClientSave">동기화</button>
+        <button type="button" class="btn-popup" id="modal-close-button">닫기</button>
+      </div>
+    </div>
+  </script>
+
+
 </th:block>
 
 <th:block layout:fragment="scripts">
@@ -512,7 +587,7 @@
        {binding: 'rcvdate', header: '발행일자',visible: false},
        {binding: 'relation_no', header: '일자 - 순번', align: 'center', width: 140},
        {binding: 'DATASEND_DIVISION', header: '더존 발핼여부', align: 'center', width: 80, visible: false},
-       {binding: '', header: '거래처코드', align: 'center', width: 110},
+       {binding: 'CUSTOMER_CD', header: '거래처코드', align: 'center', width: 110},
        {binding: 'cltcd', header: 'ACTS 코드', align: 'center', width: 110},
        {binding: 'CUSTOMER_NAME', header: '거래처명', align: 'left', width:'*'},
        {binding: 'RELATION_DATE', header: '수금일자', align: 'center', width: 150},
@@ -1532,6 +1607,107 @@
      AjaxUtil.getAsyncData( _this.url + '/payment_read', data, fnsuccess);
     }//지금 검색
 
+
+    // 거래처 동기화 처리
+    showSyncClient() {
+     const _this = this;
+
+     // 1) 팝업 열기
+     const content = tmpl('SyncClientTemplate', {});
+     const $content = $(content);
+
+     const modal = new PopupDraggable('거래처 동기화');
+     modal.open({ width: 1100, height: 500, $content });
+
+     $content.find('#modal-close-button').on('click', function () {
+      modal.close();
+      $content.remove();
+     });
+
+     AjaxUtil.showLoading();
+     const listUrl = '/api/api_DouZoneService/SyncClientList';
+     AjaxUtil.getAsyncData(listUrl, {}, function (result) {
+
+      const $tbody = $content.find('#syncClientTbody');
+      $tbody.empty();
+
+      const rowCount = Array.isArray(result?.data) ? result.data.length : 0;
+      const $scrollWrap = $content.find('.sync-table-scroll');
+
+      if (rowCount >= 6) {
+       $scrollWrap.css({
+        'max-height': '350px',
+        'overflow-y': 'auto',
+        'overflow-x': 'hidden'
+       });
+      } else {
+       $scrollWrap.css({
+        'max-height': '',
+        'overflow-y': '',
+        'overflow-x': ''
+       });
+      }
+
+      if (rowCount > 0) {
+       for (const it of result.data) {
+        $tbody.append(`
+          <tr class="sync-row">
+            <td class="tc"><input type="checkbox" class="row-check"></td>
+            <td><input type="text" class="cltcd"   value="${it.cltcd   ?? ''}" readonly></td>
+            <td><input type="text" class="emcltcd" value="${it.emcltcd ?? ''}" readonly></td>
+            <td><input type="text" class="dzcltcd" value="${it.dzcltcd ?? ''}" readonly></td>
+            <td><input type="text" class="cltnm"   value="${it.cltnm   ?? ''}" readonly></td>
+          </tr>
+        `);
+       }
+      } else {
+       $tbody.append(`<tr><td colspan="5" class="tc">조회 데이터가 없습니다.</td></tr>`);
+      }
+
+     }, function () {
+      Alert.alert('', '거래처 조회 실패');
+     });
+
+     // 4) 동기화(저장) 버튼 (가능하면 비동기로 추천)
+     $content.find('#btnSyncClientSave').off('click').on('click', function () {
+      const rows = [];
+
+      $content.find('#syncClientTbody tr.sync-row').each(function () {
+       const $tr = $(this);
+       if (!$tr.find('.row-check').is(':checked')) return;
+
+       rows.push({
+        cltcd:   $tr.find('.cltcd').val(),     // ACTS
+        emcltcd: $tr.find('.emcltcd').val(),   // 더존매칭
+        dzcltcd: $tr.find('.dzcltcd').val(),   // 아마란스
+        cltnm:   $tr.find('.cltnm').val(),     // 거래처명
+       });
+      });
+
+      if (rows.length === 0) {
+       Alert.alert('', '동기화할 행을 선택하세요.');
+       return;
+      }
+
+      const saveUrl = '/api/api_DouZoneService/SyncClientSave';
+
+      AjaxUtil.showLoading();
+      AjaxUtil.postJsonAsyncData(saveUrl, { rows }, function (saveRes) {
+       if (saveRes && (saveRes.success === true || saveRes.result === true)) {
+        Alert.alert('', '동기화가 완료되었습니다.');
+        modal.close();
+        $content.remove();
+        $('#btnSearch').trigger('click');
+       } else {
+        Alert.alert('', saveRes?.message || '동기화 실패');
+       }
+      }, function () {
+       Alert.alert('', '동기화 실패');
+      });
+     });
+    }
+
+
    }//APIDouZoneServicePage
 
    // ✅ (추가) rcvdate|rcvnum → detail rows 로 맵 구성
@@ -1747,7 +1923,6 @@
    function getPaymentAccountInfo(row){
 
    }
-
    let page = null;
 
    $(document).ready(function (e) {
@@ -1766,6 +1941,10 @@
     $('#srchEndDt4').val(CommonUtil.getYYYYMMDD());
 
     page.searchSalesDate();
+
+    $('#btnSyncClient').click(function (e){
+     page.showSyncClient();
+    });
 
     $('#btnDouZoneList').click(function (e) {
      page.btnDouZoneList('3');   // 매출

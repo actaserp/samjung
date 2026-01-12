@@ -1479,11 +1479,11 @@ public class APIDouZoneService {
 
 		// 1) ACTS 미동기화 목록 (TB_XCLIENT)
 		List<Map<String, Object>> acts = sqlRunner.getRows("""
-    SELECT emcltcd, cltcd, cltnm, saupnum
-	 FROM SAMJUNG.dbo.TB_XCLIENT
-	 WHERE emcltcd IS NULL
-			OR LTRIM(RTRIM(emcltcd)) = ''
-  """, new MapSqlParameterSource());
+			SELECT emcltcd, cltcd, cltnm, saupnum
+		 FROM SAMJUNG.dbo.TB_XCLIENT
+		 WHERE relyn = 'X' 
+		 		AND (emcltcd IS NULL OR LTRIM(RTRIM(emcltcd)) = '')
+  	""", new MapSqlParameterSource());
 
 		// 2) 더존 거래처조회(회사코드 고정)
 		Map<String, Object> dzRes = douzoneClient.callTradeClientList("1000", trNm, regNb);
@@ -1500,7 +1500,7 @@ public class APIDouZoneService {
 		if (dzList == null) dzList = Collections.emptyList();
 
 		// 3) 매칭 (regNb=saupnum, trNm=cltnm) 후 trCd -> dzcltcd
-		for (Map<String, Object> a : acts) {
+		/*for (Map<String, Object> a : acts) {
 			String saup = normDigits((String) a.get("saupnum"));
 			String name = normName((String) a.get("cltnm"));
 
@@ -1522,7 +1522,49 @@ public class APIDouZoneService {
 			} else {
 				a.put("matchYn", "N");
 			}
+		}*/
+		// 3) 매칭 (UI 수정 없이: 확실한 것만 Y)
+		for (Map<String, Object> a : acts) {
+			String saup = normDigits((String) a.get("saupnum"));
+			String name = normName((String) a.get("cltnm"));
+
+			Map<String, Object> matched = null;
+
+			// 1) 사업자번호로 유일 매칭
+			if (!saup.isEmpty()) {
+				List<Map<String, Object>> regCands = dzList.stream()
+																							 .filter(dz -> saup.equals(normDigits((String) dz.get("regNb"))))
+																							 .toList();
+
+				if (regCands.size() == 1) {
+					matched = regCands.get(0);
+				} else if (regCands.size() > 1 && !name.isEmpty()) {
+					// 사업자번호 중복이면 이름까지로 유일해질 때만 매칭
+					List<Map<String, Object>> narrowed = regCands.stream()
+																								 .filter(dz -> name.equals(normName((String) dz.get("trNm"))))
+																								 .toList();
+					if (narrowed.size() == 1) matched = narrowed.get(0);
+				}
+			}
+			// 2) 사업자번호 없으면 이름으로 유일 매칭
+			else if (!name.isEmpty()) {
+				List<Map<String, Object>> nameCands = dzList.stream()
+																								.filter(dz -> name.equals(normName((String) dz.get("trNm"))))
+																								.toList();
+
+				if (nameCands.size() == 1) {
+					matched = nameCands.get(0);
+				}
+			}
+
+			if (matched != null) {
+				a.put("dzcltcd", String.valueOf(matched.get("trCd"))); // 아마란스 코드 칸(현재 UI 기준)
+				a.put("matchYn", "Y");
+			} else {
+				a.put("matchYn", "N");
+			}
 		}
+
 
 		return acts;
 	}

@@ -1071,11 +1071,18 @@ public class APIDouZoneServiceController { //더존 api 연동서비스
 
 	@PostMapping("/receipt/details")
 	public AjaxResult ReceiptDetails(@RequestBody Map<String, Object> body){
-
-		List<Map<String, Object>> items = apidouZoneService.receiptDetails(body);
 		AjaxResult result = new AjaxResult();
-		result.data = items;
+		try {
+//			log.info("ReceiptDetails 요청들어옴");
+			List<Map<String, Object>> items = apidouZoneService.receiptDetails(body);
 
+			result.success = true;
+			result.data = items;
+		} catch (Exception e) {
+			log.error("ReceiptDetails 오류", e);
+			result.success = false;
+			result.message = e.getMessage();
+		}
 		return result;
 	}
 

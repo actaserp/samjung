@@ -958,21 +958,30 @@
          spjangcd: (selectedRows[0].SPJANGCD || selectedRows[0].spjangcd || 'ZZ'),
          keys: Array.from(uniq.values())
         };
-        console.log('selectedRows.length=', selectedRows?.length, selectedRows);
+        // console.log('selectedRows.length=', selectedRows?.length, selectedRows);
 
         AjaxUtil.postJsonAsyncData(_this.url + '/receipt/details', payload, function(detailRes) {
+
+         // 원본 응답 전체
+         // console.log('[receipt/details] detailRes =', detailRes);
+         // console.dir(detailRes); // 펼쳐보기 좋음
 
          if (!detailRes || detailRes.success === false) {
           Alert.alert('', detailRes?.message || '수금 디테일 조회에 실패했습니다.');
           return;
          }
 
+         // ✅ 2) data만
          const detailRows = detailRes.data || [];
+
+         // ✅ 3) map 구성 확인
          const receiptDetailMap = buildReceiptDetailMap(detailRows);
+         // console.log('[receipt/details] map.size =', receiptDetailMap.size);
 
          // ✅ 디테일 받은 다음에 전송 진행
          _this._buildLinesAndSend(dty, selectedRows, receiptDetailMap);
         });
+
 
        } catch (e) {
         console.error(e);
@@ -1272,7 +1281,7 @@
          receiptFeeMap[feeKey].feeAmt += feeAmt;
         }
 
-        // ③ 외상매출금(행별)  ✅ 무조건 TOTAL_AMOUNT 1줄로
+        // ③ 외상매출금(디테일 기준으로 분리)
         {
          const rcvdate = (row.rcvdate ?? '').toString().replace(/[^0-9]/g, '');
          const rcvnum  = (row.rcvnum  ?? '').toString().trim();
@@ -1280,30 +1289,63 @@
 
          const details = receiptDetailMap?.get?.(dKey) || receiptDetailMap?.[dKey] || [];
 
-         // ✅ 디테일이 있으면 적요만 참고(가장 긴 remark 1개)
-         let remarkBest = '';
+         // ✅ 디테일 있으면: misdate/misnum별로 외상매출금 라인 생성
          if (Array.isArray(details) && details.length > 0) {
-          for (const d of details) {
-           const r = (d.remark ?? '').toString().trim();
-           if (r.length > remarkBest.length) remarkBest = r;
-          }
-         }
 
-         // ✅ 외상매출금은 무조건 총액(TOTAL_AMOUNT) 1줄
-         if (receiptAmt !== 0) {
-          lines.push({
-           ...common,
-           menuLnSq: lineNo++,
-           drcrFg:   drcrFg[3],
-           acctCd:   _this.getDzAcctCd(row, acctCd[3], 3),
-           acctNm:   acctNm[3] || '외상매출금',
-           acctAm:   receiptAmt,                 // ✅ 82,500 처럼 TOTAL_AMOUNT
-           pjtCd,
-           ctDept:   row.dzdivicd,
-           trCd:     custTrCd,
-           trNm:     custTrNm,
-           rmkDc:    remarkBest || common.rmkDc
+          // 디테일 금액 합(검증용)
+          let sumDetail = 0;
+
+          details.forEach(d => {
+           const amt = getDetailNetAmt(d);   // ✅ bamt만 보지 말고 합산 함수 사용
+           if (!amt) return;
+
+           sumDetail += amt;
+
+           // 적요(remark) 우선
+           const rmk = (d.remark ?? '').toString().trim() || common.rmkDc;
+
+           lines.push({
+            ...common,
+            menuLnSq: lineNo++,
+            drcrFg:   drcrFg[3],
+            acctCd:   _this.getDzAcctCd(row, acctCd[3], 3),
+            acctNm:   acctNm[3] || '외상매출금',
+            acctAm:   amt,                     // ✅ 8,459,000 / 88,000 처럼 디테일 금액
+            pjtCd,
+            ctDept:   row.dzdivicd,
+            trCd:     custTrCd,
+            trNm:     custTrNm,
+            rmkDc:    rmk,
+
+            // ✅ 핵심: 더존 원본키도 디테일 기준으로
+            misdate:  (d.misdate ?? common.misdate),
+            misnum:   (d.misnum  ?? common.misnum),
+           });
           });
+
+          // ✅ 총액이랑 안 맞으면 로그로 확인 (데이터 이상/수수료 포함여부 등 체크용)
+          if (receiptAmt !== 0 && sumDetail !== receiptAmt) {
+           console.warn('[수금] 디테일합 != receiptAmt',
+            { dKey, receiptAmt, sumDetail, feeAmt, row });
+          }
+
+         } else {
+          // ✅ 디테일 없으면: 기존처럼 1줄
+          if (receiptAmt !== 0) {
+           lines.push({
+            ...common,
+            menuLnSq: lineNo++,
+            drcrFg:   drcrFg[3],
+            acctCd:   _this.getDzAcctCd(row, acctCd[3], 3),
+            acctNm:   acctNm[3] || '외상매출금',
+            acctAm:   receiptAmt,
+            pjtCd,
+            ctDept:   row.dzdivicd,
+            trCd:     custTrCd,
+            trNm:     custTrNm,
+            rmkDc:    common.rmkDc
+           });
+          }
          }
         }
         return;
@@ -1607,7 +1649,6 @@
      AjaxUtil.getAsyncData( _this.url + '/payment_read', data, fnsuccess);
     }//지금 검색
 
-
     // 거래처 동기화 처리
     showSyncClient() {
      const _this = this;
@@ -1706,7 +1747,6 @@
       });
      });
     }
-
 
    }//APIDouZoneServicePage
 

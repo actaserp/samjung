@@ -821,7 +821,6 @@ let AjaxUtil = {
         //     }));
         // }
 
-        AjaxUtil.showLoading();
         $.ajax({
             async: true,
             dataType: 'json',

@@ -1010,15 +1010,27 @@
      const receiptDepositMap = {};
      const receiptFeeMap     = {}; // 지급수수료 합산
 
-     const getDetailNetAmt = (d) => {
-      return _this.toNumber(d.hamt ?? 0, 0)
-       + _this.toNumber(d.bamt ?? 0, 0)
-       + _this.toNumber(d.jamt ?? 0, 0)
-       + _this.toNumber(d.eamt ?? 0, 0)
-       + _this.toNumber(d.samt ?? 0, 0)
-       + _this.toNumber(d.damt ?? 0, 0)
-       + _this.toNumber(d.csamt ?? 0, 0)
-       + _this.toNumber(d.dcamt ?? 0, 0);
+     const getDetailTotalAmt = (d) => {
+      // ✅ 수금액(=공급가 성격)
+      const net =
+       _this.toNumber(d.hamt ?? 0, 0) +
+       _this.toNumber(d.bamt ?? 0, 0) +
+       _this.toNumber(d.jamt ?? 0, 0) +
+       _this.toNumber(d.eamt ?? 0, 0) +
+       _this.toNumber(d.samt ?? 0, 0) +
+       _this.toNumber(d.damt ?? 0, 0) +
+       _this.toNumber(d.csamt ?? 0, 0) +
+       _this.toNumber(d.dcamt ?? 0, 0);
+
+      // ✅ 수수료(=mar 계열로 내려오는 케이스)
+      const fee =
+       _this.toNumber(d.jmar ?? 0, 0) +
+       _this.toNumber(d.bmar ?? 0, 0) +
+       _this.toNumber(d.gamt ?? 0, 0) +   // (이 컬럼이 수수료 성격이면 포함)
+       _this.toNumber(d.cmar ?? 0, 0) +
+       _this.toNumber(d.cdmar ?? 0, 0);
+
+      return net + fee; // ✅ 합계(99,000)로 외상매출금 생성
      };
 
      // ===============================
@@ -1296,7 +1308,7 @@
           let sumDetail = 0;
 
           details.forEach(d => {
-           const amt = getDetailNetAmt(d);   // ✅ bamt만 보지 말고 합산 함수 사용
+           const amt = getDetailTotalAmt(d);   // ✅ bamt만 보지 말고 합산 함수 사용
            if (!amt) return;
 
            sumDetail += amt;

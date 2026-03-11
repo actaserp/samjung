@@ -1463,6 +1463,7 @@ public class APIDouZoneService {
         SELECT
             d.custcd, d.spjangcd, d.cltcd, d.misdate, d.misnum, d.rcvdate, d.rcvnum, d.rcvseq,
             d.hamt, d.bamt, d.jamt, d.eamt, d.samt, d.damt,
+            d.csamt, d.dcamt,
             d.jmar, d.bmar, d.gamt, d.cmar, d.cdmar,
             d.remark
         FROM TB_DA026 d WITH (NOLOCK)

@@ -169,7 +169,7 @@ public class APIDouZoneService {
 			+ RIGHT('0000' + CAST(TB_CA640.IN_SQ AS varchar(4)), 4) AS dzIssueNo,		-- 더존발행번호
 			     ''  AS DEL_CHK,
 			     ''  AS SELCHK,
-			     TB_CA640.spjangcd AS WORKAREA_CD,
+			     TB_CA640.spjangcd AS spjangcd,
 			     TB_CA640.mijdate + TB_CA640.mijnum AS relation_no,
 			     TB_CA640.mijnum   AS RELATION_SEQ,
 			     CASE WHEN TB_CA640.gubun = '11' THEN 'MT' ELSE 'OD' END AS relation_division,
@@ -206,6 +206,11 @@ public class APIDouZoneService {
 			     TB_CA640.divicd as divicd ,
 			     		(select dzdivicd from tb_jc002 where custcd=:as_custcd and spjangcd=:spjangcd and divicd=TB_CA640.divicd) as dzdivicd,
 			     		(select divinm from tb_jc002 where custcd=:as_custcd and spjangcd=:spjangcd and divicd=TB_CA640.divicd) as divinm,
+							
+							-- ✅ NULL이면 빈 문자열('')로 반환
+							 ISNULL(TB_XCLIENT_SPJANGCD.spjangnum, '') AS vatDivCd,
+							 ISNULL(TB_XCLIENT_SPJANGCD.spjangnm, '') AS vatDivNm,
+							
 							a.pname  AS pname,
 							a.unit  AS punit,
 							a.uamt  AS puamt,
@@ -217,6 +222,11 @@ public class APIDouZoneService {
 			     ON (TB_CA640.custcd = TB_XCLIENT.custcd AND TB_CA640.cltcd = TB_XCLIENT.cltcd)
 			 /*LEFT OUTER JOIN TB_E601 WITH (NOLOCK)
 			     ON (TB_CA640.custcd = TB_E601.custcd AND TB_CA640.spjangcd = TB_E601.spjangcd AND TB_CA640.actcd = TB_E601.actcd)*/
+			 -- ✅ TB_XCLIENT_SPJANGCD 조인
+				LEFT OUTER JOIN TB_XCLIENT_SPJANGCD WITH (NOLOCK)
+						ON (TB_CA640.custcd = TB_XCLIENT_SPJANGCD.custcd 
+					 AND TB_CA640.cltcd = TB_XCLIENT_SPJANGCD.cltcd
+					 AND TB_CA640.spjangcd = TB_XCLIENT_SPJANGCD.spjangcd)    
 			 LEFT OUTER JOIN (
 			     SELECT custcd, spjangcd, cltcd, mijdate, mijnum,
 									 samt AS amt,
@@ -1483,6 +1493,7 @@ public class APIDouZoneService {
 			SELECT emcltcd, cltcd, cltnm, saupnum
 		 FROM SAMJUNG.dbo.TB_XCLIENT
 		 WHERE relyn = 'X' 
+		 		AND (emcltcd IS NULL OR LTRIM(RTRIM(emcltcd)) = '')
 		 		AND (emcltcd IS NULL OR LTRIM(RTRIM(emcltcd)) = '')
   	""", new MapSqlParameterSource());
 

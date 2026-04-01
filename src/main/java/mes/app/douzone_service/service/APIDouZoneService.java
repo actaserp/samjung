@@ -39,6 +39,7 @@ public class APIDouZoneService {
 		String sql = """
 			SELECT '' as DEL_CHK,
 			   TB_DA023.spjangcd as WORKAREA_CD,
+			   TB_DA023.spjangcd,
 			   FORMAT(CONVERT(date, TB_DA023.misdate, 112), 'yy.MM.dd')
 			    + ' - '
 			    + RIGHT('0000' + CAST(

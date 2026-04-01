@@ -508,6 +508,7 @@
        {binding: 'totalAmt', header: '합계', align: 'right', width: 150},
        {binding: 'doozenNo', header: '더존발행번호', align: 'center', width: 150},
        { binding: 'SUBJECT', header: '적요', align: 'left',width: 150, visible: false},
+       { binding: 'spjangcd', header: 'SPJANGCD',visible: false },
       ],
       itemsSource: _this.viewData,
      });
@@ -1123,7 +1124,7 @@
        attrCd: '1',
        rmkDc,
        regNb: row.saupnum || row.REGISTRATION_NO || '',
-       vatDivCd: '',
+       vatDivCd: inDivCd || '',
        issDt: '',
        jeonjaYn: '',
        supAm: null,

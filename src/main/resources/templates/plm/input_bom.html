@@ -412,7 +412,7 @@
 
                 let fnSuccess = function (res) {
                     if (res && res.success === true) {
-                        Notify.success('저장되었습니다.');
+                        Alert.alert('', '저장되었습니다.');
 
                     } else {
                         Alert.alert('', res.message || '저장에 실패했습니다.');

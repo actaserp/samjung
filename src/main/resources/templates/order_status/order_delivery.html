@@ -149,12 +149,12 @@
               <tbody>
               <tr >
                 <!--                <th>전표 보기</th>-->
-                <th>출고일</th>
+                <th>출하일</th>
                 <td colspan="">
                   <input type="date" id="popupDate">
                 </td>
                 <td>
-                  <button type="button" id="searchExcelBtn" style="background-color: #0a68b4; color: #FFFFFF; width: 100% " onclick="modifyData()">조회</button>
+                  <button type="button" id="searchExcelBtn" style="background-color: #0a68b4; color: #FFFFFF; width: 100% " onclick="modifyData()">문서 작성</button>
                 </td>
               </tr>
               <tr>
@@ -393,11 +393,44 @@
     }
     // 출하 및 인수확인서 클릭 메서드
     function deliveryDoc(){
+      // 그리드 선택 행의 출하일자 바인딩
+      const selectedRow = theGrid.selection.row;
+      if (selectedRow >= 0) {
+        const item = theGrid.rows[selectedRow].dataItem;
+        if (item && item.CHULDATE) {
+          document.getElementById('popupDate').value = item.CHULDATE;
+        } else {
+          document.getElementById('popupDate').value = '';
+        }
+      } else {
+        document.getElementById('popupDate').value = '';
+      }
+
+      // 버튼 텍스트 변경
+      document.getElementById('searchExcelBtn').textContent = '출하 및 인수서 작성';
+
       NewSave(); // 팝업 열기
       document.getElementById('searchExcelType').value = 'delivery';
     }
+
     // 거래명세서 클릭 메서드
     function provDoc(){
+      // 그리드 선택 행의 출하일자 바인딩
+      const selectedRow = theGrid.selection.row;
+      if (selectedRow >= 0) {
+        const item = theGrid.rows[selectedRow].dataItem;
+        if (item && item.CHULDATE) {
+          document.getElementById('popupDate').value = item.CHULDATE;
+        } else {
+          document.getElementById('popupDate').value = '';
+        }
+      } else {
+        document.getElementById('popupDate').value = '';
+      }
+
+      // 버튼 텍스트 변경
+      document.getElementById('searchExcelBtn').textContent = '거래명세서 작성';
+
       NewSave(); // 팝업 열기
       document.getElementById('searchExcelType').value = 'prov';
     }
@@ -490,7 +523,7 @@
                 let errorElem = document.createElement("p");
                 errorElem.className = "pdf-error-msg";
                 errorElem.style.color = "red";
-                errorElem.textContent = '휴가서 양식을 불러올 수 없습니다.';
+                errorElem.textContent = '인수확인서 양식을 불러올 수 없습니다.';
                 container.appendChild(errorElem);
               });
     }

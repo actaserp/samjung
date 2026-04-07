@@ -324,7 +324,7 @@
                     },
                     events: [] // 기본 이벤트는 빈 배열로 설정
                 });
-
+                calendar.render(); // 캘린더 렌더링
                 // 공휴일 데이터 가져오기
                 fetchHolidays().then(holidays => {
                     // console.log("holidays : ", holidays);

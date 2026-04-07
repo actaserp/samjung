@@ -59,7 +59,7 @@ public class HomeController {
 		SecurityContext sc = SecurityContextHolder.getContext();
 		Authentication auth = sc.getAuthentication();
 		User user = (User)auth.getPrincipal();
-		String username = user.getFirst_name();
+		String username = user.getUserProfile().getName();
 		String userid = user.getUsername();
 		Integer groupid = user.getUserProfile().getUserGroup().getId();
 		String groupname = user.getUserProfile().getUserGroup().getName();

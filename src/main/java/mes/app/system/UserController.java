@@ -248,7 +248,7 @@ public class UserController {
 					profileSql,
 					new Timestamp(System.currentTimeMillis()), // _created
 					"ko-KR",                                  // lang_code
-					prenm,                                    // Name
+					cltnm,                                    // Name(업체관리 메뉴 insert 발주처 등록)
 					UserGroup_id,                             // UserGroup_id
 					user.getId()                              // User_id
 			);

@@ -185,6 +185,9 @@
           this.$PART_NM = $content.find('#PART_NM');
           this.$btnCompSelect = $content.find('#btnCompSelect');
 
+         if (presetKeyword) {
+          this.$PART_NM.val(presetKeyword);
+         }
 
           this.$btnpartSearch.click(function (e) {
 

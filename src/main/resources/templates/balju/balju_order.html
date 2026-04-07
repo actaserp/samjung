@@ -622,7 +622,7 @@
           }
         });
 
-        function set(item) {
+        /*function set(item) {
           $input.val(item.Name);
           $id.val(item.id);
           $code.val(item.Code);
@@ -632,7 +632,39 @@
           setTimeout(() => {
             $next.focus().select();
           }, 10);
-        }
+        }*/
+       function set(item) {
+        // 변경 전 (잘못된 매핑)
+        // $input.val(item.Name);
+        // $id.val(item.id);
+        // $code.val(item.Code);
+        // $group.val(item.group_name);
+
+        // ✅ 변경 후 (PopPart에서 넘어오는 실제 필드명)
+        $row.find('input[name^="txtPname"]').val(item.PART_NM);
+        $row.find('input[name^="pcode"]').val(item.PART_NO);
+        $row.find('input[name^="psize"]').val(item.PART_SIZE);
+        $row.find('input[name^="punit"]').val(item.unit);
+        $row.find('input[name^="pmapseq"]').val(item.DRAWING_NO);
+
+        // 단가 조회
+        $.ajax({
+         url: '/api/balju/balju_order/getUnitPrice',
+         method: 'GET',
+         data: { partName: item.PART_NM, partSize: item.PART_SIZE },
+         success: function (res) {
+          const unitPrice = res?.data?.[0]?.PUAMT ?? null;
+          if (unitPrice != null) {
+           $row.find('input[name^="puamt_"]').val(unitPrice.toLocaleString());
+          }
+         }
+        });
+
+        // 다음 필드로 포커스 이동
+        setTimeout(() => {
+         $row.find('input[name^="psize_"]').focus().select();
+        }, 10);
+       }
 
         $input.off('keydown').on('keydown', function (e) {
           if (e.key === 'Enter') {
@@ -1237,12 +1269,6 @@
           itemList.push(item);
         });
 
-        //포커스 이동
-        $content.on('keydown', 'input', function (e) {
-
-        });
-
-
         //단가 검색
         function tryShowBaljuPrice(row) {
           const $unitPrice = row.find('input[name^="BaljuUnitPrice_"]');
@@ -1260,7 +1286,7 @@
             return;
           }
 
-          AjaxUtil.getAsyncData('/api/balju/balju_order/price', {
+          AjaxUtil.getAsyncData('/api/balju/balju_order/getUnitPrice', {
             mat_pk, company_id, baljudate
           }, function (result) {
             console.log('[단가 조회 결과]', result);
@@ -1477,6 +1503,7 @@
             $newRow.find('input[name^="psize_"]').val(item.psize);
             $newRow.find('input[name^="pqty_"]').val(item.pqty);
             $newRow.find('input[name^="puamt_"]').val(item.puamt);
+            $newRow.find('input[name^="former_price_"]').val(item.puamt); // 수정 전 단가 세팅
             $newRow.find('input[name^="pamt_"]').val(item.pamt);
             $newRow.find('input[name^="pmapseq_"]').val(item.pmapseq);
             $newRow.find('input[name^="remark_"]').val(item.remark);
@@ -1646,6 +1673,8 @@
           const $input = $(this);
           const $row = $input.closest('tr');
           const nameAttr = $input.attr('name') || '';
+
+         if (key === 'Enter' && nameAttr.startsWith('txtPname_')) return;
 
           const focusOrder = [
             'txtPname_',

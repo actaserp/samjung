@@ -77,8 +77,8 @@ public class BaljuOrderController {
   @PostMapping("/multi_save")
   @Transactional
   public AjaxResult saveBaljuMulti(@RequestBody Map<String, Object> payload, Authentication auth) {
-    log.info("💾 [발주등록 시작] payload keys: {}", payload.keySet());
-    log.info("🧾 items 내용: {}", payload.get("items"));
+//    log.info("💾 [발주등록 시작] payload keys: {}", payload.keySet());
+//    log.info("🧾 items 내용: {}", payload.get("items"));
 
     User user = (User) auth.getPrincipal();
 
@@ -1033,15 +1033,11 @@ public class BaljuOrderController {
       data.put("user_id", user.getId());
       data.put("BALJUDATE", baljuDate);
 
-      int saveCount = this.baljuOrderService.SaveUnitPrice(data);
+      this.baljuOrderService.SaveUnitPrice(data);
 
-      if (saveCount > 0) {
-        result.success = true;
-      } else {
-        result.success = false;
-        result.message = "저장 실패: 중복된 데이터이거나 입력값이 올바르지 않습니다.";
-      }
-    }catch (Exception e) {
+      result.success = true;
+
+    } catch (Exception e) {
       result.success = false;
       result.message = "서버 오류: " + e.getMessage();
     }

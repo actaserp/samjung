@@ -353,6 +353,59 @@ public class PopupController {
 		return result;
 	}
 
+	@RequestMapping("/search_Comp")
+	public AjaxResult getSearchComp(
+		@RequestParam(value = "cltcd", required = false) String cltcd,
+		@RequestParam(value = "cltnm", required = false) String cltnm,
+		@RequestParam(value = "saupnum", required = false) String saupnum) {
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue("cltcd", cltcd);
+		paramMap.addValue("cltnm", cltnm);
+		paramMap.addValue("saupnum", saupnum);
+		AjaxResult result = new AjaxResult();
+
+		String sql = """
+		 select
+				cltcd , -- 업체코드
+				cltnm , -- 업체명
+				prenm, -- 재표자 명
+				saupnum , -- 사업자 번허
+				cltadres , -- 주소
+				bizitemnm , -- 업종
+				biztypenm , -- 업태
+				telnum ,
+				taxmail,
+				agnernm, 	--업체 담당자
+				agntel, 	-- 업체 담당자 전화번호
+				agneremail,	--담당자 이메일
+				agnerdivinm	--담당자부서
+				from TB_XCLIENT where relyn ='X' -- 영문 대문자(O, X) O: 거래중지, X: 거래중
+    """;
+
+		if (cltcd != null && !cltcd.isEmpty()) {
+			sql += " and cltcd like :cltcd ";
+			paramMap.addValue("cltcd", "%" + cltcd + "%");
+		}
+
+		if (cltnm != null && !cltnm.isEmpty()) {
+			sql += " and cltnm like :cltnm ";
+			paramMap.addValue("cltnm", "%" + cltnm + "%");
+		}
+
+		if (saupnum != null && !saupnum.isEmpty()) {
+			sql += " and saupnum like :saupnum ";
+			paramMap.addValue("saupnum", "%" + saupnum + "%");
+		}
+
+		sql += " ORDER BY cltnm ASC ";
+
+		result.data = this.sqlRunner.getRows(sql, paramMap);
+		return result;
+	}
+
+
+
 	@RequestMapping("/search_Comp_all")
 	public AjaxResult getSearchCompAll(
 			@RequestParam(value = "compCode", required = false) String compCode,

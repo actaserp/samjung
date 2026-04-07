@@ -535,4 +535,35 @@ public class UserService {
         log.info("SQL Parameters: {}", dicParam.getValues());
         return sqlRunner.getRow(sql, dicParam);
     }
+
+    public Map<String, Object> getActiveClientBySaupnum(String userid) {
+        // 하이픈 제거
+        String cleanUserid = userid.replace("-", "");
+
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+        dicParam.addValue("saupnum", cleanUserid);
+
+        String sql = """
+        SELECT *
+        FROM TB_XCLIENT
+        WHERE REPLACE(saupnum, '-', '') = :saupnum
+        """;
+
+        return sqlRunner.getRow(sql, dicParam);
+    }
+
+    public void deactivateClientBySaupnum(String saupnum) {
+        String cleanSaupnum = saupnum.replace("-", "");
+
+        MapSqlParameterSource dicParam = new MapSqlParameterSource();
+        dicParam.addValue("saupnum", cleanSaupnum);
+
+        String sql = """
+        UPDATE TB_XCLIENT
+        SET relyn = 'O'
+        WHERE REPLACE(saupnum, '-', '') = :saupnum
+        """;
+
+        sqlRunner.execute(sql, dicParam);
+    }
 }

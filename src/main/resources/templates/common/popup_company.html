@@ -1,0 +1,353 @@
+<th:block th:fragment="popup_company">
+    <script type="text/x-tmpl" id="popup_comp_All_SearchTemplate">
+
+        <div class="content_wrap popup">
+
+            <section class="section" style="padding-top: 10px;">
+
+                <div class="section-top">
+                    <div class="search-wrap" style="text-align: left;">
+                        <dl>
+                            <dt>
+                                <label for="cltcd">
+                                    거래처코드<span class="eq"></span>
+                                </label>
+                            </dt>
+                            <dd>
+                                <div class="srch-box">
+                                    <input type="text" id="cltcd" name="cltcd" style="width:160px;"/>
+                                </div>
+                            </dd>
+                        </dl>
+                        <dl>
+                            <dt>
+                                <label for="cltnm">
+                                    거래처명<span class="eq"></span>
+                                </label>
+                            </dt>
+                            <dd>
+                                <div class="srch-box">
+                                    <input type="text" id='cltnm' name="cltnm" style="width:160px;"/>
+                                </div>
+                            </dd>
+                        </dl>
+
+                        <dl>
+                            <dt>
+                                <label for="saupnum">
+                                    사업자번호<span class="eq"></span>
+                                </label>
+                            </dt>
+                            <dd>
+                                <div class="srch-box">
+                                    <input class="form-control2" type="text" id="saupnum" name="saupnum" style="width:160px;"/>
+                                </div>
+                            </dd>
+                        </dl>
+
+                        <dl>
+                            <dt>&nbsp;</dt>
+                            <dd>
+                                <li>
+                                    <a class="btn btn-delete" title="검색" id="btnCompSearch">
+                                        <!--                                        class 쓰이는 곳 찾고 없으면 클래스명 수정하기-->
+                                        <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
+                                        검색
+                                    </a>
+                                </li>
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="container-fluid">
+                        <div id="theGrid2" style="height: 270px;"></div>
+                    </div>
+                </div>
+
+            </section>
+                <div class="popup-button">
+                    <button type="button" class="btn-popup" id="btnCompSelect" style="height: 40px;"><span data-commonCd="선택">선택</span></button>
+                    <button type="button" class="btn-popup" id="btn-search-close" style="height: 40px;"><span data-commonCd="닫기">닫기</span></button>
+                </div>
+        </div>
+    </script>
+
+    <script type="text/javascript">
+
+        class PopCompComponent {
+            static currentInstance = null;
+
+            constructor() {
+                if (PopCompComponent.currentInstance) {
+                    PopCompComponent.currentInstance.close(); // 이전 인스턴스 닫기
+                }
+                PopCompComponent.currentInstance = this;
+
+                this.grid = null;
+                this.viewData = new wijmo.collections.CollectionView();
+                this.selectedItem = null;
+                this.callback = null;
+                this.modalContainer = new PopupDraggable('업체 선택');
+                this.$btnCompSearch = null;
+                this.$btnCompSelect = null;
+                this.$businessNumber = null;
+                this.$cltnm = null;
+                this.$cltcd = null;
+                this.$saupnum = null;
+                this.previousFocus = null;
+            }
+
+            searchDataBind() {
+                let _this = this;
+                let url = '/api/popup/search_Comp';
+                let data = {
+                    'cltcd': _this.$cltcd.val(),
+                    'cltnm': _this.$cltnm.val(),
+                    'saupnum': _this.$saupnum.val(),
+                };
+
+                let result = AjaxUtil.getSyncData(url, data);
+                if (result) {
+                    _this.viewData.sourceCollection = result.data;
+                    // 첫 번째 행으로 포커스 이동
+                    setTimeout(() => {
+                        if (_this.grid && _this.grid.rows.length > 0) {
+                            _this.grid.select(0, 0); // 첫 번째 행, 첫 번째 열 선택
+                            _this.grid.focus(); // 그리드에 포커스
+                        }
+                    }, 0);
+                    setTimeout(() => {
+                        if (_this.grid.rows.length > 0) {
+                            let colIndex = _this.grid.columns.findIndex(col => col.binding === 'accountNumber');
+
+                            if (colIndex > -1) {
+                                _this.grid.select(0, colIndex);
+                                _this.grid.selection = new wijmo.grid.CellRange(0, colIndex);
+                                _this.grid.focus();
+                            }
+                        }
+                    }, 100);
+                }
+
+                //검색버튼을 누르고 초기화한다
+                this.selectedItem = null;
+            }
+
+            selectData(item) {
+                this._skipAutoFocus = false;
+
+                if (typeof this.callback === 'function') {
+                    this._skipAutoFocus = true; // 콜백 안에서 포커스 줄 예정
+                    this.callback(item);
+                }
+
+                this.close();
+            }
+
+            show(callback) {
+                let _this = this;
+
+                this.callback = callback;
+
+                let content = tmpl('popup_comp_All_SearchTemplate', {});
+                let $content = $(content);
+                this.modalContainer.open({width: 800, height: 500, $content});
+
+                setTimeout(() => {
+
+                    const el = document.getElementById('theGrid2');
+                    if (!el) {
+                        return;
+                    }
+
+                    const existingGrid = wijmo.Control.getControl(el);
+                    if (existingGrid) {
+                        existingGrid.dispose();
+                    }
+
+                    this.grid = new wijmo.grid.FlexGrid('#theGrid2', {
+                        selectionMode: wijmo.grid.SelectionMode.Row,
+                        autoGenerateColumns: false,
+                        showMarquee: true,
+                        isReadOnly: true,
+                        keyActionEnter: wijmo.grid.KeyAction.None,
+                        columns: [
+                            {binding: 'cltcd', header: '거래처코드', width: 120,visible: false},
+                            {binding: 'cltnm', header: '업체명', width: 140, align: 'left'},
+                            {binding: 'saupnum', header: '사업자번호', width: 130, align: 'left'},
+                            {binding: 'telnum', header: '연락처', width: 130, align: 'left'},
+                            {binding: 'agnerdivinm', header: '담당자부서', width: 100, align: 'left'},
+                            {binding: 'agnernm', header: '업체담당자', width: 120, align: 'left'},
+                            {binding: 'agntel', header: '담당자 전화번호', width: 130, align: 'left'},
+
+                        ],
+                        itemsSource: this.viewData,
+                    });
+
+                    this.grid.formatItem.addHandler((s, e) => {
+                        if (e.panel.cellType === wijmo.grid.CellType.Cell) {
+                            let col = s.columns[e.col];
+                            let item = s.rows[e.row].dataItem;
+                            if (col.binding === "saupnum" && item.saupnum) {
+                                e.cell.textContent = formatBizNumber(item.saupnum);
+                            }
+                            if (col.binding === "telnum" && item.telnum) {
+                                e.cell.textContent = formatTelNumber(item.telnum);
+                            }
+                            if (col.binding === "agntel" && item.agntel) {
+                                e.cell.textContent = formatTelNumber(item.agntel);
+                            }
+                        }
+                    });
+
+                    this.grid.rowHeaders.columns.splice(0, 1);
+                    new FlexGridContextMenu(this.grid);
+                    this.grid.downloadFileName = '거래처 내역';
+
+                    this.$btnCompSearch = $content.find('#btnCompSearch');
+                    this.$cltcd = $content.find('#cltcd');
+                    this.$cltnm = $content.find('#cltnm');
+                    this.$saupnum = $content.find('#saupnum');
+                    this.$btnCompSelect = $content.find('#btnCompSelect');
+                    this.$businessNumber = $content.find('#saupnum');
+
+
+                    this.$btnCompSearch.click(function (e) {
+                        _this.searchDataBind();
+                    });
+
+                    $('#btnCompSearch').click();
+
+
+                    this.$btnCompSelect.click(function (e) {
+                        // 그리드에서 현재 선택된 item을 찾아서 호출한다.
+                        let items = _this.grid.selectedItems;
+                        if (items.length === 0) {
+                            return false;
+                        }
+                        _this.selectData(items[0]);
+                    });
+
+
+                    //닫기버튼을 아래 ID로 사용한다면 호출하는 화면에서 이벤트 처리 필요없음
+                    $content.find('#btn-search-close').on('click', function () {
+                        _this.close();
+                    });
+
+                    //새로고침
+                    // $('#btnTest').click(function (e) {
+                    //     _this.grid.collectionView.refresh(); // Wijmo 그리드 새로고침
+                    // });
+
+                    this.grid.hostElement.addEventListener('dblclick', function (e) {
+                        let items = _this.grid.selectedItems;
+                        if (items.length === 0) {
+                            return false;
+                        }
+                        _this.selectData(items[0]); // btnCompSelect 클릭과 동일한 동작
+                    });
+
+                    this.grid.hostElement.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter' || e.keyCode === 13) {
+                            setTimeout(() => {
+                                const selected = _this.grid.selectedItems;
+                                if (selected.length > 0) {
+                                    _this.selectData(selected[0]);
+                                } else {
+                                    console.log('선택된 행 없음');
+                                }
+                            }, 0); // 다음 이벤트 루프에서 실행
+                        }
+                    });
+
+                    this._escHandler = function (e) {
+                        if (e.key === 'Escape' || e.keyCode === 27) {
+                            _this.close();
+                        }
+                    };
+                    $(document).on('keydown.popupesc', this._escHandler);
+
+                    // 모달 닫힐 때 포커스 복원
+                    this.modalContainer.onClose = () => {
+                        // ESC 후 포커스 복원
+                        if (this.focusAfterClose && document.body.contains(this.focusAfterClose)) {
+                            setTimeout(() => {
+                                this.focusAfterClose.focus();
+                            }, 50);
+                        }
+                        // ESC 이벤트 제거
+                        $(document).off('keydown.popupesc', this._escHandler);
+                    };
+                }, 50);
+            }
+
+            close() {
+                this.modalContainer.close();
+
+                // 팝업 컨텐츠 DOM 수동 제거
+                if (this.modalContainer.$content) {
+                    this.modalContainer.$content.remove();
+                    this.modalContainer.$content = null;
+                }
+
+                // 포커스 복원
+                if (!this._skipAutoFocus && this.focusAfterClose && document.body.contains(this.focusAfterClose)) {
+                    setTimeout(() => {
+                        this.focusAfterClose.focus();
+                    }, 50);
+                }
+
+                // ESC 이벤트 제거
+                $(document).off('keydown.popupesc', this._escHandler);
+
+                // 싱글턴 정리
+                if (PopCompComponent.currentInstance === this) {
+                    PopCompComponent.currentInstance = null;
+                }
+            }
+
+
+        }
+        function formatTelNumber(val) {
+            if (!val) return '';
+            let numbers = val.replace(/[^0-9]/g, '');
+            if (numbers.length > 11) numbers = numbers.slice(0, 11);
+
+            if (numbers.length < 4) return numbers;
+            if (numbers.length < 7) return numbers.slice(0, 3) + '-' + numbers.slice(3);
+            if (numbers.length === 10) return numbers.slice(0, 3) + '-' + numbers.slice(3, 6) + '-' + numbers.slice(6);
+            if (numbers.length === 11) return numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7);
+
+            return numbers; // fallback
+        }
+        function formatBizNumber(val) {
+            if (!val) return '';
+            let numbers = val.replace(/[^0-9]/g, '');
+            if (numbers.length > 10) numbers = numbers.slice(0, 10);
+            if (numbers.length < 4) return numbers;
+            if (numbers.length < 6) return numbers.slice(0, 3) + '-' + numbers.slice(3);
+            return numbers.slice(0, 3) + '-' + numbers.slice(3, 5) + '-' + numbers.slice(5);
+        }
+
+
+        $(document).on('keydown', '#cltcd', function (e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault();
+                $('#btnCompSearch').trigger('click');
+            }
+        });
+
+        $(document).on('keydown', '#cltnm', function (e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault();
+                $('#btnCompSearch').trigger('click');
+            }
+        });
+
+        $(document).on('keydown', '#saupnum', function (e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault();
+                $('#btnCompSearch').trigger('click');
+            }
+        });
+
+    </script>

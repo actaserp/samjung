@@ -78,23 +78,27 @@
               <tbody>
               <tr>
                 <th>
-                  <label for=""><span class="eq">*</span>
+                  <label for="cltnm"><span class="eq">*</span>
                     업체명
                   </label>
                 </th>
                 <td>
-                  <div class="input-clear">
-                    <input type="text" id="cltnm" name="cltnm" placeholder="업체명"
-                           style="width: 400px !important;">
+                  <div class="input-clear" style="display: flex; align-items: center; gap: 8px;">
+                    <input type="text" id="cltnm" name="cltnm" placeholder="업체를 검색해서 선택하세요."
+                           style="width: 400px !important;" readonly>
+                    <input type="hidden" id="cltcd" >
+                    <a class="btn btn-delete" title="검색" id="searchcltnm">
+                      <img src="/images/icon/btn-srch.svg" alt="검색 아이콘">
+                      검색
+                    </a>
                   </div>
                 </td>
                 <th>
-                  <label for=""><span class="eq">*</span>
+                  <label for="prenm"><span class="eq">*</span>
                     대표자
                   </label>
                 </th>
                 <td>
-                  <div class="input-clear">
                   <div class="input-clear">
                     <input type="text" id="prenm" name="prenm" placeholder="대표자"
                            style="width: 400px !important;">
@@ -316,6 +320,7 @@
   <th:block th:replace="/common/ax5_uploader :: ax5_uploader"></th:block>
   <th:block th:replace="/common/upload_one_image_box :: upload_one_image_box"></th:block>
   <th:block th:replace="/common/popup_select_user_code :: popup_select_user_code"></th:block>
+  <th:block th:replace="/common/popup_company :: popup_company"></th:block>
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <script>
     var popupWindow;
@@ -719,6 +724,25 @@
       $('.new-fl-ac').remove();
     }
 
+    function openCltcdPopup(){
+     let poppage = new PopCompComponent();
+     let $poppage = $(poppage);
+     let searchcallback = function (items) {
+
+      console.log('발주처 목록 팝업', items);
+      $('#cltcd').val(items.cltcd);
+      $('#cltnm').val(items.cltnm);
+      $('#prenm').val(items.prenm);
+      $('#bizitemnm').val(items.bizitemnm);
+      $('#biztypenm').val(items.biztypenm);
+      $('#Phone').val(items.telnum);
+      $('#email').val(items.taxmail);
+      $('#userid').val(items.saupnum);
+
+     }
+     poppage.show(searchcallback);
+    }
+
     $(document).ready(function (e) {
 
       AjaxUtil.fillSelectOption(
@@ -746,6 +770,11 @@
           $('#userid-check-message').hide();
         }
       });
+
+     $('#searchcltnm').on('click', function () {
+      openCltcdPopup();
+     });
+
     });
 
     function checkUserId(userid) {
@@ -787,6 +816,7 @@
         let formData = new FormData();
 
         // 입력 필드 값을 formData에 추가
+        formData.append("cltcd", $('#cltcd').val() || '');
         formData.append("cltnm", $('#cltnm').val() || '');
         formData.append("prenm", $('#prenm').val() || '');
         formData.append("biztypenm", $('#biztypenm').val() || '');
@@ -840,7 +870,7 @@
 
         // 서버로 데이터 전송
         $.ajax({
-          url: '/api/system/user/save',
+          url: '/api/system/user/comp_save',
           type: 'POST',
           data: formData,
           processData: false,

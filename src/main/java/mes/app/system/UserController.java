@@ -512,6 +512,203 @@ public class UserController {
 		return result;
 	}
 
+	@PostMapping("/comp_save")
+	@Transactional
+	public AjaxResult compSave(
+		@RequestParam(value = "id", required = false) Integer id,
+		@RequestParam(value = "cltnm") String cltnm,
+		@RequestParam(value = "prenm") String prenm,
+		@RequestParam(value = "biztypenm") String biztypenm,
+		@RequestParam(value = "bizitemnm") String bizitemnm,
+		@RequestParam(value = "tel") String tel,
+		@RequestParam(value = "Phone") String phone,
+		@RequestParam(value = "userid") String userid,
+		@RequestParam(value = "email") String email,
+		@RequestParam(value = "agencycd", required = false) String agencycd,
+		@RequestParam(value = "authType", required = false) String authType,
+		@RequestParam(value = "is_active") boolean isActive,
+		@RequestParam(value = "postno") String postno,
+		@RequestParam(value = "address1") String address1,
+		@RequestParam(value = "address2") String address2,
+		@RequestParam(value = "password") String password,
+		@RequestParam(value = "UserGroup_id", required = false) Integer UserGroup_id,
+		@RequestParam(value = "spjType", required = false) String spjangcd,
+		@RequestParam(value = "clttype", required = false) String clttype,
+		Authentication auth
+	) {
+		AjaxResult result = new AjaxResult();
+		try {
+			log.info("[comp_save] 저장 로직 시작 - userid: {}", userid);
+
+			boolean isNewUser = (id == null);
+			User user;
+
+			if (isNewUser) {
+				// 중복된 아이디 확인
+				if (userRepository.findByUsername(userid).isPresent()) {
+					result.success = false;
+					result.message = "중복된 아이디가 존재합니다.";
+					return result;
+				}
+				user = User.builder()
+								 .username(userid)
+								 .password(Pbkdf2Sha256.encode(password))
+								 .email(email)
+								 .first_name(cltnm)
+								 .last_name(prenm)
+								 .tel(tel)
+								 .active(true)
+								 .is_staff(false)
+								 .date_joined(new Timestamp(System.currentTimeMillis()))
+								 .superUser(false)
+								 .phone(phone)
+								 .spjangcd(spjangcd)
+								 .build();
+			} else {
+				// 기존 사용자 업데이트
+				user = userRepository.findById(id)
+								 .orElseThrow(() -> new RuntimeException("해당 사용자가 없습니다."));
+				user.setEmail(email);
+				user.setFirst_name(prenm);
+				user.setLast_name("");
+				user.setTel(tel);
+				user.setActive(isActive);
+				user.setPhone(phone);
+				user.setAgencycd(agencycd);
+			}
+
+			// 사용자 저장
+			user = userRepository.save(user);
+			log.info("[comp_save] {} 완료: {}", isNewUser ? "신규 사용자 저장" : "기존 사용자 업데이트", user.getUsername());
+
+			// 사용자 프로필 처리
+			String profileSql = """
+            SET IDENTITY_INSERT user_profile ON;
+
+            MERGE INTO user_profile AS target
+            USING (SELECT ? AS _created, ? AS lang_code, ? AS Name, ? AS UserGroup_id, ? AS User_id) AS source
+            ON target.User_id = source.User_id
+            WHEN MATCHED THEN
+                UPDATE SET Name = source.Name, UserGroup_id = source.UserGroup_id
+            WHEN NOT MATCHED THEN
+                INSERT (_created, lang_code, Name, UserGroup_id, User_id)
+                VALUES (source._created, source.lang_code, source.Name, source.UserGroup_id, source.User_id);
+
+            SET IDENTITY_INSERT user_profile OFF;
+            """;
+
+			jdbcTemplate.update(
+				profileSql,
+				new Timestamp(System.currentTimeMillis()),
+				"ko-KR",
+				prenm,
+				UserGroup_id,
+				user.getId()
+			);
+			log.info("[comp_save] User Profile 저장 또는 업데이트 완료");
+
+			// 사업장 정보 조회
+			Optional<TB_XA012> xa012Opt = tbXA012Repository.findById_Spjangcd(spjangcd);
+			if (xa012Opt.isEmpty()) {
+				result.success = false;
+				result.message = "해당 spjangcd에 해당하는 사업장 정보가 없습니다.";
+				return result;
+			}
+			String custcd = xa012Opt.get().getId().getCustcd();
+
+			// address1에 괄호 포함된 전체 주소가 들어오는 경우 자동 분리
+			if ((address2 == null || address2.isBlank()) && address1 != null && address1.contains("(")) {
+				Pattern pattern = Pattern.compile("^(.*?)\\s*\\((.*)\\)$");
+				Matcher matcher = pattern.matcher(address1.trim());
+				if (matcher.matches()) {
+					address1 = matcher.group(1).trim();
+					address2 = "(" + matcher.group(2).trim() + ")";
+				}
+			}
+
+			String fullAddress = address1 + (address2 != null && !address2.isEmpty() ? " " + address2 : "");
+			String newCltcd = generateNewCltcd();
+
+			// ✅ saupnum(userid) 기준으로만 TB_XCLIENT 존재 여부 확인
+			Map<String, Object> clientMap = userService.getActiveClientBySaupnum(userid);
+			boolean clientExists = (clientMap != null && !clientMap.isEmpty());
+
+			TB_XCLIENT tbXClient;
+
+			if (clientExists) {
+				// 기존 거래처 UPDATE
+				String cltcd = (String) clientMap.get("cltcd");
+				String custcdFromMap = (String) clientMap.get("custcd");
+				String saupnumFromMap = (String) clientMap.get("saupnum");
+
+				// ✅ 양쪽 모두 하이픈 제거 후 비교
+				String cleanSaupnumFromMap = saupnumFromMap != null ? saupnumFromMap.replace("-", "") : null;
+				String cleanUserid = userid.replace("-", "");
+
+				if (cleanSaupnumFromMap != null && !cleanSaupnumFromMap.equals(cleanUserid)) {
+					result.success = false;
+					result.message = "사업자번호가 일치하지 않아 저장할 수 없습니다.";
+					return result;
+				}
+
+				if (cltcd == null || custcdFromMap == null) {
+					throw new IllegalStateException("clientMap에서 cltcd 또는 custcd가 누락되었습니다.");
+				}
+
+				tbXClient = tbXClientRepository.findById(new TB_XCLIENTId(custcdFromMap, cltcd))
+											.orElseThrow(() -> new IllegalStateException("해당 cltcd로 TB_XCLIENT 조회 실패"));
+
+				tbXClient.setPrenm(prenm);
+				tbXClient.setCltnm(cltnm);
+				tbXClient.setBiztypenm(biztypenm);
+				tbXClient.setBizitemnm(bizitemnm);
+				tbXClient.setZipcd(postno);
+				tbXClient.setCltadres(fullAddress);
+				tbXClient.setTelnum(tel);
+				tbXClient.setHptelnum(phone);
+				tbXClient.setAgneremail(email);
+
+				log.info("[comp_save] TB_XCLIENT UPDATE - saupnum: {}, cltcd: {}", userid, cltcd);
+			} else {
+				// 신규 거래처 INSERT
+				tbXClient = TB_XCLIENT.builder()
+							.saupnum(userid)
+							.prenm(prenm)
+							.cltnm(cltnm)
+							.biztypenm(biztypenm)
+							.bizitemnm(bizitemnm)
+							.zipcd(postno)
+							.cltadres(fullAddress)
+							.telnum(tel)
+							.hptelnum(phone)
+							.agneremail(email)
+							.id(new TB_XCLIENTId(custcd, newCltcd))
+							.rnumchk("0")
+							.corpperclafi("0")
+							.prtcltnm(cltnm)
+							.foreyn("0")
+							.relyn("X")
+							.nation("KR")
+							.clttype(clttype)
+							.build();
+
+				log.info("[comp_save] TB_XCLIENT INSERT - saupnum: {}, newCltcd: {}", userid, newCltcd);
+			}
+
+			tbXClientService.save(tbXClient);
+			log.info("[comp_save] TB_XCLIENT 저장 완료");
+
+			result.success = true;
+			result.message = isNewUser ? "사용자가 성공적으로 등록되었습니다." : "사용자 정보가 성공적으로 업데이트되었습니다.";
+
+		} catch (Exception e) {
+			log.error("[comp_save] 오류 발생: {}", e.getMessage(), e);
+			result.success = false;
+			result.message = "사용자 정보를 저장하는 중 오류가 발생했습니다.";
+		}
+		return result;
+	}
+
 	// 새로운 cltcd 생성 메서드
 	private String generateNewCltcd() {
 		String maxCltcd = tbXClientRepository.findMaxCltcd(); // DB에서 최대값 조회
@@ -598,7 +795,7 @@ public class UserController {
 		Optional<User> user = userRepository.findByUsername(UtilClass.removeBrackers(username));
 		if (user.isPresent()) {
 			System.out.println("User 조회 성공: " + user.get());
-			tbXClientRepository.deleteBySaupnum(user.get().getUsername());
+			userService.deactivateClientBySaupnum(user.get().getUsername());
 		} else {
 			System.out.println("User 조회 실패. username이 존재하지 않습니다.");
 		}

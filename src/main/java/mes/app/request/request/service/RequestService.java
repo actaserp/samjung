@@ -112,9 +112,12 @@ public class RequestService {
                     ON hd.BALJUNUM = dt.BALJUNUM
                 WHERE
                     1=1
-                    AND hd.CLTCD = :CLTCD
                 """);
 
+        // 관리자 : cltcd 관계없이 조회
+        if (cltcd != null && !cltcd.isEmpty()) {
+            sql.append(" AND hd.CLTCD = :CLTCD");
+        }
         // 날짜 필터
         if (searchStartDate != null && !searchStartDate.isEmpty()) {
             sql.append(" AND hd.BALJUDATE >= :searchStartDate");

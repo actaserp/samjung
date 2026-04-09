@@ -643,7 +643,7 @@ public class PopupController {
 				DRAWING_NO ,
 				GUBUN ,
 				unit,
-				spec,
+				SPEC,
 				PART_SIZE
 				from TB_CA662
 				where 1=1

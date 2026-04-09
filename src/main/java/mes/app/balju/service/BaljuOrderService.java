@@ -100,17 +100,19 @@ public class BaljuOrderService {
                h.PROCD, p.PROJECT_NM, h.REMARK01, tx.cltnm 
        ),
        first_pmapseq AS (
-       SELECT d.BALJUNUM, d.PMAPSEQ, d.PNAME, d.punit,d.psize
+       SELECT d.BALJUNUM, d.PMAPSEQ, d.PNAME, d.punit,d.psize, d.pspec
        FROM (
-           SELECT BALJUNUM, PMAPSEQ, PNAME, punit,psize,
+          SELECT c1.BALJUNUM, c1.PMAPSEQ, c1.PNAME, c2.unit as punit, c2.PART_SIZE as psize, c2.SPEC as pspec,
                   ROW_NUMBER() OVER (PARTITION BY BALJUNUM ORDER BY BALJUSEQ ASC) AS rn
-           FROM TB_CA661
+           FROM TB_CA661 c1
+		   left join tb_ca662 c2 on c1.PCODE = c2.PART_NO
        ) d
        WHERE rn = 1
    )
        SELECT
            m.*,
            f.psize ,
+           f.pspec,
            f.PMAPSEQ AS pmapseq,
            f.PNAME AS pname,
            f.punit as punit
@@ -160,12 +162,14 @@ public class BaljuOrderService {
         d.pcode,
         d.procd ,
         d.PNAME as txtPname,
-        d.psize,
+        c2.part_size as psize,
+        c2.SPEC as pspec,
         d.pqty, d.punit,
         d.puamt,d.pamt, d.pmapseq, d.remark,
         d.chulflag, d.facflag, d.hyunflag
         from tb_ca660 h
         left join tb_ca661 d on h.BALJUNUM = d.BALJUNUM and d.BALJUDATE = h.BALJUDATE
+        left join tb_ca662 c2 on d.PCODE = c2.PART_NO
         left join tb_ca664 p on h.PROCD = p.PROJECT_NO
         left join tb_ja001 jp on h.PERNM = jp.pernm
         left join tb_ja001 jb on jb.pernm = h.CLTPERNM
@@ -218,6 +222,7 @@ public class BaljuOrderService {
       item.put("procd", row.get("procd"));
       item.put("punit", row.get("punit"));
       item.put("txtPname", row.get("txtPname"));
+      item.put("pspec", row.get("pspec"));
       item.put("psize", row.get("psize"));
       item.put("pqty", row.get("pqty"));
       item.put("puamt", row.get("puamt"));

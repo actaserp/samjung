@@ -35,8 +35,9 @@ public class BalJuListServicr {
           d.pmapseq,
           d.pname,
           d.PCODE,
-          d.punit,
-          d.psize,
+          c2.unit as punit,
+		  c2.spec as pspec,
+          c2.PART_SIZE as psize,
           d.pqty,
           d.puamt,
           d.pamt,
@@ -69,6 +70,7 @@ public class BalJuListServicr {
              total_amt.TOTAL_PAMT
         FROM TB_CA661 d
         JOIN TB_CA660 h ON d.BALJUNUM = h.BALJUNUM
+        left join tb_ca662 c2 on d.PCODE = c2.PART_NO
         LEFT JOIN (
           SELECT BALJUNUM, SUM(PAMT) AS TOTAL_PAMT
           FROM TB_CA661
@@ -117,8 +119,9 @@ public class BalJuListServicr {
     String sql= """
         SELECT
           d.pname,
-          d.psize,
-          d.punit,
+          c2.unit as punit,
+		  c2.spec as pspec,
+          c2.PART_SIZE as psize,
           c.cltnm,
           STUFF(STUFF( h.baljudate, 5, 0, '-'), 8, 0, '-') AS baljudate,
           d.pqty,
@@ -129,6 +132,7 @@ public class BalJuListServicr {
         FROM TB_CA661 d
         JOIN TB_CA660 h ON d.BALJUNUM = h.BALJUNUM
         LEFT JOIN TB_XCLIENT c ON c.cltcd = h.cltcd
+        left join tb_ca662 c2 on d.PCODE = c2.PART_NO
          where 1=1
         """;
 

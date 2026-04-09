@@ -436,20 +436,21 @@
             <colgroup>
               <col style="width: 7%">
               <col style="width: 18%">
-              <col style="width: 16%">
+              <col style="width: 11%">
+              <col style="width: 11%">
               <col style="width: 6%">
-              <col style="width: 6%">
-              <col style="width: 12%">
-              <col style="width: 12%">
-              <col style="width: 12%">
-              <col style="width: 12%">
-              <col style="width: 4%">
+              <col style="width: 8%">
+              <col style="width: 8%">
+              <col style="width: 9%">
+              <col style="width: 8%">
+              <col style="width: 10%">
             </colgroup>
             <thead>
               <tr id="itemHeaderRow">
                 <th>품목코드</th>
                 <th>품명</th>
                 <th>규격</th>
+                <th>사이즈</th>
                 <th>단위</th>
                 <th>수량</th>
                 <th>단가</th>
@@ -481,7 +482,8 @@
                   </a>
                 </div>
               </td>
-              <td><input type="text" name="psize" placeholder="규격" /></td>
+              <td><input type="text" name="pspec" placeholder="규격" /></td>
+              <td><input type="text" name="psize" placeholder="사이즈" /></td>
               <td><input type="text" name="punit" placeholder="단위" /></td>
               <td><input type="text" name="pqty" placeholder="수량" /></td>
               <td>
@@ -643,7 +645,8 @@
         // ✅ 변경 후 (PopPart에서 넘어오는 실제 필드명)
         $row.find('input[name^="txtPname"]').val(item.PART_NM);
         $row.find('input[name^="pcode"]').val(item.PART_NO);
-        $row.find('input[name^="psize"]').val(item.PART_SIZE);
+        $row.find('input[name^="pspec"]').val(item.SPEC);
+         $row.find('input[name^="psize"]').val(item.PART_SIZE);
         $row.find('input[name^="punit"]').val(item.unit);
         $row.find('input[name^="pmapseq"]').val(item.DRAWING_NO);
 
@@ -731,7 +734,8 @@
             {binding: 'ACTNM', header: '현장명', width: 170, align: 'center'},
             {binding: 'ichdate', header: '납기일자', width: 120, align: 'right'},
             {binding: 'pname', header: '품명', width: 120, align: 'left'},
-            {binding: 'psize', header: '규격', width: 120, align: 'left'},
+            {binding: 'pspec', header: '규격', width: 120, align: 'left'},
+            {binding: 'psize', header: '사이즈', width: 120, align: 'left'},
             {binding: 'punit', header: '단위', width: 70, align: 'center', format: 'n0'},
             {binding: 'pqty', header: '수량', width: 80, align: 'right', format: 'n0'},
             {binding: 'puamt', header: '단가', width: 100, align: 'right',format: 'n0'},
@@ -793,7 +797,7 @@
 
               result.data['mode'] = 'edit';
               _this.showBaljuForm(result.data);
-              // console.log("팝업 응답 JSON:", JSON.stringify(result.data, null, 2));
+              console.log("팝업 응답 JSON:", JSON.stringify(result.data, null, 2));
             };
             AjaxUtil.getAsyncData(_this.url + '/detail', data, fnsuccess);
           } else if (items.length > 1) {
@@ -1368,7 +1372,8 @@
               bpid: $row.find('input[name^="bpid_"]').val(),              // 품목ID (hidden)
               pcode: $row.find('input[name^="pcode_"]').val(),            // 품목코드
               pname: $row.find('input[name^="txtPname_"]').val(),         // 품명
-              psize: $row.find('input[name^="psize_"]').val(),            // 규격
+              pspec: $row.find('input[name^="pspec_"]').val(),            // 규격
+              psize: $row.find('input[name^="pzize_"]').val(),            // 사이즈
               punit: $row.find('input[name^="punit_"]').val(),            // 규격
               quantity: $row.find('input[name^="pqty_"]').val().replace(/,/g, ''), // 수량
               unit_price: $row.find('input[name^="puamt_"]').val().replace(/,/g, ''), // 단가
@@ -1378,7 +1383,7 @@
             };
 
             itemRows.push(item);
-            // console.log("📦 저장할 itemRows:", itemRows);
+            console.log("📦 저장할 itemRows:", itemRows);
 
             if (unitPrice && unitPrice !== formerUnitPrice) {
               priceSaveList.push({
@@ -1494,12 +1499,15 @@
               }
             });
 
+            console.log('detail item', item);
+
             // 데이터 바인딩
             $newRow.find('input[name^="pcode_"]').val(item.pcode);
             $newRow.find('input[name^="bpid_"]').val(item.bpid);
             $newRow.find('input[name^="punit_"]').val(item.punit);
             $newRow.find('input[name^="BALJUSEQ_"]').val(item.BALJUSEQ);
             $newRow.find('input[name^="txtPname_"]').val(item.txtPname);
+            $newRow.find('input[name^="pspec_"]').val(item.pspec);
             $newRow.find('input[name^="psize_"]').val(item.psize);
             $newRow.find('input[name^="pqty_"]').val(item.pqty);
             $newRow.find('input[name^="puamt_"]').val(item.puamt);
@@ -1631,6 +1639,7 @@
               $targetRow.find('input[name^="txtPname"]').val(item.PART_NM); //품명
               $targetRow.find('input[name^="bpid"]').val(item.bpid);
               $targetRow.find('input[name^="pcode"]').val(item.PART_NO);
+              $targetRow.find('input[name^="pspec"]').val(item.SPEC);  //규격
               $targetRow.find('input[name^="psize"]').val(item.PART_SIZE);  //규격
               $targetRow.find('input[name^="punit"]').val(item.unit);
               $targetRow.find('input[name^="pmapseq"]').val(item.DRAWING_NO);
@@ -1678,6 +1687,7 @@
 
           const focusOrder = [
             'txtPname_',
+            'pspec_',
             'psize_',
             'pqty_',
             'puamt_',

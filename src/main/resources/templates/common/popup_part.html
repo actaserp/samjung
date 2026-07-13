@@ -92,8 +92,14 @@
 
         let result = AjaxUtil.getSyncData(url, data);
         if (result) {
+          // 동일 PART_NO가 여러 BOM 행에 존재(=다중 BOM 매칭)하는지 계산 → 자동 BOM 수량 바인딩 제외용 태깅
+          const partNoCount = {};
+          result.data.forEach(item => {
+            partNoCount[item.PART_NO] = (partNoCount[item.PART_NO] || 0) + 1;
+          });
           result.data.forEach(item => {
             item.check = false;
+            item._bomAmbiguous = partNoCount[item.PART_NO] > 1;
           });
           _this.viewData.sourceCollection = result.data;
           // 첫 번째 행으로 포커스 이동
@@ -195,7 +201,7 @@
             _this.searchDataBind();
           });
 
-          $('#btnpartSearch').click();
+         $('#btnpartSearch').click();
 
           this.$btnCompSelect.click(function (e) {
             // ✅ check === true인 항목만 필터링

@@ -86,7 +86,7 @@ public class BaljuOrderController {
 
     try {
       Integer balJunum = CommonUtil.tryIntNull(payload.get("BALJUNUM"));
-      //log.info("📌 BALJUNUM: {}", balJunum);
+//      log.info("📌 BALJUNUM: {}", balJunum);
       String rawIchdate = (String) payload.get("ichdate");
       String ichdate = rawIchdate != null ? rawIchdate.replaceAll("-", "") : null;
       String spjangcd = user.getSpjangcd();
@@ -183,6 +183,10 @@ public class BaljuOrderController {
           detail.setFacflag("0");
           detail.setHyunflag("0");
           detail.setRemark((String) item.get("remark"));
+          Object bomQty = item.get("bom_pqty");
+          detail.setBomPqty(bomQty == null || bomQty.toString().isBlank()
+                              ? null
+                              : new java.math.BigDecimal(bomQty.toString().replace(",", "")));
 
           tb_ca661repository.save(detail);
 //          log.info("✅ 상세 저장 완료: {}", item.get("pcode"));
@@ -1048,7 +1052,7 @@ public class BaljuOrderController {
   @GetMapping("/getUnitPrice")
   public AjaxResult getUnitPrice(@RequestParam(value = "partName") String partName,
                                  @RequestParam(value = "partSize") String partSize) {
-//    log.info("단가 조회 :partName:{},partSize:{}",partName, partSize);
+    log.info("단가 조회 :partName:{},partSize:{}",partName, partSize);
     List<Map<String, Object>> items = this.baljuOrderService.getUnitPrice(partName, partSize);
 
     AjaxResult result = new AjaxResult();
@@ -1056,6 +1060,8 @@ public class BaljuOrderController {
     result.data = items;
     return result;
   }
+
+
 
 }
 

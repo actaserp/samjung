@@ -85,4 +85,7 @@ public class TB_CA661 { //외주발주상세관리
 
   @Column(name = "HYUNPERNM")
   private String hyunpernm;   //공장확인자
+
+  @Column(name = "BOM_PQTY")
+  private java.math.BigDecimal bomPqty;
 }

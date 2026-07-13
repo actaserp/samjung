@@ -621,48 +621,52 @@ public class PopupController {
 
 	@RequestMapping("/search_part")
 	public AjaxResult getSearch_part(
-			@RequestParam(value = "PART_NM", required = false) String PART_NM,
-			@RequestParam(value = "PART_NO", required = false) String PART_NO,
-			@RequestParam(value = "eco_no", required = false) String eco_no){
+		@RequestParam(value = "PART_NM", required = false) String PART_NM,
+		@RequestParam(value = "PART_NO", required = false) String PART_NO,
+		@RequestParam(value = "eco_no", required = false) String eco_no){
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue("PART_NM", PART_NM);
 		paramMap.addValue("PART_NO", PART_NO);
 		paramMap.addValue("eco_no", eco_no);
-//		log.info("PART_NM:{},PART_NO:{},eco_no:{}", PART_NM, PART_NO, eco_no);
+// log.info("PART_NM:{},PART_NO:{},eco_no:{}", PART_NM, PART_NO, eco_no);
 		AjaxResult result = new AjaxResult();
 
 		String sql = """
-			select
-				bpid ,
-				eco_no,
-				PART_NO ,
-				PART_NM ,
-				BLOCK_NO ,
-				G_NO ,
-				DRAWING_NO ,
-				GUBUN ,
-				unit,
-				SPEC,
-				PART_SIZE
-				from TB_CA662
-				where 1=1
-    """;
+		select
+			 a.bpid ,
+			 a.eco_no,
+			 a.PART_NO ,
+			 a.PART_NM ,
+			 a.BLOCK_NO ,
+			 a.G_NO ,
+			 a.DRAWING_NO ,
+			 a.GUBUN ,
+			 a.unit,
+			 a.SPEC,
+			 a.PART_SIZE,
+			 b.QTY
+			 from TB_CA662 a
+			 left join TB_CA663 b
+							on b.ECO_NO = a.ECO_NO
+						 and b.CHILD_NO = a.PART_NO
+			 where 1=1
+  	""";
 
 		if (eco_no != null && !eco_no.isEmpty()) {
-			sql += " and eco_no like :eco_no ";
+			sql += " and a.eco_no like :eco_no ";
 			paramMap.addValue("eco_no", "%" + eco_no + "%");
 		}
 		if (PART_NM != null && !PART_NM.isEmpty()) {
-			sql += " and PART_NM like :PART_NM ";
+			sql += " and UPPER(a.PART_NM) like UPPER(:PART_NM) ";
 			paramMap.addValue("PART_NM", "%" + PART_NM + "%");
 		}
 
 		if (PART_NO != null && !PART_NO.isEmpty()) {
-			sql += " and PART_NO like :PART_NO ";
+			sql += " and a.PART_NO like :PART_NO ";
 			paramMap.addValue("PART_NO", "%" + PART_NO + "%");
 		}
-		sql += " ORDER BY bpid ASC ";
+		sql += " ORDER BY a.bpid ASC ";
 
 		result.data = this.sqlRunner.getRows(sql, paramMap);
 		return result;

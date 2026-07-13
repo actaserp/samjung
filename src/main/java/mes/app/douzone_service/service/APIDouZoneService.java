@@ -271,6 +271,15 @@ public class APIDouZoneService {
 				// N은 상수 조건이라 파라미터 불필요
 			}
 		}
+//		log.info(">>> price_type 분기 진입값: [{}]", price_type);
+//		if (price_type != null && !price_type.isBlank() && !"all".equalsIgnoreCase(price_type)) {
+//			log.info(">>> 분기 진입 성공");
+//			if ("Y".equalsIgnoreCase(price_type)) {
+//				log.info(">>> Y 분기");
+//			} else if ("N".equalsIgnoreCase(price_type)) {
+//				log.info(">>> N 분기");
+//			}
+//		}
 //		log.info("비용 read SQL: {}", sql);
 //    log.info("SQL Parameters: {}", param.getValues());
 		return sqlRunner.getRows(sql, param);

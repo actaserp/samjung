@@ -164,7 +164,7 @@ public class BaljuOrderService {
         d.PNAME as txtPname,
         c2.part_size as psize,
         c2.SPEC as pspec,
-        d.pqty, d.punit,
+        d.pqty, d.punit,d.bom_pqty,
         d.puamt,d.pamt, d.pmapseq, d.remark,
         d.chulflag, d.facflag, d.hyunflag
         from tb_ca660 h
@@ -232,6 +232,7 @@ public class BaljuOrderService {
       item.put("chulflag", row.get("chulflag"));
       item.put("facflag", row.get("facflag"));
       item.put("hyunflag", row.get("hyunflag"));
+      item.put("bom_pqty", row.get("bom_pqty"));
 
       items.add(item);
     }

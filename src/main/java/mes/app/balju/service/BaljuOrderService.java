@@ -135,15 +135,15 @@ public class BaljuOrderService {
         select
         h.BALJUNUM,
         h.PROCD as project_no,
-        p.PROJECT_NM ,
+        p.PROJECT_NM,
         STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-') as ichdate,
         h.PERNM as pernm,
-        h.BALJUDATE ,
+        h.BALJUDATE,
         jp.rspcd as pernm_rspcdcd,
         pz.rspnm as pernm_rspcd,
         jp.perid as pernmcd,
         h.PERTELNO as pertelno,
-        h.actcd, 
+        h.actcd,
         h.ACTNM as actnm,
         h.ACTADDRESS as actaddress,
         h.CLTCD as cltcd,
@@ -156,26 +156,31 @@ public class BaljuOrderService {
         h.CLTEMAIL as cltemail,
         h.remark01,
         h.remark02,
-        h.remark01,
         h.remark03,
         d.BALJUSEQ,
         d.pcode,
-        d.procd ,
+        d.procd,
         d.PNAME as txtPname,
-        c2.part_size as psize,
+        c2.PART_SIZE as psize,
         c2.SPEC as pspec,
-        d.pqty, d.punit,d.bom_pqty,
-        d.puamt,d.pamt, d.pmapseq, d.remark,
+        d.pqty, d.punit, d.bom_pqty,
+        d.puamt, d.pamt, d.pmapseq, d.remark,
         d.chulflag, d.facflag, d.hyunflag
         from tb_ca660 h
-        left join tb_ca661 d on h.BALJUNUM = d.BALJUNUM and d.BALJUDATE = h.BALJUDATE
-        left join tb_ca662 c2 on d.PCODE = c2.PART_NO
+        left join tb_ca661 d
+            on h.BALJUNUM = d.BALJUNUM and d.BALJUDATE = h.BALJUDATE
+        outer apply (
+            select top 1 x.PART_SIZE, x.SPEC
+            from tb_ca662 x
+            where x.PART_NO = d.PCODE
+            order by x.BPDATE desc, x.BPID desc
+        ) c2
         left join tb_ca664 p on h.PROCD = p.PROJECT_NO
         left join tb_ja001 jp on h.PERNM = jp.pernm
         left join tb_ja001 jb on jb.pernm = h.CLTPERNM
         left join tb_pz001 pz on pz.RSPCD = jp.rspcd
-        left join TB_XCLIENT c on c.cltcd =h.CLTCD
-        where h.BALJUNUM = :baljunum;
+        left join TB_XCLIENT c on c.cltcd = h.CLTCD
+        where h.BALJUNUM = :baljunum
         """;
 //    log.info("발주상세 데이터 SQL: {}", sql);
 //    log.info("SQL Parameters: {}", paramMap.getValues());

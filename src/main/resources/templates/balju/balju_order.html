@@ -803,7 +803,7 @@
 
         result.data['mode'] = 'edit';
         _this.showBaljuForm(result.data);
-        console.log("팝업 응답 JSON:", JSON.stringify(result.data, null, 2));
+        // console.log("팝업 응답 JSON:", JSON.stringify(result.data, null, 2));
        };
        AjaxUtil.getAsyncData(_this.url + '/detail', data, fnsuccess);
       } else if (items.length > 1) {
@@ -1053,7 +1053,7 @@
       let poppage = new PopCompComponentPurchase();
       let $poppage = $(poppage);
       let searchcallback = function (items) {
-       console.log('btnCompanySearch', items);
+       // console.log('btnCompanySearch', items);
        $content.find('#cltcd').val(items.cltcd);
        $content.find('#CompanyName').val(items.cltnm);
        $content.find('#cltemail').val(items.taxmail);
@@ -1164,7 +1164,7 @@
       let poppage = new Popacmtnm();
       let $poppage = $(poppage);
       let searchcallback = function (items) {
-       console.log('현장 팝업', items);
+       // console.log('현장 팝업', items);
        $content.find('#actnm').val(items.actnm);
        $content.find('#actcd').val(items.actcd);
        $content.find('#actaddress').val(items.address);
@@ -1179,7 +1179,7 @@
       let poppage = new PopProjectList();
       let $poppage = $(poppage);
       let searchcallback = function (items) {
-       console.log('프로젝트목록 팝업', items);
+       // console.log('프로젝트목록 팝업', items);
        $content.find('#procd').val(items.BOMID);
        $content.find('#eco_no').val(items.eco_no);
        $content.find('#project_no').val(items.project_no);
@@ -1275,13 +1275,13 @@
        cboBaljuType: $row.find('input[name^="BalJuHeadType"]').val()
       };
 
-      console.log("🔍 저장될 항목:", item);
+      // console.log("🔍 저장될 항목:", item);
       itemList.push(item);
      });
 
      //단가 검색
      function tryShowBaljuPrice(row) {
-      console.log('★ tryShowBaljuPrice 호출됨 - 이게 warn 범인');
+     // console.log('★ tryShowBaljuPrice 호출됨 - 이게 warn 범인');
       const $unitPrice = row.find('input[name^="BaljuUnitPrice_"]');
       const $supply = row.find('input[name^="BaljuPrice_"]');
       const $vat = row.find('input[name^="BaljuVat_"]');
@@ -1290,7 +1290,7 @@
       const company_id = $('#cboCompany').val();
       const baljudate = $('#baljudate').val();
 
-      console.log('[단가 조회] 호출됨', { mat_pk, company_id, baljudate });
+      //console.log('[단가 조회] 호출됨', { mat_pk, company_id, baljudate });
 
       if (!mat_pk || !company_id || !baljudate) {
        console.warn('[단가 조회] 필수값 누락으로 요청 취소');
@@ -1300,7 +1300,7 @@
       AjaxUtil.getAsyncData('/api/balju/balju_order/getUnitPrice', {
        mat_pk, company_id, baljudate
       }, function (result) {
-       console.log('[단가 조회 결과]', result);
+       //console.log('[단가 조회 결과]', result);
 
        if (result?.data?.length) {
         const item = result.data[0];
@@ -1391,7 +1391,7 @@
        };
 
        itemRows.push(item);
-       console.log("📦 저장할 itemRows:", itemRows);
+       //console.log("📦 저장할 itemRows:", itemRows);
 
        if (unitPrice && unitPrice !== formerUnitPrice) {
         priceSaveList.push({
@@ -1507,7 +1507,7 @@
         }
        });
 
-       console.log('detail item', item);
+       // console.log('detail item', item);
 
        // 데이터 바인딩
        $newRow.find('input[name^="pcode_"]').val(item.pcode);
@@ -1595,7 +1595,7 @@
        selectedItems = selectedItems.filter(Boolean);
        if (selectedItems.length === 0) return;
 
-       console.log('선택된 품목 목록:', selectedItems);
+       // console.log('선택된 품목 목록:', selectedItems);
 
        // ⚠️ 콜백 시점의 최신 행을 다시 조회 (동적 추가 행 반영)
        const $rows = $tbody.find('tr:not(.item-template-row)');
@@ -1605,7 +1605,7 @@
        const existingPartNos = $rows.map(function () {
         return $(this).find('input[name^="pcode"]').val();
        }).get().filter(v => v && v.trim() !== '');
-       console.log('현재 테이블에 있는 품목코드 목록:', existingPartNos);
+       // console.log('현재 테이블에 있는 품목코드 목록:', existingPartNos);
 
        // 클릭한 행을 제외한 빈 행 목록
        const $emptyRows = $rows.filter(function () {

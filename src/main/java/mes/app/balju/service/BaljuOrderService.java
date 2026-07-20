@@ -23,7 +23,7 @@ public class BaljuOrderService {
   @Autowired
   SqlRunner sqlRunner;
 
-  public List<Map<String, Object>> getBaljuList(String date_kind, Timestamp start, Timestamp end, String spjangcd,String CompanyName) {
+  public List<Map<String, Object>> getBaljuList(String date_kind, Timestamp start, Timestamp end, String spjangcd, String CompanyName) {
     MapSqlParameterSource param = new MapSqlParameterSource();
 
     param.addValue("CompanyName", CompanyName);
@@ -32,54 +32,55 @@ public class BaljuOrderService {
     param.addValue("end", end);
 
     String sql = """
-    WITH main_data AS (
-        SELECT
-            h.BALJUNUM,
-            h.CUSTCD,
-            h.SPJANGCD,
-            STUFF(STUFF(h.BALJUDATE, 5, 0, '-'), 8, 0, '-') AS BALJUDATE,
-            h.CLTCD,
-             tx.cltnm ,
-            h.PROCD as project_no,
-            STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-') as ichdate,
-            h.PERNM,
-            h.PERTELNO,
-            h.ACTCD,
-            h.ACTNM,
-            h.ACTADDRESS,
-            h.CLTPERNM,
-            h.CLTJIK,
-            h.CLTTELNO,
-            h.CLTEMAIL,
-            p.PROJECT_NM,
-            h.REMARK01 as remark,
-            SUM(d.PQTY)    AS pqty,
-            SUM(d.PUAMT)   AS puamt,
-            SUM(d.PAMT)    AS pamt,
-            -- 출고 상태
-            CASE
-              WHEN COUNT(*) = SUM(CASE WHEN d.CHULFLAG = '1' THEN 1 ELSE 0 END) THEN '출고'
-              WHEN SUM(CASE WHEN d.CHULFLAG = '1' THEN 1 ELSE 0 END) = 0 THEN '미출고'
-              ELSE '부분 출고'
-            END AS chulflag,
-            -- 공장 상태
-            CASE
-              WHEN COUNT(*) = SUM(CASE WHEN d.FACFLAG = '1' THEN 1 ELSE 0 END) THEN '출고'
-              WHEN SUM(CASE WHEN d.FACFLAG = '1' THEN 1 ELSE 0 END) = 0 THEN '미출고'
-              ELSE '부분 출고'
-            END AS facflag,
-            -- 현장 상태
-            CASE
-              WHEN COUNT(*) = SUM(CASE WHEN d.HYUNFLAG = '1' THEN 1 ELSE 0 END) THEN '확인'
-              WHEN SUM(CASE WHEN d.HYUNFLAG = '1' THEN 1 ELSE 0 END) = 0 THEN '미확인'
-              ELSE '부분 확인'
-            END AS hyunflag
-        FROM TB_CA660 h
-        JOIN TB_CA661 d ON h.BALJUNUM = d.BALJUNUM
-        JOIN TB_CA664 p ON p.PROJECT_NO = h.PROCD
-        join TB_XCLIENT tx  on h.CLTCD = tx.cltcd 
-        WHERE h.SPJANGCD = :spjangcd
-    """;
+  WITH main_data AS (
+      SELECT
+          h.BALJUNUM,
+          h.CUSTCD,
+          h.SPJANGCD,
+          STUFF(STUFF(h.BALJUDATE, 5, 0, '-'), 8, 0, '-') AS BALJUDATE,
+          h.CLTCD,
+          tx.cltnm,
+          h.PROCD as project_no,
+          STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-') as ichdate,
+          h.PERNM,
+          h.PERTELNO,
+          h.ACTCD,
+          h.ACTNM,
+          h.ACTADDRESS,
+          h.CLTPERNM,
+          h.CLTJIK,
+          h.CLTTELNO,
+          h.CLTEMAIL,
+          p.PROJECT_NM,
+          h.REMARK01 as remark,
+          SUM(d.PQTY)    AS pqty,
+          SUM(d.PUAMT)   AS puamt,
+          SUM(d.PAMT)    AS pamt,
+          COUNT(*) AS item_cnt,
+          -- 출고 상태
+          CASE
+            WHEN COUNT(*) = SUM(CASE WHEN d.CHULFLAG = '1' THEN 1 ELSE 0 END) THEN '출고'
+            WHEN SUM(CASE WHEN d.CHULFLAG = '1' THEN 1 ELSE 0 END) = 0 THEN '미출고'
+            ELSE '부분 출고'
+          END AS chulflag,
+          -- 공장 상태
+          CASE
+            WHEN COUNT(*) = SUM(CASE WHEN d.FACFLAG = '1' THEN 1 ELSE 0 END) THEN '출고'
+            WHEN SUM(CASE WHEN d.FACFLAG = '1' THEN 1 ELSE 0 END) = 0 THEN '미출고'
+            ELSE '부분 출고'
+          END AS facflag,
+          -- 현장 상태
+          CASE
+            WHEN COUNT(*) = SUM(CASE WHEN d.HYUNFLAG = '1' THEN 1 ELSE 0 END) THEN '확인'
+            WHEN SUM(CASE WHEN d.HYUNFLAG = '1' THEN 1 ELSE 0 END) = 0 THEN '미확인'
+            ELSE '부분 확인'
+          END AS hyunflag
+      FROM TB_CA660 h
+      JOIN TB_CA661 d ON h.BALJUNUM = d.BALJUNUM
+      JOIN TB_CA664 p ON p.PROJECT_NO = h.PROCD
+      join TB_XCLIENT tx on h.CLTCD = tx.cltcd
+      WHERE h.SPJANGCD = :spjangcd
+  """;
 
     // 날짜 조건
     if ("sales".equalsIgnoreCase(date_kind)) {
@@ -93,33 +94,42 @@ public class BaljuOrderService {
     }
 
     sql += """
-    GROUP BY
-               h.BALJUNUM, h.CUSTCD, h.SPJANGCD, h.BALJUDATE, h.CLTCD, h.ICHDATE,
-               h.PERNM, h.PERTELNO, h.ACTCD, h.ACTNM, h.ACTADDRESS,
-               h.CLTPERNM, h.CLTJIK, h.CLTTELNO, h.CLTEMAIL,
-               h.PROCD, p.PROJECT_NM, h.REMARK01, tx.cltnm 
-       ),
-       first_pmapseq AS (
-       SELECT d.BALJUNUM, d.PMAPSEQ, d.PNAME, d.punit,d.psize, d.pspec
-       FROM (
-          SELECT c1.BALJUNUM, c1.PMAPSEQ, c1.PNAME, c2.unit as punit, c2.PART_SIZE as psize, c2.SPEC as pspec,
-                  ROW_NUMBER() OVER (PARTITION BY BALJUNUM ORDER BY BALJUSEQ ASC) AS rn
-           FROM TB_CA661 c1
-		   left join tb_ca662 c2 on c1.PCODE = c2.PART_NO
-       ) d
-       WHERE rn = 1
-   )
-       SELECT
-           m.*,
-           f.psize ,
-           f.pspec,
-           f.PMAPSEQ AS pmapseq,
-           f.PNAME AS pname,
-           f.punit as punit
-       FROM main_data m
-       LEFT JOIN first_pmapseq f ON m.BALJUNUM = f.BALJUNUM
-       ORDER BY m.BALJUDATE ASC
-    """;
+  GROUP BY
+             h.BALJUNUM, h.CUSTCD, h.SPJANGCD, h.BALJUDATE, h.CLTCD, h.ICHDATE,
+             h.PERNM, h.PERTELNO, h.ACTCD, h.ACTNM, h.ACTADDRESS,
+             h.CLTPERNM, h.CLTJIK, h.CLTTELNO, h.CLTEMAIL,
+             h.PROCD, p.PROJECT_NM, h.REMARK01, tx.cltnm
+     ),
+     first_pmapseq AS (
+     SELECT d.BALJUNUM, d.PMAPSEQ, d.PNAME, d.punit, d.psize, d.pspec, d.pcode, d.remark ,  d.G_NO
+     FROM (
+        SELECT c1.BALJUNUM, c1.PMAPSEQ, c1.PNAME,
+                c2.unit as punit, c2.PART_SIZE as psize, c2.SPEC as pspec,
+                c1.PCODE as pcode, c1.REMARK as remark, c2.G_NO,
+                ROW_NUMBER() OVER (PARTITION BY BALJUNUM ORDER BY BALJUSEQ ASC) AS rn
+         FROM TB_CA661 c1
+         left join tb_ca662 c2 on c1.PCODE = c2.PART_NO
+     ) d
+     WHERE rn = 1
+ )
+     SELECT
+          m.*,
+          f.psize,
+          f.pspec,
+          f.PMAPSEQ AS pmapseq,
+          f.PNAME AS pname,
+          CASE WHEN m.item_cnt > 1
+               THEN f.PNAME + ' 외 ' + CAST(m.item_cnt - 1 AS varchar(10)) + '건'
+               ELSE f.PNAME
+          END AS pname_display,
+          f.punit as punit,
+          f.pcode as pcode,
+          f.remark as detail_remark,
+          f.G_NO as g_no
+      FROM main_data m
+      LEFT JOIN first_pmapseq f ON m.BALJUNUM = f.BALJUNUM
+      ORDER BY m.BALJUDATE ASC
+  """;
 
 //    log.info("발주 read SQL: {}", sql);
 //    log.info("SQL Parameters: {}", param.getValues());

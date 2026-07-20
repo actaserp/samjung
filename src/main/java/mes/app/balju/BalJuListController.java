@@ -30,7 +30,7 @@ public class BalJuListController {
                                  @RequestParam(value = "start", required = false )String start_date,
                                  @RequestParam(value = "end", required = false)String end_date,
                                  Authentication auth){
-    //log.info("발주 상세 list들어옴");
+    //log.info("발주 list들어옴");
     User user = (User) auth.getPrincipal();
     String spjangcd = user.getSpjangcd();
 

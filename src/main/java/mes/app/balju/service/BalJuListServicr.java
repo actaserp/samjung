@@ -34,10 +34,11 @@ public class BalJuListServicr {
         d.BALJUSEQ,
         d.pmapseq,
         d.pname,
-        d.PCODE,
+        d.PCODE ,
         c2.unit as punit,
         c2.spec as pspec,
         c2.PART_SIZE as psize,
+        c2.G_NO as g_no,
         d.pqty,
         d.puamt,
         d.pamt,
@@ -70,7 +71,7 @@ public class BalJuListServicr {
       FROM TB_CA661 d
       JOIN TB_CA660 h ON d.BALJUNUM = h.BALJUNUM
       OUTER APPLY (
-        SELECT TOP 1 x.UNIT, x.SPEC, x.PART_SIZE
+        SELECT TOP 1 x.UNIT, x.SPEC, x.PART_SIZE,x.G_NO
         FROM tb_ca662 x
         WHERE x.PART_NO = d.PCODE
         ORDER BY x.BPDATE DESC, x.BPID DESC
@@ -124,21 +125,24 @@ public class BalJuListServicr {
     String sql = """
       SELECT
         d.pname,
+        d.PCODE,
         c2.unit as punit,
         c2.spec as pspec,
         c2.PART_SIZE as psize,
+        c2.G_NO as g_no,
         c.cltnm,
         STUFF(STUFF(h.baljudate, 5, 0, '-'), 8, 0, '-') AS baljudate,
         d.pqty,
         d.puamt,
         d.pamt,
+        d.remark,
         STUFF(STUFF(h.ICHDATE, 5, 0, '-'), 8, 0, '-') AS ichdate,
         h.actnm
       FROM TB_CA661 d
       JOIN TB_CA660 h ON d.BALJUNUM = h.BALJUNUM
       LEFT JOIN TB_XCLIENT c ON c.cltcd = h.cltcd
       OUTER APPLY (
-        SELECT TOP 1 x.UNIT, x.SPEC, x.PART_SIZE
+        SELECT TOP 1 x.UNIT, x.SPEC, x.PART_SIZE, x.G_NO
         FROM tb_ca662 x
         WHERE x.PART_NO = d.PCODE
         ORDER BY x.BPDATE DESC, x.BPID DESC

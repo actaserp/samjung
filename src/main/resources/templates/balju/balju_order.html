@@ -734,22 +734,25 @@
       columns: [
        {binding: 'BALJUNUM', header: '주문번호', width: 150, visible: false},
        {binding: 'cltnm', header: '발주처', width: 200},
-       {binding: 'BALJUDATE', header: '발주일', width: 120, align: 'center'},
+       {binding: 'BALJUDATE', header: '발주일', width: 110, align: 'center'},
        {binding: 'project_no', header: '프로젝트번호', width: 150 },
-       {binding: 'PERNM', header: '현장 PM', width: 100, align: 'center'},
+       {binding: 'PERNM', header: '현장 PM', width: 85, align: 'center'},
        {binding: 'ACTNM', header: '현장명', width: 170, align: 'center'},
-       {binding: 'ichdate', header: '납기일자', width: 120, align: 'right'},
+       {binding: 'ichdate', header: '납기일자', width: 110, align: 'center'},
+       {binding: 'pcode', header: '품목코드', width: 120, align: 'left'},
        {binding: 'pname', header: '품명', width: 120, align: 'left'},
        {binding: 'pspec', header: '규격', width: 120, align: 'left'},
        {binding: 'psize', header: '사이즈', width: 120, align: 'left'},
-       {binding: 'punit', header: '단위', width: 70, align: 'center', format: 'n0'},
-       {binding: 'pqty', header: '수량', width: 80, align: 'right', format: 'n0'},
+       {binding: 'detail_remark', header: '주석', width: 200, align: 'center'},
+       {binding: 'punit', header: '단위', width: 65, align: 'center', format: 'n0'},
+       {binding: 'pqty', header: '수량', width: 65, align: 'right', format: 'n0'},
        {binding: 'puamt', header: '단가', width: 100, align: 'right',format: 'n0'},
        {binding: 'pamt', header: '금액', width: 100, align: 'right'},
-       {binding: 'pmapseq', header: '도번', width: 120, align: 'right'},
+       {binding: 'g_no', header: 'G_NO', width: 130, align: 'center'},
+       {binding: 'pmapseq', header: '도면번호', width: 120, align: 'center'},
        {binding: 'chulflag', header: '발주처출고여부', width: 120, align: 'center'},
-       {binding: 'facflag', header: '공장출고여부', width: 120, align: 'center'},
-       {binding: 'hyunflag', header: '현장확인여부', width: 120, align: 'center'},
+       {binding: 'facflag', header: '공장출고여부', width: 110, align: 'center'},
+       {binding: 'hyunflag', header: '현장확인여부', width: 110, align: 'center'},
        {binding: 'remark', header: '비고', width: 200, align: 'center'},
       ],
       itemsSource: this.viewData, // 데이터를 설정할 배열
@@ -1664,9 +1667,14 @@
         // BOM 품목(QTY 존재)이면서 다중 BOM 매칭이 아닐 때만 BOM 수량 자동 바인딩
         if (!item._bomAmbiguous) applyBomQty($targetRow, item.QTY);
 
-        // ✅ 비고: 중복 품목일 때만
-        if (item.PART_NO && existingPartNos.includes(item.PART_NO)) {
-         $targetRow.find('input[name^="remark"]').val('이중 발주된 제품');
+        // ✅ 비고: 주석(cmt) + 이중 발주 표시
+        const cmt = (item.cmt || '').trim();
+        const isDup = item.PART_NO && existingPartNos.includes(item.PART_NO);
+
+        if (isDup) {
+         $targetRow.find('input[name^="remark"]').val(cmt ? `이중 발주된 제품 / ${cmt}` : '이중 발주된 제품');
+        } else if (cmt) {
+         $targetRow.find('input[name^="remark"]').val(cmt);
         }
 
         // ✅ 단가 조회: 품명 있을 때만 호출 → 조회 후 금액 계산
@@ -1997,9 +2005,14 @@
     $row.find('input[name^="pmapseq"]').val(item.DRAWING_NO);
     if (!item._bomAmbiguous) applyBomQty($row, item.QTY);   // BOM 수량 → bom_pqty / pqty
 
-    // 이중 발주 표시
-    if (Array.isArray(existingPartNos) && item.PART_NO && existingPartNos.includes(item.PART_NO)) {
-     $row.find('input[name^="remark"]').val('이중 발주된 제품');
+    // 비고: 주석(cmt) + 이중 발주 표시
+    const cmt = (item.cmt || '').trim();
+    const isDup = Array.isArray(existingPartNos) && item.PART_NO && existingPartNos.includes(item.PART_NO);
+
+    if (isDup) {
+     $row.find('input[name^="remark"]').val(cmt ? `이중 발주된 제품 / ${cmt}` : '이중 발주된 제품');
+    } else if (cmt) {
+     $row.find('input[name^="remark"]').val(cmt);
     }
 
     // 단가 조회 (품명 있을 때만) → 조회 후 금액 계산

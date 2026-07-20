@@ -144,7 +144,7 @@
         this.ecoNo = ecoNo;
         let content = tmpl('popup_partSearchTemplate', {});
         let $content = $(content);
-        this.modalContainer.open({width: 800, height: 500, $content});
+        this.modalContainer.open({width: 1250, height: 500, $content});
 
         setTimeout(() => {
 
@@ -168,17 +168,20 @@
             {
               binding: 'check',
               header: '',
-              width: 70,
+              width: 55,
               dataType: 'Boolean', // 중요: Boolean으로 지정
               allowSorting: false,
               align: 'center'
             },
               {binding: 'eco_no', header: 'eco_no', width: 120, align: 'left',visible: false},
-              {binding: 'PART_NO', header: '품목번호', width: 120, align: 'left'},
-              {binding: 'PART_NM', header: '품목명', width: '*', align: 'center'},
+              {binding: 'PART_NO', header: '품목번호', width: 110, align: 'left'},
+              {binding: 'PART_NM', header: '품목명', width: 160, align: 'center'},
               {binding: 'SPEC', header: '규격', width: 100, align: 'left'},
-              {binding: 'PART_SIZE', header: '사이즈', width: 100, align: 'left'},
-              {binding: 'unit', header: '단위', width: 50 , align: 'left'},
+              {binding: 'PART_SIZE', header: '사이즈', width: 120, align: 'left'},
+              {binding: 'unit', header: '단위', width: 65 , align: 'left'},
+              {binding: 'G_NO', header: 'G_NO', width: 120 , align: 'left'},
+              {binding: 'DRAWING_NO', header: '도면번호', width: 120 , align: 'left'},
+              {binding: 'cmt', header: '주석', width: '*' , align: 'left'},
 
             ],
             itemsSource: this.viewData,

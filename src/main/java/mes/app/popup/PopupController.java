@@ -633,24 +633,25 @@ public class PopupController {
 		AjaxResult result = new AjaxResult();
 
 		String sql = """
-		select
-			 a.bpid ,
-			 a.eco_no,
-			 a.PART_NO ,
-			 a.PART_NM ,
-			 a.BLOCK_NO ,
-			 a.G_NO ,
-			 a.DRAWING_NO ,
-			 a.GUBUN ,
-			 a.unit,
-			 a.SPEC,
-			 a.PART_SIZE,
-			 b.QTY
-			 from TB_CA662 a
-			 left join TB_CA663 b
-							on b.ECO_NO = a.ECO_NO
-						 and b.CHILD_NO = a.PART_NO
-			 where 1=1
+			select
+			a.bpid ,
+			a.eco_no,
+			a.PART_NO ,
+			a.PART_NM ,
+			a.BLOCK_NO ,
+			a.G_NO , 
+			a.DRAWING_NO , -- 도면번호
+			a.GUBUN ,
+			a.unit,
+			a.SPEC,
+			a.PART_SIZE,
+			b.QTY,
+			b.CMT as cmt -- 주석
+			from TB_CA662 a
+			left join TB_CA663 b
+						on b.ECO_NO = a.ECO_NO
+					 and b.CHILD_NO = a.PART_NO
+			where 1=1
   	""";
 
 		if (eco_no != null && !eco_no.isEmpty()) {

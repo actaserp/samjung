@@ -443,6 +443,7 @@
               <col style="width: 8%">
               <col style="width: 8%">
               <col style="width: 8%">
+              <col style="width: 8%">
               <col style="width: 9%">
               <col style="width: 10%">
               <col style="width: 4%">
@@ -458,6 +459,7 @@
                 <th>수량</th>
                 <th>단가</th>
                 <th>금액</th>
+                <th>G.NO</th>
                 <th>도번</th>
                 <th>비고</th>
                 <th>
@@ -495,6 +497,7 @@
                 <input type="hidden" name="former_price" min="0"/>
               </td>
               <td><input type="text" name="pamt" placeholder="금액"/></td>
+              <td><input type="text" name="g_no" placeholder="G.NO"/></td>
               <td><input type="text" name="pmapseq" placeholder="도번"/></td>
               <td><input type="text" name="remark" placeholder="비고"/></td>
               <td class="al_c item_border">
@@ -656,6 +659,7 @@
       $row.find('input[name^="psize"]').val(item.PART_SIZE);
       $row.find('input[name^="punit"]').val(item.unit);
       $row.find('input[name^="pmapseq"]').val(item.DRAWING_NO);
+      $row.find('input[name^="g_no"]').val(item.G_NO);
       // BOM 품목(QTY 존재)이면서 다중 BOM 매칭이 아닐 때만 BOM 수량 자동 바인딩
       if (!item._bomAmbiguous) applyBomQty($row, item.QTY);
 
@@ -933,7 +937,7 @@
 
       $.ajax({
        url: '/api/balju/balju_order/print/balJuPurchase',
-       type: 'POST', // POST 방식
+       type: 'POST',
        data: {
         BALJUNUM: baljunum
        },
@@ -1005,7 +1009,7 @@
      }
 
      //모달 크기
-     modalContainer.open({width: 1350, height: 630, $content});
+     modalContainer.open({width: 1400, height: 630, $content});
      $('#popSrchDt1').ax5DatePicker({direction: 'top'});
      $('#popSrchDt2').ax5DatePicker({direction: 'top'});
 
@@ -1390,6 +1394,7 @@
         unit_price: $row.find('input[name^="puamt_"]').val().replace(/,/g, ''), // 단가
         amount: $row.find('input[name^="pamt_"]').val().replace(/,/g, ''),     // 금액
         pmapseq: $row.find('input[name^="pmapseq_"]').val(),        // 도번
+        g_no: $row.find('input[name^="g_no_"]').val(),
         remark: $row.find('input[name^="remark_"]').val()           // 비고
        };
 
@@ -1526,6 +1531,7 @@
        $newRow.find('input[name^="former_price_"]').val(item.puamt); // 수정 전 단가 세팅
        $newRow.find('input[name^="pamt_"]').val(item.pamt);
        $newRow.find('input[name^="pmapseq_"]').val(item.pmapseq);
+       $newRow.find('input[name^="g_no_"]').val(item.g_no);
        $newRow.find('input[name^="remark_"]').val(item.remark);
        $newRow.find('input[name^="chulflag_"]').val(item.chulflag);
        $newRow.find('input[name^="facflag_"]').val(item.facflag);
@@ -1664,6 +1670,7 @@
         $targetRow.find('input[name^="psize"]').val(item.PART_SIZE);
         $targetRow.find('input[name^="punit"]').val(item.unit);
         $targetRow.find('input[name^="pmapseq"]').val(item.DRAWING_NO);
+        $targetRow.find('input[name^="g_no"]').val(item.G_NO);
         // BOM 품목(QTY 존재)이면서 다중 BOM 매칭이 아닐 때만 BOM 수량 자동 바인딩
         if (!item._bomAmbiguous) applyBomQty($targetRow, item.QTY);
 
@@ -1723,6 +1730,7 @@
        'pqty_',
        'puamt_',
        'pamt_',
+       'g_no_',
        'pmapseq_',
        'remark_',
       ];
@@ -2003,6 +2011,7 @@
     $row.find('input[name^="psize"]').val(item.PART_SIZE);
     $row.find('input[name^="punit"]').val(item.unit);
     $row.find('input[name^="pmapseq"]').val(item.DRAWING_NO);
+    $row.find('input[name^="g_no"]').val(item.G_NO);
     if (!item._bomAmbiguous) applyBomQty($row, item.QTY);   // BOM 수량 → bom_pqty / pqty
 
     // 비고: 주석(cmt) + 이중 발주 표시

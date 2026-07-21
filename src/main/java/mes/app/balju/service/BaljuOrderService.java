@@ -174,7 +174,7 @@ public class BaljuOrderService {
         c2.PART_SIZE as psize,
         c2.SPEC as pspec,
         d.pqty, d.punit, d.bom_pqty,
-        d.puamt, d.pamt, d.pmapseq, d.remark,
+        d.puamt, d.pamt, d.pmapseq, d.g_no, d.remark,
         d.chulflag, d.facflag, d.hyunflag
         from tb_ca660 h
         left join tb_ca661 d
@@ -243,6 +243,7 @@ public class BaljuOrderService {
       item.put("puamt", row.get("puamt"));
       item.put("pamt", row.get("pamt"));
       item.put("pmapseq", row.get("pmapseq"));
+      item.put("g_no", row.get("g_no"));
       item.put("remark", row.get("remark"));
       item.put("chulflag", row.get("chulflag"));
       item.put("facflag", row.get("facflag"));

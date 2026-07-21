@@ -171,6 +171,7 @@ public class BaljuOrderController {
           detail.setFacflag("0");
           detail.setHyunflag("0");
           detail.setRemark((String) item.get("remark"));
+          detail.setG_no((String) item.get("g_no"));
           Object bomQty = item.get("bom_pqty");
           detail.setBomPqty(bomQty == null || bomQty.toString().isBlank()
                               ? null

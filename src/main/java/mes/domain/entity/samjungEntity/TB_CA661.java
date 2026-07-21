@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name="TB_CA661")
@@ -87,5 +88,8 @@ public class TB_CA661 { //외주발주상세관리
   private String hyunpernm;   //공장확인자
 
   @Column(name = "BOM_PQTY")
-  private java.math.BigDecimal bomPqty;
+  private BigDecimal bomPqty;
+
+  @Column(name = "G_NO")
+  private String g_no;
 }

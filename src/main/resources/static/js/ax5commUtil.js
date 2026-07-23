@@ -290,7 +290,7 @@ var Alert = {
                         dialogTitle.appendChild(closeButton);
                     }
 
-                    // 버튼 순서를 변경하는 로직
+                   /* // 버튼 순서를 변경하는 로직
                     const buttonWrap = document.querySelector('.ax-button-wrap');
                     const cancelButton = buttonWrap.querySelector('[data-dialog-btn="cancel"]');
                     const okButton = buttonWrap.querySelector('[data-dialog-btn="ok"]');
@@ -299,7 +299,7 @@ var Alert = {
                     if (cancelButton && okButton) {
                         buttonWrap.appendChild(cancelButton); // 취소 버튼을 먼저 추가
                         buttonWrap.appendChild(okButton);    // 확인 버튼을 뒤에 추가
-                    }
+                    }*/
                 }
                 else if (this.state === 'close') {
                     mask.close();

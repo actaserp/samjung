@@ -144,7 +144,7 @@
             {binding: 'pspec', header: '규격', width: 170, align: 'left'},
             {binding: 'psize', header: '사이즈', width: 170, align: 'left'},
             {binding: 'punit', header: '단위', width: 70, align: 'center'},
-            {binding: 'cltnm', header: '발주처', width: 170},
+            {binding: 'cltnm', header: '거래처', width: 170},
             {binding: 'baljudate', header: '발주일', width: 120, align: 'center'},
             {binding: 'pqty', header: '수량', width: 50, align: 'center', format: 'n0'},
             {binding: 'g_no', header: 'G_NO', width: 130, align: 'center'},
@@ -193,7 +193,7 @@
         let date_kind = $('#cboDateKind').val();  //발주구분
         let start = $('#srchStartDt').val();  //시작일
         let end = $('#srchEndDt').val();      //종료일
-        let txtPname = $('#txtPname').val(); //발주처
+        let txtPname = $('#txtPname').val(); //거래처
         let txtActnm = $('#txtActnm').val(); //현잔 명
 
         let data = {

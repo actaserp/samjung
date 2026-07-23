@@ -55,13 +55,13 @@
           <dl>
             <dt>
               <label for="searchCompanyName">
-                발주처<span class="eq">*</span>
+                거래처<span class="eq">*</span>
               </label>
             </dt>
             <dd>
               <div class="srch-box">
                 <input type="text" id="searchCompanyName" name="searchCompanyName" class="input-srch"
-                       placeholder="발주처" style="border-radius: 5px; width: 120px;">
+                       placeholder="거래처" style="border-radius: 5px; width: 120px;">
               </div>
             </dd>
           </dl>
@@ -381,7 +381,7 @@
           </tr>
           <tr>
             <th style="text-align: center">
-              <label for="cboCompany">발주처*</label>
+              <label for="cboCompany">거래처*</label>
             </th>
             <td>
               <div class="input-with-button">
@@ -399,8 +399,8 @@
               <td class="half-input-group">
                 <div class="input-with-button">
                 <input type="hidden" id="cltjikcd" name="cltjikcd">
-              <input type="text" id="cltjik" name="cltjik"  placeholder="발주처 담당 직위">
-                  <input type="text" id="cltpernm" name="cltpernm" placeholder="발주처 담당자">
+              <input type="text" id="cltjik" name="cltjik"  placeholder="거래처 담당 직위">
+                  <input type="text" id="cltpernm" name="cltpernm" placeholder="거래처 담당자">
                   <input type="hidden" id="cbocltcd" name="cbocltcd" >
                 </div>
             </td>
@@ -410,13 +410,13 @@
               <label for="clttelno">연락처</label>
             </th>
             <td>
-              <input type="text" id="clttelno" name="clttelno" placeholder="발주처 담당 연락처">
+              <input type="text" id="clttelno" name="clttelno" placeholder="거래처 담당 연락처">
             </td>
             <th style="text-align: center">
               <label for="cltemail">이메일</label>
             </th>
             <td>
-              <input type="text" id="cltemail" name="cltemail" placeholder="발주담당 이메일">
+              <input type="text" id="cltemail" name="cltemail" placeholder="거래처담당 이메일">
             </td>
           </tr>
           <tr>
@@ -737,7 +737,7 @@
       },
       columns: [
        {binding: 'BALJUNUM', header: '주문번호', width: 150, visible: false},
-       {binding: 'cltnm', header: '발주처', width: 200},
+       {binding: 'cltnm', header: '거래처', width: 200},
        {binding: 'BALJUDATE', header: '발주일', width: 110, align: 'center'},
        {binding: 'project_no', header: '프로젝트번호', width: 150 },
        {binding: 'PERNM', header: '현장 PM', width: 85, align: 'center'},
@@ -754,7 +754,7 @@
        {binding: 'pamt', header: '금액', width: 100, align: 'right'},
        {binding: 'g_no', header: 'G_NO', width: 130, align: 'center'},
        {binding: 'pmapseq', header: '도면번호', width: 120, align: 'center'},
-       {binding: 'chulflag', header: '발주처출고여부', width: 120, align: 'center'},
+       {binding: 'chulflag', header: '거래처출고여부', width: 120, align: 'center'},
        {binding: 'facflag', header: '공장출고여부', width: 110, align: 'center'},
        {binding: 'hyunflag', header: '현장확인여부', width: 110, align: 'center'},
        {binding: 'remark', header: '비고', width: 200, align: 'center'},

@@ -161,6 +161,11 @@ public class UserService {
             params.addValue("userGroup",  userGroup );
         }
 
+        if (name != null && !name.isEmpty()) {
+            sql += " AND txc.cltnm LIKE :name ";
+            params.addValue("name", "%" + name + "%");
+        }
+
         if (username != null && !username.isEmpty()) {
             sql += " AND au.username LIKE :username ";
             params.addValue("username", "%" + username + "%");

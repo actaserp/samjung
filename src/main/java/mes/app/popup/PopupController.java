@@ -476,6 +476,7 @@ public class PopupController {
 					 BPDATE ,
 					 BPPERNM 
 					 from TB_CA664
+					 where 1 = 1
 			""";
 
 		if (project_no != null && !project_no.isEmpty()) {

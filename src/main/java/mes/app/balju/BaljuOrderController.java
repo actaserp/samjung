@@ -51,12 +51,12 @@ public class BaljuOrderController {
 
   @GetMapping("/read")
   public AjaxResult getSujuList(
-          @RequestParam(value = "CompanyName", required = false) String CompanyName ,
-          @RequestParam(value = "date_kind", required = false) String date_kind,
-          @RequestParam(value = "start", required = false) String start_date,
-          @RequestParam(value = "end", required = false) String end_date,
-          Authentication auth,
-          HttpServletRequest request) {
+    @RequestParam(value = "CompanyName", required = false) String CompanyName ,
+    @RequestParam(value = "date_kind", required = false) String date_kind,
+    @RequestParam(value = "start", required = false) String start_date,
+    @RequestParam(value = "end", required = false) String end_date,
+    Authentication auth,
+    HttpServletRequest request) {
     start_date = start_date + " 00:00:00";
     end_date = end_date + " 23:59:59";
     User user = (User) auth.getPrincipal();
@@ -88,12 +88,33 @@ public class BaljuOrderController {
       String custcd = baljuOrderService.getCustcd(spjangcd);
       String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
+      // ✅ 품목 검증 (헤더 저장 전에 수행 → 저장할 품목이 없으면 아무것도 INSERT/UPDATE 하지 않는다)
+      // 화면에서 수량/단가/금액이 '0' 으로 자동 보정되어 넘어오므로
+      // "모든 값이 비어있는가" 로는 빈 행을 걸러낼 수 없다. → 품목코드/품명 기준으로 판정한다.
+      List<Map<String, Object>> rawItems = (List<Map<String, Object>>) payload.get("items");
+      List<Map<String, Object>> items = new ArrayList<>();
+
+      if (rawItems != null) {
+        for (Map<String, Object> item : rawItems) {
+          if (item == null || isEmptyItem(item)) {
+            continue; // 품목이 없는 행은 저장 대상에서 제외
+          }
+          items.add(item);
+        }
+      }
+
+      if (items.isEmpty()) {
+        result.success = false;
+        result.message = "품목을 1건 이상 입력해 주세요.";
+        return result;
+      }
+
       TB_CA660 head;
 
       if (balJunum != null) {
 
         head = tb_ca660repository.findById(balJunum)
-                .orElseThrow(() -> new RuntimeException("발주 헤더 없음"));
+                 .orElseThrow(() -> new RuntimeException("발주 헤더 없음"));
 
         head.setPernm((String) payload.get("pernm"));
         head.setCustcd(custcd);
@@ -144,13 +165,8 @@ public class BaljuOrderController {
         balJunum = head.getBalJunum(); // 신규 발번
       }
 
-      // ✅ 품목 저장
-      List<Map<String, Object>> items = (List<Map<String, Object>>) payload.get("items");
-
+      // ✅ 품목 저장 (위에서 빈 행이 이미 제거된 목록)
       for (Map<String, Object> item : items) {
-        if (item.values().stream().allMatch(v -> v == null || v.toString().trim().isEmpty())) {
-          continue;
-        }
         try {
           TB_CA661 detail = new TB_CA661();
           detail.setBalJunum(head);
@@ -174,8 +190,8 @@ public class BaljuOrderController {
           detail.setG_no((String) item.get("g_no"));
           Object bomQty = item.get("bom_pqty");
           detail.setBomPqty(bomQty == null || bomQty.toString().isBlank()
-                  ? null
-                  : new java.math.BigDecimal(bomQty.toString().replace(",", "")));
+                              ? null
+                              : new java.math.BigDecimal(bomQty.toString().replace(",", "")));
 
           tb_ca661repository.save(detail);
         } catch (Exception e) {
@@ -196,6 +212,22 @@ public class BaljuOrderController {
     return result;
   }
 
+  /**
+   * 발주 상세(품목) 행이 "빈 행"인지 판정한다.
+   *
+   * 화면에서 수량/단가/금액은 비어 있어도 '0' 으로 보정되어 전송되므로
+   * 값이 전부 비었는지로는 빈 행을 걸러낼 수 없다.
+   * 품목코드(pcode) 와 품명(pname) 이 모두 없으면 저장 대상이 아닌 것으로 본다.
+   * (숫자 항목만 0 이 아닌 값이 들어온 경우도 품목이 없으므로 저장하지 않는다.)
+   */
+  private boolean isEmptyItem(Map<String, Object> item) {
+    return isBlankValue(item.get("pcode")) && isBlankValue(item.get("pname"));
+  }
+
+  private boolean isBlankValue(Object value) {
+    return value == null || value.toString().trim().isEmpty();
+  }
+
   @GetMapping("/detail")
   public AjaxResult getDetail (@RequestParam(value="id") Integer baljunum) {
 
@@ -211,7 +243,7 @@ public class BaljuOrderController {
   @PostMapping("/delete")
   @Transactional
   public AjaxResult deleteBalJu(
-          @RequestParam("id") Integer baljunum) {
+    @RequestParam("id") Integer baljunum) {
 
     AjaxResult result = new AjaxResult();
 
@@ -282,11 +314,11 @@ public class BaljuOrderController {
 
       Path tempPdf = Paths.get("C:/Temp/mes21/외주발주서/외주발주서_" + projectNo + ".pdf");
       ProcessBuilder pb = new ProcessBuilder(
-              "C:/Program Files/LibreOffice/program/soffice.exe",
-              "--headless",
-              "--convert-to", "pdf",
-              "--outdir", tempPdf.getParent().toString(),
-              tempXlsx.toAbsolutePath().toString()
+        "C:/Program Files/LibreOffice/program/soffice.exe",
+        "--headless",
+        "--convert-to", "pdf",
+        "--outdir", tempPdf.getParent().toString(),
+        tempXlsx.toAbsolutePath().toString()
       );
       pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
       pb.redirectError(ProcessBuilder.Redirect.DISCARD);
@@ -309,17 +341,17 @@ public class BaljuOrderController {
       }, 5, TimeUnit.MINUTES);
 
       return ResponseEntity.ok(Map.of(
-              "success", true,
-              "downloadUrl", downloadUrl,
-              "pdfUrl", pdfUrl,
-              "fileName", fileName
+        "success", true,
+        "downloadUrl", downloadUrl,
+        "pdfUrl", pdfUrl,
+        "fileName", fileName
       ));
 
     } catch (Exception e) {
       e.printStackTrace();
       return ResponseEntity.status(500).body(Map.of(
-              "success", false,
-              "message", e.getMessage()
+        "success", false,
+        "message", e.getMessage()
       ));
     }
   }
@@ -371,7 +403,7 @@ public class BaljuOrderController {
 
         // 발주일자 (각 페이지)
         setCell(sheet, base + BALJUDATE_REL, BALJUDATE_COL,
-                formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
+          formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
 
         // 특기사항 (각 페이지)
         setCell(sheet, base + REMARK_REL,     1, String.valueOf(baljuData.get("remark01")));
@@ -437,11 +469,11 @@ public class BaljuOrderController {
       Path tempPdf = Paths.get("C:/Temp/mes21/구매품의서/구매품의서_" + projectNo + ".pdf");
 
       ProcessBuilder pb = new ProcessBuilder(
-              "C:/Program Files/LibreOffice/program/soffice.exe",
-              "--headless",
-              "--convert-to", "pdf",
-              "--outdir", tempPdf.getParent().toString(),
-              tempXlsx.toAbsolutePath().toString()
+        "C:/Program Files/LibreOffice/program/soffice.exe",
+        "--headless",
+        "--convert-to", "pdf",
+        "--outdir", tempPdf.getParent().toString(),
+        tempXlsx.toAbsolutePath().toString()
       );
       pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
       pb.redirectError(ProcessBuilder.Redirect.DISCARD);
@@ -465,17 +497,17 @@ public class BaljuOrderController {
       }, 5, TimeUnit.MINUTES);
 
       return ResponseEntity.ok(Map.of(
-              "success", true,
-              "downloadUrl", downloadUrl,
-              "pdfUrl", pdfUrl,
-              "fileName", fileName
+        "success", true,
+        "downloadUrl", downloadUrl,
+        "pdfUrl", pdfUrl,
+        "fileName", fileName
       ));
 
     } catch (Exception e) {
       e.printStackTrace();
       return ResponseEntity.status(500).body(Map.of(
-              "success", false,
-              "message", e.getMessage()
+        "success", false,
+        "message", e.getMessage()
       ));
     }
   }
@@ -525,7 +557,7 @@ public class BaljuOrderController {
 
         // 발주일자 (각 페이지)
         setCell(sheet, base + BALJUDATE_REL, BALJUDATE_COL,
-                formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
+          formatYyyyMmDd(String.valueOf(baljuData.get("BALJUDATE"))));
 
         // 특기사항 (각 페이지)
         setCell(sheet, base + REMARK_REL,     1, String.valueOf(baljuData.get("remark01")));
@@ -612,8 +644,8 @@ public class BaljuOrderController {
       CellRangeAddress r = sheet.getMergedRegion(m);
       if (r.getFirstRow() >= srcStartRow && r.getLastRow() <= srcEndRow) {
         toAdd.add(new CellRangeAddress(
-                r.getFirstRow() + offset, r.getLastRow() + offset,
-                r.getFirstColumn(), r.getLastColumn()));
+          r.getFirstRow() + offset, r.getLastRow() + offset,
+          r.getFirstColumn(), r.getLastColumn()));
       }
     }
     for (CellRangeAddress r : toAdd) safeAddMergedRegion(sheet, r);
@@ -914,9 +946,9 @@ public class BaljuOrderController {
     for (int i = 0; i < s.length(); i++) {
       char ch = s.charAt(i);
       if ((ch >= 0x1100 && ch <= 0x11FF)   // 한글 자모
-              || (ch >= 0x3130 && ch <= 0x318F) // 호환 자모
-              || (ch >= 0xAC00 && ch <= 0xD7A3) // 한글 음절
-              || (ch >= 0xFF00 && ch <= 0xFFEF)) { // 전각
+            || (ch >= 0x3130 && ch <= 0x318F) // 호환 자모
+            || (ch >= 0xAC00 && ch <= 0xD7A3) // 한글 음절
+            || (ch >= 0xFF00 && ch <= 0xFFEF)) { // 전각
         w += 2;
       } else {
         w += 1;
